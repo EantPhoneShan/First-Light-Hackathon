@@ -35,10 +35,14 @@ describe('rules engine', () => {
     expect(e.problems.some((p) => p.id === 'fit.size.radar')).toBe(true);
   });
 
-  it('says when solar panels are maxed out', () => {
-    const e = ev(mod(fixed, (d) => (d.flight.antennaIds = ['antenna-x'])));
-    const p = e.problems.find((x) => x.id === 'power.average')!;
-    expect(p.hint).toMatch(/maxed out/);
+  it('says when solar panels are maxed out, and suggests more when they are not', () => {
+    // A power-hungry radio (test data only) on a craft that already has body cells and wings.
+    const data = structuredClone(gameData);
+    data.parts.find((p) => p.id === 'antenna-x')!.powerW = 12;
+    const maxed = evaluate(mod(fixed, (d) => (d.flight.antennaIds = ['antenna-x'])), wildfire, data).problems.find((x) => x.id === 'power.average')!;
+    expect(maxed.hint).toMatch(/maxed out/);
+    const noWings = ev(mod(fixed, (d) => (d.engineer.partIds = d.engineer.partIds.filter((id) => id !== 'solar-wings')))).problems.find((x) => x.id === 'power.average')!;
+    expect(noWings.hint).toMatch(/Add more solar panels/);
   });
 
   it('fails a low orbit on lifetime and revisit, and flags debris above 600 km', () => {
@@ -58,9 +62,10 @@ describe('rules engine', () => {
   });
 
   it('turns amber under 10% spare (CubeSat 101 reserve)', () => {
-    const e = ev(mod(fixed, (d) => (d.engineer.partIds[4] = 'reaction-wheel')));
+    // X-band radio and reaction wheel: about 1% power to spare.
+    const e = ev(mod(fixed, (d) => { d.engineer.partIds[4] = 'reaction-wheel'; d.flight.antennaIds = ['antenna-x']; }));
     expect(e.gauges.power.status).toBe('warn');
-    expect(e.gauges.budget.status).toBe('warn');
+    expect(ev(mod(fixed, (d) => (d.engineer.partIds[4] = 'reaction-wheel'))).gauges.budget.status).toBe('warn');
   });
 
   it('never crashes on broken synced data', () => {

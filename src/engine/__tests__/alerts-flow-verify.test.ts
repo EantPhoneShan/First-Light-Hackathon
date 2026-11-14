@@ -9,14 +9,21 @@ import { fixed, gameData, mod, wildfire } from './fixtures';
 
 describe('conflict alerts', () => {
   it('tell the gauge watcher who caused it, and suggest a fix', () => {
-    const after = mod(fixed, (d) => (d.flight.antennaIds = ['antenna-x']));
-    const alerts = conflictAlerts(fixed, after, wildfire, gameData, { byName: 'Lucas' });
+    const after = mod(fixed, (d) => (d.engineer.partIds = d.engineer.partIds.filter((id) => id !== 'solar-wings')));
+    const alerts = conflictAlerts(fixed, after, wildfire, gameData, { byName: 'Ben' });
     const power = alerts.find((a) => a.resource === 'power')!;
     expect(power.hurtRole).toBe(RESOURCE_WATCHER.power);
     expect(power.after).toBe('fail');
-    expect(power.message).toBe('Power is now 0.91 W short. Lucas (Flight Dynamics) swapped the S-band radio for the X-band radio.');
+    expect(power.message).toMatch(/^Power is now [\d.]+ W short\. Ben \(Spacecraft Engineer\) removed the deployable solar wings\.$/);
     expect(power.fixes.length).toBeGreaterThan(0);
-    expect(alerts.find((a) => a.resource === 'budget')!.hurtRole).toBe('planner');
+  });
+
+  it('warn the Planner when another role eats the budget reserve', () => {
+    const after = mod(fixed, (d) => (d.flight.antennaIds = ['antenna-x']));
+    const alerts = conflictAlerts(fixed, after, wildfire, gameData, { byName: 'Lucas' });
+    const budget = alerts.find((a) => a.resource === 'budget')!;
+    expect(budget.hurtRole).toBe('planner');
+    expect(budget.message).toMatch(/Lucas \(Flight Dynamics\) swapped the S-band radio for the X-band radio\.$/);
   });
 
   it('name the slot problem for the Engineer when Science adds a part', () => {
@@ -80,6 +87,14 @@ describe('score check for the Lambda', () => {
     expect(verifyScore({ ...makeSubmission('wildfire-watch', fixed, sim), seed: -1 }, gameData).ok).toBe(false);
     expect(verifyScore({ ...makeSubmission('nope', fixed, sim) }, gameData).ok).toBe(false);
     expect(verifyScore(null, gameData).ok).toBe(false);
+  });
+
+  it('refuses tutorial flights (events off) with a clear reason', () => {
+    const practice = simulate(fixed, wildfire, gameData, { seed: 42, events: false });
+    const v = verifyScore(JSON.parse(JSON.stringify(makeSubmission('wildfire-watch', fixed, practice))), gameData);
+    expect(v.ok).toBe(false);
+    expect(v.reasons[0]).toMatch(/Tutorial and practice flights/);
+    expect(makeSubmission('wildfire-watch', fixed, sim).context?.eventsOff).toBeUndefined();
   });
 
   it('never takes event credit from the client', () => {

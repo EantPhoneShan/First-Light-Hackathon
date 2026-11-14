@@ -32,8 +32,17 @@ export interface RealMission {
 
 export const REAL_MISSIONS = missionsJson.missions as RealMission[];
 
+/**
+ * Shown on every "most like" card (team decision, 15 Nov): mission names are
+ * plain factual text with a link to NASA's own page. Never show NASA logos,
+ * insignia, mission patches or mission art next to them.
+ */
+export const MATCH_DISCLAIMER = 'Real mission shown for comparison only. First Light is not endorsed by NASA.';
+
 export interface MissionMatch {
   mission: RealMission;
+  /** Always MATCH_DISCLAIMER: show it on the card. */
+  disclaimer: string;
   /** Plain reasons, e.g. "Both use a radar", "Both fly a sun-synchronous orbit". */
   reasons: string[];
   /** 0 to 1, how alike. */
@@ -74,7 +83,7 @@ export function closestMission(design: Design, data: GameData, missions: RealMis
     }
     const max = 3 * Math.max(1, m.instrumentIds.length) + 3;
     const similarity = points / max;
-    if (points > 0 && (!best || similarity > best.similarity)) best = { mission: m, reasons, similarity };
+    if (points > 0 && (!best || similarity > best.similarity)) best = { mission: m, disclaimer: MATCH_DISCLAIMER, reasons, similarity };
   }
   return best;
 }

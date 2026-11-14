@@ -32,8 +32,12 @@ export interface ScoreSubmission {
   choices: Record<string, string>;
   /** What the client says it scored; checked, never stored. */
   claimedScore?: number;
-  /** Client-only facts worth a few points (approvals, trade study). */
-  context?: Pick<ScoreContext, 'allApproved' | 'tradeStudyUsed'>;
+  /**
+   * Client-only facts worth a few points (approvals, trade study), plus
+   * eventsOff for tutorial or practice flights (makeSubmission sets it).
+   * The Lambda forwards this object as-is.
+   */
+  context?: Pick<ScoreContext, 'allApproved' | 'tradeStudyUsed'> & { eventsOff?: boolean };
 }
 
 export interface VerifiedScore {
@@ -58,7 +62,10 @@ export const VERIFY_LIMITS = {
 
 /** Builds the submission for a finished flight (client side). */
 export function makeSubmission(scenarioId: string, design: Design, sim: SimResult, context?: ScoreSubmission['context'], claimedScore?: number): ScoreSubmission {
-  return { scenarioId, design, seed: sim.seed, choices: choicesOf(sim), context, claimedScore };
+  // A flight with events off (the tutorial) can't be replayed as a normal flight:
+  // say so, so the server refuses it clearly instead of scoring a different mission.
+  const ctx = sim.eventsEnabled === false ? { ...context, eventsOff: true } : context;
+  return { scenarioId, design, seed: sim.seed, choices: choicesOf(sim), context: ctx, claimedScore };
 }
 
 /** Replays the flight and scores it on the server. Pure: no network, no clock. */
@@ -87,6 +94,11 @@ export function verifyScore(sub: unknown, data: GameData): VerifiedScore {
   }
   if (designText.length > VERIFY_LIMITS.maxDesignChars) {
     reasons.push('The design is too large.');
+    return bad(scenario.id);
+  }
+
+  if (s.context?.eventsOff === true) {
+    reasons.push('Tutorial and practice flights (random events off) don’t go on the leaderboard.');
     return bad(scenario.id);
   }
 

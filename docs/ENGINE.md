@@ -56,5 +56,6 @@ const report = buildMissionReport(design, scenario, gameData, sim, score, lastFl
 ## Adding content
 
 - **A part, rocket, orbit or station:** add it to the JSON with a `tooltip`, a `source` and a `sourceNote`. `npm test` fails if a key is misspelled, a number is impossible or an id points at nothing.
-- **A scenario:** add it to `scenarios.json` (goals → measurements → instrument ids), then add a winning build and a failing build to the tests.
+- **A scenario:** add it to `scenarios.json` (goals → measurements → instrument ids; `mustMeasure` lists measurements the objective can't do without), then add a winning build and a failing build to the tests.
+- **Balance check:** sweep many builds through `evaluate` → `simulate` → `scoreMission` and look at how many go green, what stops the rest, and whether any part can never win. Last sweep (15 Nov): Wildfire 93 all-green builds out of 3,150 launchable (all succeed, 3 reach 3 stars); Flood Radar 270 of 3,300.
 - **A real mission:** add it to `missions.json` only after checking the facts on a NASA page, and say what you checked in `checked`.

@@ -116,6 +116,8 @@ export interface SimSetup {
   eventsById: Record<string, GameEvent>;
   choices: Record<string, string>;
   autoChoose: boolean;
+  /** Random events are on for this flight (off for the tutorial). */
+  eventsEnabled: boolean;
 }
 
 export function createSim(design: Design, scenario: Scenario, data: GameData, opts: SimOptions = {}): SimSetup {
@@ -167,6 +169,7 @@ export function createSim(design: Design, scenario: Scenario, data: GameData, op
     eventsById: Object.fromEntries(data.events.map((e) => [e.id, e])),
     choices: opts.choices ?? {},
     autoChoose: opts.autoChoose ?? false,
+    eventsEnabled: opts.events !== false,
     evaluation,
     launchFailure,
     periodMin,
@@ -579,6 +582,7 @@ export function finishSim(s: SimState, setup: SimSetup): SimResult {
     },
     events: s.eventLog,
     seed: setup.seed,
+    eventsEnabled: setup.eventsEnabled,
   };
 }
 

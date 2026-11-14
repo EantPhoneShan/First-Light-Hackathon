@@ -145,6 +145,7 @@ export const scenarioSchema = z.strictObject({
       }),
     )
     .min(1),
+  mustMeasure: z.array(z.string()).min(1).optional(),
   eventsAllowed: z.array(z.string()),
   tutorialDesign: designSchema.optional(),
 });

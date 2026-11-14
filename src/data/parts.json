@@ -61,7 +61,7 @@
       "fits": ["cubesat"],
       "massKg": 0.3,
       "powerW": 0,
-      "generationW": 10,
+      "generationW": 12,
       "costM": 0.05,
       "buildMonths": 3,
       "reliability": 0.99,
@@ -80,14 +80,14 @@
       "fits": ["cubesat"],
       "massKg": 0.6,
       "powerW": 0,
-      "generationW": 9,
+      "generationW": 11,
       "costM": 0.1,
       "buildMonths": 5,
       "reliability": 0.96,
       "icon": "part-solar-wings",
       "tooltip": "Panels that fold out after launch, like wings. They nearly double your power.",
       "source": "cubesat101",
-      "sourceNote": "CubeSat 101 (ChargerSat-1): deployable solar panels nearly double the power input."
+      "sourceNote": "CubeSat 101 (ChargerSat-1): deployable solar panels nearly double the power input. With the body cells: 12 W + 11 W = 23 W, about double."
     },
     {
       "id": "solar-array",

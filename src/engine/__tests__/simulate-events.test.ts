@@ -44,8 +44,10 @@ describe('simulation', () => {
   });
 
   it('kills a thin-margin craft late, once its panels wear out', () => {
-    const r = simulate(mod(fixed, (d) => (d.engineer.partIds[4] = 'reaction-wheel')), wildfire, gameData);
-    expect(r.outcome).toBe('partial');
+    // X-band radio and reaction wheel leave about 1% spare power: fine at first, then the panels wear.
+    const r = simulate(mod(fixed, (d) => { d.engineer.partIds[4] = 'reaction-wheel'; d.flight.antennaIds = ['antenna-x']; }), wildfire, gameData);
+    expect(r.outcome).not.toBe('success');
+    expect(r.survivedMin).toBeGreaterThan(30 * 1440);
     expect(r.markers.find((m) => m.kind === 'battery-dead')!.why).toMatch(/worn down/);
   });
 
