@@ -497,7 +497,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     files = {
         # Buses and parts, named by Member 1's ids in src/data/parts.json
-        'bus-cubesat-6u': bus_6u(), 'bus-smallsat': bus_smallsat(), 'bus-large': cubesat(3, 3, 3, cells=True).svg(),
+        'bus-cubesat-3u': bus_3u(), 'bus-cubesat-6u': bus_6u(), 'bus-cubesat-12u': bus_12u(), 'bus-smallsat': bus_smallsat(), 'bus-large': cubesat(3, 3, 3, cells=True).svg(),
         'solar-body': solar_body(), 'solar-wings': solar_wings(), 'solar-array': solar_array(),
         'battery-small': battery(False), 'battery-large': battery(True), 'battery-pack': battery_pack(),
         'computer': computer(), 'magnetorquer': magnetorquer(), 'reaction-wheel': reaction_wheel(),

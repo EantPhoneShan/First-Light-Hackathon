@@ -28,7 +28,7 @@ export function ScenarioPicker({ disabled, who = 'Mission Planner' }: { disabled
     <div role="radiogroup" aria-label="Mission" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" title={disabled ? `Only the ${who} picks the mission.` : undefined}>
       {gameData.scenarios.map((sc) => {
         const selected = sc.id === scenario.id
-        const bus = findBus(gameData, sc.busIds[0])
+        const bus = findBus(gameData, sc.busIds[Math.floor(sc.busIds.length / 2)])
         return (
           <button
             key={sc.id}

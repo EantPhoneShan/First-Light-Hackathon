@@ -1,8 +1,8 @@
 /**
  * Where every part goes on the 3D craft. Pure maths, no three.js.
  *
- * The bus is a box of slot cells (Member 1's `slots`): a 6U CubeSat is 2 wide,
- * 3 tall and 1 deep, a small satellite 2x4x2, a large one 4x4x2. Internal parts
+ * The bus is a box of slot cells (Member 1's `slots`): a 3U CubeSat is 1x3x1,
+ * a 6U 2x3x1, a 12U 2x3x2, a small satellite 2x4x2, a large one 4x4x2. Internal parts
  * are packed into cells (a 2-slot imager takes two cells side by side), from the
  * bottom up: instruments first, so their lenses look out of the bottom (nadir)
  * face, then propulsion, batteries, attitude control, computers, radios on top.
@@ -24,7 +24,9 @@ export interface BusGeom {
 }
 
 export function busGeom(bus: Bus): BusGeom {
-  const grid: Vec3 = bus.size === 'cubesat' ? [2, 3, 1] : bus.size === 'smallsat' ? [2, 4, 2] : [4, 4, 2]
+  // CubeSats by their U count: 3U is 1x3x1, 6U 2x3x1, 12U 2x3x2.
+  const grid: Vec3 =
+    bus.size === 'cubesat' ? (bus.slots <= 3 ? [1, 3, 1] : bus.slots <= 6 ? [2, 3, 1] : [2, 3, 2]) : bus.size === 'smallsat' ? [2, 4, 2] : [4, 4, 2]
   const cell = bus.size === 'cubesat' ? 0.11 : bus.size === 'smallsat' ? 0.25 : 0.5
   return { grid, cell, size: [grid[0] * cell, grid[1] * cell, grid[2] * cell], skin: bus.size === 'cubesat' ? 'cubesat' : 'foil' }
 }

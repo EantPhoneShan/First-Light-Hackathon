@@ -11,7 +11,7 @@ import type { Bus, Part } from '@/engine/types'
 import { cn } from '@/lib/cn'
 import { busGeom } from './craftLayout'
 import { SpacecraftModel } from './SpacecraftModel'
-import { SpaceLights } from './Stage'
+import { Earth, SpaceLights } from './Stage'
 
 type OrbitControlsImpl = React.ComponentRef<typeof OrbitControls>
 
@@ -55,9 +55,13 @@ export default function Craft3D({ bus, parts, problemIds, canRemove = () => true
   }, [parts, selected])
 
   return (
-    <div className="relative h-[420px] w-full overflow-hidden rounded-xl sm:h-[480px]">
-      <Canvas dpr={[1, 2]} camera={{ fov: 35 }} gl={{ antialias: true }} aria-label="3D spacecraft">
-        <SpaceLights />
+    <div className="relative h-[420px] w-full overflow-hidden rounded-xl bg-[url('/assets/bg/stars.webp')] bg-cover bg-center sm:h-[480px]">
+      <Canvas dpr={[1, 2]} camera={{ fov: 35 }} gl={{ antialias: true, alpha: true }} aria-label="3D spacecraft">
+        <SpaceLights photoBackdrop />
+        {/* Earth far below, so the craft looks like it's already in orbit */}
+        <group position={[size * 4, -size * 34, -size * 18]}>
+          <Earth radius={size * 30} segments={96} />
+        </group>
         <CameraRig size={size} resetKey={resetKey} controls={controls} />
         <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={size * 1.2} maxDistance={size * 9} autoRotate={!selected} autoRotateSpeed={0.6} />
         {bus && (

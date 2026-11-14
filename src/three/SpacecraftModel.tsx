@@ -54,6 +54,7 @@ export function SpacecraftModel({ bus, parts, cutaway = true, exploded = false, 
   return (
     <group onPointerMissed={() => interactive && onSelect?.(null, null)}>
       <BusFrame g={g} cutaway={cutaway} solarSides={hasBodyCells} />
+      <BusDetails g={g} />
 
       {placed.map((p) => {
         const target: Vec3 = exploded ? [p.pos[0] * 2.4, p.pos[1] * 1.9 + (p.pos[1] >= 0 ? H * 0.15 : -H * 0.15), p.pos[2] * 2.4 + D * 0.5] : p.pos
@@ -134,7 +135,7 @@ function BusFrame({ g, cutaway, solarSides }: { g: BusGeom; cutaway: boolean; so
   const m = mats()
   const [W, H, D] = g.size
   const t = g.cell * (g.skin === 'cubesat' ? 0.085 : 0.05)
-  const side = solarSides ? m.solar : g.skin === 'foil' ? m.gold : m.aluminium
+  const side = solarSides ? m.solar : g.skin === 'foil' ? m.gold : m.cubePanel
   const plate = g.skin === 'foil' ? m.whitePaint : m.aluminium
   const levels = g.grid[1]
   return (
@@ -189,6 +190,88 @@ function BusFrame({ g, cutaway, solarSides }: { g: BusGeom; cutaway: boolean; so
   )
 }
 
+/**
+ * Small things every real spacecraft has: CubeSat rail feet and deployment
+ * springs; on bigger buses a launch-adapter ring, a white radiator and
+ * attitude-thruster pods; and on all of them a star tracker (with its sun
+ * baffle) and coarse sun sensors.
+ */
+function BusDetails({ g }: { g: BusGeom }) {
+  const m = mats()
+  const [W, H, D] = g.size
+  const t = g.cell * (g.skin === 'cubesat' ? 0.085 : 0.05)
+  const c = g.cell
+  return (
+    <group>
+      {g.skin === 'cubesat' ? (
+        <>
+          {/* Rail feet top and bottom, springs that push the CubeSat out of its deployer */}
+          {[-1, 1].flatMap((sx) =>
+            [-1, 1].flatMap((sz) =>
+              [-1, 1].map((sy) => (
+                <group key={`${sx}${sz}${sy}`} position={[sx * (W / 2 - t / 2), sy * (H / 2 + t * 0.9), sz * (D / 2 - t / 2)]}>
+                  <mesh material={sy > 0 && sx > 0 ? m.orange : m.anodised}>
+                    <cylinderGeometry args={[t * 0.35, t * 0.35, t * 0.6, 10]} />
+                  </mesh>
+                </group>
+              )),
+            ),
+          )}
+          {/* Kill-switch tab at the foot of one rail */}
+          <mesh material={m.black} position={[W / 2 - t / 2, -H / 2 + t, D / 2 + t * 0.3]}>
+            <boxGeometry args={[t * 0.6, t * 1.4, t * 0.4]} />
+          </mesh>
+        </>
+      ) : (
+        <>
+          {/* Launch adapter ring: the bolted ring that held the craft on the rocket */}
+          <mesh material={m.aluminium} position={[0, -H / 2 - c * 0.08, 0]}>
+            <cylinderGeometry args={[Math.min(W, D) * 0.38, Math.min(W, D) * 0.42, c * 0.16, 40, 1, true]} />
+          </mesh>
+          <mesh material={m.anodised} position={[0, -H / 2 - c * 0.16, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[Math.min(W, D) * 0.42, c * 0.03, 8, 40]} />
+          </mesh>
+          {/* White radiator on the back, facing deep space to dump heat */}
+          <mesh material={m.radiator} position={[0, 0, -D / 2 - 0.002]} rotation={[0, Math.PI, 0]}>
+            <planeGeometry args={[W * 0.8, H * 0.7]} />
+          </mesh>
+          {/* Attitude-thruster pods on the bottom corners */}
+          {[-1, 1].flatMap((sx) =>
+            [-1, 1].map((sz) => (
+              <group key={`t${sx}${sz}`} position={[sx * (W / 2 - c * 0.12), -H / 2 + c * 0.15, sz * (D / 2 - c * 0.12)]}>
+                <mesh material={m.anodised}>
+                  <boxGeometry args={[c * 0.18, c * 0.18, c * 0.18]} />
+                </mesh>
+                <mesh material={m.nozzle} position={[sx * c * 0.12, 0, 0]} rotation={[0, 0, (sx * Math.PI) / 2]}>
+                  <cylinderGeometry args={[c * 0.03, c * 0.06, c * 0.08, 10, 1, true]} />
+                </mesh>
+              </group>
+            )),
+          )}
+        </>
+      )}
+      {/* Star tracker: a small camera that finds its way by the stars, with a baffle against sunlight */}
+      <group position={[-W * 0.28, H / 2, -D * 0.28]} rotation={[0.35, 0.6, 0]}>
+        <mesh material={m.black} position={[0, c * 0.1, 0]}>
+          <boxGeometry args={[c * 0.22, c * 0.2, c * 0.22]} />
+        </mesh>
+        <mesh material={m.anodised} position={[0, c * 0.3, 0]}>
+          <cylinderGeometry args={[c * 0.16, c * 0.08, c * 0.22, 20, 1, true]} />
+        </mesh>
+      </group>
+      {/* Coarse sun sensors on two corners of the top deck */}
+      {[
+        [W * 0.38, D * 0.38],
+        [-W * 0.38, D * 0.38],
+      ].map(([x, z], i) => (
+        <mesh key={i} material={m.glass} position={[x, H / 2 + c * 0.015, z]}>
+          <boxGeometry args={[c * 0.08, c * 0.03, c * 0.08]} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 // ---------------------------------------------------------------- outside parts
 
 /** A solar panel: cells on top, dark backing below. */
@@ -213,7 +296,8 @@ function Wings({ g, index, deploy, big }: { g: BusGeom; index: number; deploy: n
   const half = alongX ? W / 2 : D / 2
   const width = (alongX ? D : W) * (big ? 1.1 : 0.92)
   const panelL = big ? H * 0.95 : H * 0.92
-  const panels = big ? 3 : 1
+  // CubeSat wings fold out in two panels per side; big arrays in three.
+  const panels = big ? 3 : 2
   const boom = big ? half * 0.6 : 0
   const thick = g.cell * 0.04
   const fold = (1 - deploy) * (Math.PI / 2)
@@ -229,6 +313,15 @@ function Wings({ g, index, deploy, big }: { g: BusGeom; index: number; deploy: n
           {Array.from({ length: panels }, (_, i) => (
             <group key={i} position={[s * (boom + panelL * (i + 0.5) * 1.02), 0, 0]}>
               <SolarPanel l={panelL} w={width} thick={thick} />
+              {/* Aluminium frame round the cells, and a hinge bracket between panels */}
+              <mesh material={m.frame} position={[0, -thick * 0.2, 0]}>
+                <boxGeometry args={[panelL * 1.01, thick * 0.8, width * 1.03]} />
+              </mesh>
+              {i > 0 && (
+                <mesh material={m.anodised} position={[-s * panelL * 0.51, 0, 0]}>
+                  <boxGeometry args={[thick * 2, thick * 2.5, width * 0.6]} />
+                </mesh>
+              )}
             </group>
           ))}
           {/* Orange hinge */}

@@ -1,14 +1,15 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { BatteryMedium, Database, Moon, Pause, Play, RadioTower, RotateCcw, Satellite, Send, Sun } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fallback3D } from '@/components/Fallback3D'
 import { drawScene, makeStars, toCanvasAngle } from '@/components/sim/drawScene'
 import { Screen } from '@/components/Screen'
 import { Term } from '@/components/Term'
-import { findOrbit } from '@/engine/data'
+import { findBus, findOrbit } from '@/engine/data'
 import { clampAltitude } from '@/engine/rules'
 import { chooseEvent, createSim, DEFAULT_SEED, finishSim, initialState, pendingEventCard, stepSim } from '@/engine/simulate'
 import type { GameEvent, MarkerKind, SimMarker, SimState, Status } from '@/engine/types'
-import { gameData, roleNames } from '@/game/ui'
+import { gameData, partsOnCraft, roleNames } from '@/game/ui'
 import { cn } from '@/lib/cn'
 import { play } from '@/lib/sound'
 import { eventKey, useGame, useScenario } from '@/store/game'
@@ -16,6 +17,9 @@ import { LeadButton, WaitingFor } from '@/components/LeadButton'
 import { canChooseEvent } from '@/engine/flow'
 import { useTeamFlow } from '@/game/teamFlow'
 import { sync } from '@/sync'
+
+// three.js only downloads on this screen.
+const Orbit3D = lazy(() => import('@/three/Orbit3D'))
 
 /** Playback speeds in simulated minutes per real second (PRD: 1 orbit in a few s, 1 year in ~30 s). */
 const speeds = [
@@ -66,6 +70,7 @@ export function Simulation() {
   const setEventChoice = useGame((s) => s.setEventChoice)
   const flow = useTeamFlow()
   const orbit = findOrbit(gameData, design.flight.orbitId)
+  const craftParts = useMemo(() => partsOnCraft(design), [design])
   const altitudeKm = orbit ? clampAltitude(orbit, design.flight.altitudeKm) : 500
   // Same seed on every device in a team room, so everyone gets the same events (Member 3's room.seed).
   const seed = sync.getRoom()?.seed ?? DEFAULT_SEED
@@ -192,7 +197,20 @@ export function Simulation() {
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Orbit view */}
         <div className="relative overflow-hidden rounded-xl border border-space-700">
-          <canvas ref={canvasRef} className="block aspect-square w-full sm:aspect-[4/3]" aria-label="Spacecraft orbiting Earth" role="img" />
+          <div className="aspect-square w-full sm:aspect-[4/3]">
+            <Fallback3D fallback={<canvas ref={canvasRef} className="block h-full w-full" aria-label="Spacecraft orbiting Earth" role="img" />}>
+              <Suspense fallback={<canvas ref={canvasRef} className="block h-full w-full" aria-label="Spacecraft orbiting Earth" role="img" />}>
+                <Orbit3D
+                  getView={() => ({ angleDeg: stateRef.current.orbitAngleDeg, inEclipse: stateRef.current.inEclipse, downlinking: stateRef.current.downlinking, alive: stateRef.current.alive })}
+                  altitudeKm={altitudeKm}
+                  inclinationDeg={orbit?.inclinationDeg ?? 50}
+                  bus={findBus(gameData, design.engineer.busId)}
+                  parts={craftParts}
+                  stations={gameData.stations.filter((st) => design.flight.stationIds.includes(st.id))}
+                />
+              </Suspense>
+            </Fallback3D>
+          </div>
 
           <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
             <Chip on={!s.inEclipse} icon={s.inEclipse ? Moon : Sun} tone={s.inEclipse ? 'muted' : 'warn'}>

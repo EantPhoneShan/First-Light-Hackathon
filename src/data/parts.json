@@ -1,6 +1,23 @@
 {
   "buses": [
     {
+      "id": "bus-cubesat-3u",
+      "name": "3U CubeSat bus",
+      "size": "cubesat",
+      "slots": 3,
+      "maxMassKg": 4,
+      "massKg": 0.5,
+      "powerW": 0.5,
+      "costM": 0.15,
+      "buildMonths": 8,
+      "reliability": 0.98,
+      "icon": "part-bus-3u",
+      "tooltip": "Three 10 cm cubes in a row, about the size of a loaf of bread. Cheapest and lightest, but only three slots inside.",
+      "learnMoreUrl": "https://www.nasa.gov/wp-content/uploads/2017/03/nasa_csli_cubesat_101_508.pdf",
+      "source": "cubesat101",
+      "sourceNote": "1U is a 10 cm cube of about 1 to 1.33 kg, so 3U is at most about 4 kg. 3U is the most flown CubeSat size."
+    },
+    {
       "id": "bus-cubesat-6u",
       "name": "6U CubeSat bus",
       "size": "cubesat",
@@ -16,6 +33,23 @@
       "learnMoreUrl": "https://www.nasa.gov/wp-content/uploads/2017/03/nasa_csli_cubesat_101_508.pdf",
       "source": "cubesat101",
       "sourceNote": "1U is a 10 cm cube of about 1 to 1.33 kg, so 6U is at most about 8 kg. Build time: as little as 9 months, typically 18 to 24 months including parts."
+    },
+    {
+      "id": "bus-cubesat-12u",
+      "name": "12U CubeSat bus",
+      "size": "cubesat",
+      "slots": 12,
+      "maxMassKg": 24,
+      "massKg": 2.4,
+      "powerW": 1.5,
+      "costM": 0.6,
+      "buildMonths": 11,
+      "reliability": 0.975,
+      "icon": "part-bus-12u",
+      "tooltip": "Twelve 10 cm cubes, about the size of a big shoebox. Room for bigger instruments, but heavier and pricier to build and launch.",
+      "learnMoreUrl": "https://www.nasa.gov/wp-content/uploads/2017/03/nasa_csli_cubesat_101_508.pdf",
+      "source": "cubesat101",
+      "sourceNote": "1U is a 10 cm cube of about 1 to 2 kg; 12U craft are usually limited to about 24 kg by their deployers. Price and build time are game estimates."
     },
     {
       "id": "bus-smallsat",

@@ -15,7 +15,7 @@ import * as THREE from 'three'
 import type { Bus, Launcher, Part } from '@/engine/types'
 import { flightTime, sampleAt, type AscentProfile } from '@/game/ascent'
 import { busGeom } from './craftLayout'
-import { earthTexture, mats, puffTexture } from './materials'
+import { earthTexture, grassTexture, mats, puffTexture } from './materials'
 import { Booster, FairingHalf, FirstStage, Interstage, Payload, rocketSpec, SecondStage, stackOf, upperEngineLen, type RocketSpec } from './rocketParts'
 import { SpacecraftModel } from './SpacecraftModel'
 
@@ -46,7 +46,7 @@ const smooth = (k: number) => k * k * (3 - 2 * k)
 
 export default function Launch3D(props: Launch3DProps) {
   return (
-    <Canvas dpr={[1, 2]} gl={{ logarithmicDepthBuffer: true, antialias: true }} camera={{ fov: 40, near: 0.05, far: 3e7, position: [60, 20, 90] }} aria-label="3D launch">
+    <Canvas dpr={[1, 2]} gl={{ logarithmicDepthBuffer: true, antialias: true, alpha: true }} camera={{ fov: 40, near: 0.05, far: 3e7, position: [60, 20, 90] }} aria-label="3D launch">
       <Scene {...props} />
     </Canvas>
   )
@@ -131,6 +131,7 @@ function Scene({ getT, T, fails, launcher, bus, parts, profile }: Launch3DProps)
   const plume2 = useMemo(() => makePlumeMaterial('#eaf2ff', '#7fa8ff'), [])
   const earthMap = useMemo(() => earthTexture(), [])
   const puff = useMemo(() => puffTexture(), [])
+  const grass = useMemo(() => grassTexture(Math.max(4, H / 6)), [H])
   const atmo = useMemo(() => new THREE.ShaderMaterial({ vertexShader: atmoVertex, fragmentShader: atmoFragment, transparent: true, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false }), [])
 
   // Refs to everything that moves.
@@ -165,26 +166,12 @@ function Scene({ getT, T, fails, launcher, bus, parts, profile }: Launch3DProps)
   const smokeSeeds = useMemo(() => Array.from({ length: SMOKE }, (_, i) => ({ a: (i / SMOKE) * Math.PI * 2 + Math.sin(i * 12.9) * 0.4, v: 0.5 + ((i * 7) % 11) / 11, up: ((i * 5) % 7) / 7 })), [])
   const debris = useMemo(() => Array.from({ length: 24 }, (_, i) => new THREE.Vector3(Math.sin(i * 2.3), Math.cos(i * 1.7) * 0.8 + 0.3, Math.sin(i * 3.1)).normalize()), [])
 
-  // Stars: points far away that ride along with the camera, fading in above the air.
-  const stars = useMemo(() => {
-    const g = new THREE.BufferGeometry()
-    const a = new Float32Array(2400 * 3)
-    for (let i = 0; i < 2400; i++) {
-      const u = Math.sin(i * 12.9898) * 43758.5453
-      const v = Math.sin(i * 78.233) * 12345.678
-      const th = (u - Math.floor(u)) * Math.PI * 2
-      const ph = Math.acos(2 * (v - Math.floor(v)) - 1)
-      a.set([Math.sin(ph) * Math.cos(th) * 2e7, Math.cos(ph) * 2e7, Math.sin(ph) * Math.sin(th) * 2e7], i * 3)
-    }
-    g.setAttribute('position', new THREE.BufferAttribute(a, 3))
-    return g
-  }, [])
-  const starRef = useRef<THREE.Points>(null)
+  const earthMat = useRef<THREE.MeshStandardMaterial>(null)
 
   const craftH = bus ? busGeom(bus).size[1] : 0.3
   const s2Top = st.payload
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const t = getT()
     const tau = flightTime(profile, t, T, fails)
     const s = sampleAt(profile, Math.max(0, tau))
@@ -194,18 +181,19 @@ function Scene({ getT, T, fails, launcher, bus, parts, profile }: Launch3DProps)
     const exploded = fails && t >= T.fail
     const inOrbit = !fails && t >= T.orbit
 
-    // Sky: blue on the pad, black above ~60 km.
-    const k = clamp(alt / 60e3)
-    sky.setRGB(0.36 * (1 - smooth(k)) + 0.02, 0.58 * (1 - smooth(k)) + 0.035, 0.92 * (1 - smooth(k)) + 0.08)
-    scene.background = sky
-    scene.fog = alt < 20e3 ? (scene.fog as THREE.Fog) ?? new THREE.Fog(sky, 2000, 40000) : null
-    if (scene.fog) (scene.fog as THREE.Fog).color.copy(sky)
-
-    if (starRef.current) {
-      starRef.current.position.copy(camera.position)
-      ;(starRef.current.material as THREE.PointsMaterial).opacity = clamp((alt - 25e3) / 40e3)
-      starRef.current.visible = alt > 25e3
+    // The sky is drawn behind the canvas (photos + gradient, see Launch.tsx), so the scene stays see-through.
+    scene.background = null
+    scene.fog = null
+    void sky
+    void smooth
+    // Earth fades in once the mountains have dropped away.
+    if (earthMat.current) {
+      const o = clamp((alt - 2500) / 12000)
+      earthMat.current.opacity = o
+      earthMat.current.transparent = o < 1
+      earthMat.current.visible = o > 0
     }
+
 
     // World moves under the rocket.
     if (earth.current) {
@@ -340,12 +328,12 @@ function Scene({ getT, T, fails, launcher, bus, parts, profile }: Launch3DProps)
       look.set(0, H * 0.5, 0)
       want.set(H * 1.4, H * 0.4, H * 2.2)
     } else if (inOrbit) {
-      // Side-on to the craft, a little ahead of it, with the upper stage behind and Earth's curve below.
+      // Side-on to the craft, a little behind it, so the spent stage drifts out of shot and Earth's curve fills the bottom.
       const c = craft.current?.getWorldPosition(new THREE.Vector3()) ?? new THREE.Vector3(0, s2Top, 0)
       const up = new THREE.Vector3(0, 1, 0).applyEuler(rocket.current?.rotation ?? new THREE.Euler())
       const r = Math.max(craftH * 3.2, 0.9)
       look.copy(c)
-      want.copy(c).addScaledVector(up, r * 0.6).add(new THREE.Vector3(0, r * 0.55, r * 1.9))
+      want.copy(c).addScaledVector(up, -r * 0.4).add(new THREE.Vector3(0, r * 0.5, r * 2.6))
     } else if (tau > e.stageSep + 2) {
       const top = rocket.current ? new THREE.Vector3(0, st.s2 + spec.s2.len / 2, 0).applyEuler(rocket.current.rotation) : new THREE.Vector3(0, st.s2, 0)
       look.copy(top)
@@ -360,8 +348,9 @@ function Scene({ getT, T, fails, launcher, bus, parts, profile }: Launch3DProps)
     }
     // Snap on big jumps (Skip / replay), otherwise glide.
     const jump = cam.position.distanceTo(want) > H * 6
-    cam.position.lerp(want, jump ? 1 : 0.06)
-    camTarget.current.lerp(look, jump ? 1 : 0.1)
+    // Time-based easing: settles at the same speed on fast and slow computers.
+    cam.position.lerp(want, jump ? 1 : 1 - Math.exp(-delta * 3.5))
+    camTarget.current.lerp(look, jump ? 1 : 1 - Math.exp(-delta * 6))
     cam.lookAt(camTarget.current)
     cam.near = Math.max(0.02, (inOrbit ? craftH : H) * 0.01)
     cam.updateProjectionMatrix()
@@ -376,16 +365,13 @@ function Scene({ getT, T, fails, launcher, bus, parts, profile }: Launch3DProps)
       <directionalLight position={[0.8, 0.6, 0.5]} intensity={3} color="#fff4e2" />
       <hemisphereLight args={['#a8c4ff', '#24324f', 0.5]} />
 
-      <points ref={starRef} geometry={stars} frustumCulled={false}>
-        <pointsMaterial size={1.6} sizeAttenuation={false} color="#e8edf8" transparent depthWrite={false} />
-      </points>
 
       {/* Earth, with its thin blue atmosphere seen edge-on */}
       <group ref={earth}>
         {/* Turned so the launch site sits on the equator of the texture, not on a pinched pole */}
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <sphereGeometry args={[RE, 160, 80]} />
-          <meshStandardMaterial map={earthMap} roughness={0.9} metalness={0} />
+          <meshStandardMaterial ref={earthMat} map={earthMap} roughness={0.9} metalness={0} />
         </mesh>
         <mesh material={atmo}>
           <sphereGeometry args={[RE * 1.012, 96, 48]} />
@@ -394,9 +380,10 @@ function Scene({ getT, T, fails, launcher, bus, parts, profile }: Launch3DProps)
 
       {/* Launch site: ground, pad, tower */}
       <group ref={pad}>
+        {/* Grassy apron round the pad; the mountains behind are the photo */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
-          <circleGeometry args={[30000, 64]} />
-          <meshStandardMaterial color="#5d6b45" roughness={1} />
+          <circleGeometry args={[H * 3, 64]} />
+          <meshStandardMaterial map={grass} roughness={1} />
         </mesh>
         <mesh position={[0, -0.25, 0]}>
           <cylinderGeometry args={[H * 0.35, H * 0.4, 0.5, 48]} />

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-19.50 -23.00 39.00 39.00">
+  <polygon points="-12.12,7.00 0.00,14.00 0.00,-7.00 -12.12,-14.00" fill="#a3aec8" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="12.12,7.00 0.00,14.00 0.00,-7.00 12.12,-14.00" fill="#c9d1e3" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="0.00,-21.00 12.12,-14.00 0.00,-7.00 -12.12,-14.00" fill="#eef2fa" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <line x1="-12.12" y1="0.00" x2="0.00" y2="7.00" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
+  <line x1="12.12" y1="0.00" x2="0.00" y2="7.00" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
+  <line x1="-12.12" y1="-7.00" x2="0.00" y2="0.00" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
+  <line x1="12.12" y1="-7.00" x2="0.00" y2="0.00" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
+  <line x1="-12.12" y1="7.00" x2="-12.12" y2="-14.00" stroke="#ff8a3d" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="12.12" y1="7.00" x2="12.12" y2="-14.00" stroke="#ff8a3d" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="0.00" y1="14.00" x2="0.00" y2="-7.00" stroke="#ff8a3d" stroke-width="1.4" stroke-linecap="round"/>
+</svg>

@@ -6,7 +6,7 @@
       "objective": "Image fire-prone areas every 2 days for 3 years, and get the pictures to firefighters fast.",
       "difficulty": "easy",
       "customer": { "name": "Firefighters", "needsDataWithinHours": 12 },
-      "busIds": ["bus-cubesat-6u"],
+      "busIds": ["bus-cubesat-3u", "bus-cubesat-6u", "bus-cubesat-12u"],
       "budgetM": 2.5,
       "baseOpsCostPerYearM": 0.08,
       "launchInMonths": 24,

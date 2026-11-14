@@ -158,32 +158,116 @@ function pcb() {
   })
 }
 
+/** Brushed aluminium with a screw at each corner and along the edges (CubeSat side panels). */
+function cubePanel() {
+  const r = rng(21)
+  return canvas(256, 384, (g, w, h) => {
+    g.fillStyle = '#b8bec9'
+    g.fillRect(0, 0, w, h)
+    for (let y = 0; y < h; y++) {
+      g.fillStyle = `rgba(${r() > 0.5 ? 255 : 0},${r() > 0.5 ? 255 : 0},255,${r() * 0.05})`
+      g.fillRect(0, y, w, 1)
+    }
+    // Lightening cut-outs and a raised border, like real machined panels
+    g.strokeStyle = 'rgba(40,46,58,0.45)'
+    g.lineWidth = 3
+    g.strokeRect(14, 14, w - 28, h - 28)
+    g.fillStyle = 'rgba(60,66,80,0.25)'
+    g.fillRect(40, 60, w - 80, h / 2 - 90)
+    g.fillRect(40, h / 2 + 30, w - 80, h / 2 - 90)
+    for (const [x, y] of [[10, 10], [w - 10, 10], [10, h - 10], [w - 10, h - 10], [w / 2, 10], [w / 2, h - 10], [10, h / 2], [w - 10, h / 2]]) {
+      g.fillStyle = '#6b7180'
+      g.beginPath()
+      g.arc(x, y, 5, 0, Math.PI * 2)
+      g.fill()
+      g.fillStyle = '#2a2e36'
+      g.fillRect(x - 3, y - 0.8, 6, 1.6)
+    }
+  })
+}
+
+/** White radiator panel: painted, with a grid of bonded heat pipes showing through. */
+function radiator() {
+  return canvas(256, 256, (g, w, h) => {
+    g.fillStyle = '#eef1f5'
+    g.fillRect(0, 0, w, h)
+    g.strokeStyle = 'rgba(120,130,150,0.35)'
+    g.lineWidth = 2
+    for (let x = 16; x < w; x += 32) {
+      g.beginPath()
+      g.moveTo(x, 8)
+      g.lineTo(x, h - 8)
+      g.stroke()
+    }
+    g.strokeStyle = 'rgba(80,90,110,0.5)'
+    g.strokeRect(4, 4, w - 8, h - 8)
+  })
+}
+
+/** Rocket livery: white body, an orange band, a black stripe and the game's name in big letters. */
+function livery() {
+  return canvas(1024, 2048, (g, w, h) => {
+    g.fillStyle = '#f2f3f5'
+    g.fillRect(0, 0, w, h)
+    const r = rng(9)
+    for (let i = 0; i < 9000; i++) {
+      g.fillStyle = `rgba(0,0,0,${r() * 0.025})`
+      g.fillRect(r() * w, r() * h, 2, 2)
+    }
+    g.strokeStyle = 'rgba(0,0,0,0.09)'
+    g.lineWidth = 3
+    for (let y = 0; y < h; y += 256) {
+      g.beginPath()
+      g.moveTo(0, y)
+      g.lineTo(w, y)
+      g.stroke()
+    }
+    // Orange band near the top, thin black pinstripes
+    g.fillStyle = '#ff7a1f'
+    g.fillRect(0, h * 0.08, w, h * 0.035)
+    g.fillStyle = '#15171b'
+    g.fillRect(0, h * 0.125, w, h * 0.008)
+    g.fillRect(0, h * 0.07, w, h * 0.006)
+    // Name down the side (one side of the cylinder only)
+    g.save()
+    g.translate(w * 0.25, h * 0.22)
+    g.rotate(Math.PI / 2)
+    g.fillStyle = '#15171b'
+    g.font = 'bold 150px "Space Grotesk", Inter, sans-serif'
+    g.fillText('FIRST LIGHT', 0, 0)
+    g.restore()
+    // Dark band at the base
+    g.fillStyle = '#1b1d22'
+    g.fillRect(0, h * 0.94, w, h * 0.06)
+  })
+}
+
 /** Earth: ocean, procedural continents, ice caps and clouds. One-off, larger. */
 export function earthTexture(): THREE.Texture {
-  const W = 1024
-  const H = 512
-  // Value noise on a sphere-ish grid (wraps in x).
+  const W = 2048
+  const H = 1024
+  // Value noise that wraps in x, summed over octaves (fractal), from a fixed seed.
   const r = rng(42)
   const grid = (n: number) => Array.from({ length: n * n }, () => r())
-  const octaves = [8, 16, 32, 64].map((n) => ({ n, g: grid(n) }))
-  const noise = (u: number, v: number) => {
+  const octaves = [6, 12, 24, 48, 96, 192].map((n) => ({ n, g: grid(n) }))
+  const noise = (u: number, v: number, off = 0) => {
     let sum = 0
     let amp = 1
     let norm = 0
     for (const { n, g } of octaves) {
-      const x = u * n
-      const y = v * n * 0.5
+      const x = u * n + off
+      const y = v * n * 0.5 + off * 0.7
       const xi = Math.floor(x)
       const yi = Math.floor(y)
       const fx = x - xi
       const fy = y - yi
-      const at = (a: number, b: number) => g[((b % n) + n) % n * n + (((a % n) + n) % n)]
-      const s = (t: number) => t * t * (3 - 2 * t)
-      const top = at(xi, yi) + (at(xi + 1, yi) - at(xi, yi)) * s(fx)
-      const bot = at(xi, yi + 1) + (at(xi + 1, yi + 1) - at(xi, yi + 1)) * s(fx)
-      sum += (top + (bot - top) * s(fy)) * amp
+      const at = (a: number, b: number) => g[(((b % n) + n) % n) * n + (((a % n) + n) % n)]
+      const sm = (t: number) => t * t * (3 - 2 * t)
+      const top = at(xi, yi) + (at(xi + 1, yi) - at(xi, yi)) * sm(fx)
+      const bot = at(xi, yi + 1) + (at(xi + 1, yi + 1) - at(xi, yi + 1)) * sm(fx)
+      sum += (top + (bot - top) * sm(fy)) * amp
       norm += amp
-      amp *= 0.5
+      amp *= 0.52
     }
     return sum / norm
   }
@@ -192,22 +276,32 @@ export function earthTexture(): THREE.Texture {
     for (let y = 0; y < H; y++) {
       const lat = Math.abs(y / H - 0.5) * 2
       for (let x = 0; x < W; x++) {
-        const n = noise(x / W, y / H)
-        const cloud = noise(x / W + 0.37, y / H + 0.21)
+        const u = x / W
+        const v = y / H
+        const n = noise(u, v)
+        const dry = noise(u, v, 13.7)
+        const cloud = noise(u * 1.3, v, 41.2)
         const i = (y * W + x) * 4
         let col: [number, number, number]
-        if (lat > 0.86) col = [235, 240, 245]
-        else if (n > 0.53) {
-          const k = Math.min(1, (n - 0.53) * 6)
-          col = lat > 0.6 ? [120 + 60 * k, 130 + 50 * k, 110 + 40 * k] : lat < 0.35 && n > 0.6 ? [190, 160, 105] : [60 + 50 * k, 110 + 20 * k, 55 + 20 * k]
+        // Ice caps with a ragged edge
+        const ice = 0.83 + (noise(u, v, 7.1) - 0.5) * 0.12
+        if (lat > ice) col = [232, 238, 244]
+        else if (n > 0.545) {
+          const k = Math.min(1, (n - 0.545) * 7)
+          // Deserts in the dry subtropics, forest near the equator, tundra up north
+          if (lat > 0.12 && lat < 0.42 && dry > 0.58) col = [196 - k * 30, 168 - k * 30, 118 - k * 20]
+          else if (lat > 0.66) col = [118 + k * 20, 122 + k * 15, 96]
+          else col = [52 + k * 40, 96 + k * 25, 46 + k * 18]
+          if (k > 0.75) col = [col[0] * 0.8 + 30, col[1] * 0.8 + 26, col[2] * 0.8 + 22] // mountains
         } else {
-          const d = Math.min(1, (0.53 - n) * 5)
-          col = [14 + 20 * (1 - d), 50 + 40 * (1 - d), 110 + 50 * (1 - d)]
+          // Ocean: shallow shelves turquoise, deep water dark blue
+          const d = Math.min(1, (0.545 - n) * 6)
+          col = [12 + 40 * (1 - d) ** 3, 44 + 90 * (1 - d) ** 3, 92 + 70 * (1 - d) ** 2]
         }
-        const cl = Math.max(0, (cloud - 0.55) * 3.2)
-        img.data[i] = col[0] + (245 - col[0]) * Math.min(1, cl)
-        img.data[i + 1] = col[1] + (248 - col[1]) * Math.min(1, cl)
-        img.data[i + 2] = col[2] + (252 - col[2]) * Math.min(1, cl)
+        const cl = Math.min(1, Math.max(0, (cloud - 0.56) * 3.5))
+        img.data[i] = col[0] + (248 - col[0]) * cl
+        img.data[i + 1] = col[1] + (250 - col[1]) * cl
+        img.data[i + 2] = col[2] + (252 - col[2]) * cl
         img.data[i + 3] = 255
       }
     }
@@ -215,6 +309,19 @@ export function earthTexture(): THREE.Texture {
   })
   const t = tex(c)
   t.wrapT = THREE.ClampToEdgeWrapping
+  return t
+}
+
+/**
+ * Real grass (a crop of the team's grassland photo), mirrored so the tiles
+ * join without seams. `tiles` = how many times it repeats across the ground.
+ */
+export function grassTexture(tiles: number): THREE.Texture {
+  const t = new THREE.TextureLoader().load('/assets/bg/grass-tile.jpg')
+  t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping
+  t.repeat.set(tiles, tiles * 2)
+  t.colorSpace = THREE.SRGBColorSpace
+  t.anisotropy = 8
   return t
 }
 
@@ -243,7 +350,15 @@ function make() {
   const skin = tex(rocketSkin(false), { repeat: [2, 1] })
   const skinDark = tex(rocketSkin(true), { repeat: [2, 1] })
   const board = tex(pcb())
+  const panel = tex(cubePanel())
+  const rad = tex(radiator())
+  const liv = tex(livery())
   return {
+    cubePanel: new THREE.MeshStandardMaterial({ map: panel, metalness: 0.75, roughness: 0.35 }),
+    radiator: new THREE.MeshStandardMaterial({ map: rad, metalness: 0.05, roughness: 0.4 }),
+    rocketLivery: new THREE.MeshStandardMaterial({ map: liv, metalness: 0.1, roughness: 0.45 }),
+    chrome: new THREE.MeshStandardMaterial({ color: '#e6e9ee', metalness: 1, roughness: 0.12 }),
+    frame: new THREE.MeshStandardMaterial({ color: '#9aa1ad', metalness: 0.8, roughness: 0.3 }),
     aluminium: new THREE.MeshStandardMaterial({ color: '#c3c8d2', metalness: 0.7, roughness: 0.38 }),
     anodised: new THREE.MeshStandardMaterial({ color: '#2a2d33', metalness: 0.6, roughness: 0.45 }),
     rail: new THREE.MeshStandardMaterial({ color: '#d7dbe2', metalness: 0.9, roughness: 0.25 }),

@@ -1,9 +1,10 @@
 import { useReducedMotion } from 'framer-motion'
 import { FastForward, RotateCcw, Wrench } from 'lucide-react'
-import { Component, lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Fallback3D } from '@/components/Fallback3D'
 import { AscentCharts } from '@/components/AscentCharts'
 import { findBus } from '@/engine/data'
-import { flightTime, simulateAscent } from '@/game/ascent'
+import { flightTime, sampleAt, simulateAscent } from '@/game/ascent'
 import { partsOnCraft } from '@/game/ui'
 import { LeadButton } from '@/components/LeadButton'
 import { Screen } from '@/components/Screen'
@@ -20,16 +21,6 @@ const T = { liftoff: 3, maxQ: 5, sep: 7, fairing: 8.2, orbit: 9.6, deploy: 11, d
 // three.js only downloads on this screen.
 const Launch3D = lazy(() => import('@/three/Launch3D'))
 
-/** If WebGL isn't available (old device, blocked GPU), fall back to the 2D animation. */
-class Fallback3D extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
-  state = { failed: false }
-  static getDerivedStateFromError() {
-    return { failed: true }
-  }
-  render() {
-    return this.state.failed ? this.props.fallback : this.props.children
-  }
-}
 
 const clamp = (v: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v))
 const mix = (a: number, b: number, k: number) => a + (b - a) * k
@@ -128,10 +119,11 @@ export function Launch() {
   return (
     <Screen title="Launch" subtitle={`${launcher.name} to ${orbit.name}, ${clampAltitude(orbit, design.flight.altitudeKm).toLocaleString()} km`} reqs="F13" hideNext>
       <div className="relative overflow-hidden rounded-xl border border-space-700 bg-space-950">
+        {profile && <SkyBackdrop altKm={sampleAt(profile, Math.max(0, flightTime(profile, t, T, fails))).altKm} />}
         {profile ? (
           <Fallback3D fallback={<Scene t={t} fails={fails} deep={deep} />}>
             <Suspense fallback={<Scene t={t} fails={fails} deep={deep} />}>
-              <div className="h-[56vh] min-h-[340px] w-full sm:h-[520px]">
+              <div className="relative h-[56vh] min-h-[340px] w-full sm:h-[520px]">
                 <Launch3D getT={() => tRef.current} T={T} fails={fails} launcher={launcher} bus={bus} parts={parts} profile={profile} />
               </div>
             </Suspense>
@@ -202,6 +194,34 @@ function captionAt(t: number, fails: boolean, rocket: string, orbit: string, dee
   if (t < T.deploy) return deep ? 'Engine burn to leave Earth orbit.' : `Upper stage burn into ${orbit}.`
   if (t < T.done) return 'Spacecraft deployed. Solar panels opening.'
   return deep ? `On its way. Heading for ${orbit === 'Moon' ? 'the Moon' : orbit}.` : `Orbit insertion complete. Welcome to ${orbit}.`
+}
+
+/* ---------------- Sky behind the 3D launch ---------------- */
+
+/**
+ * Photo backdrop under the see-through 3D canvas: mountains on the pad, a sky
+ * that darkens with altitude, and the deep-space star photo above the air.
+ */
+function SkyBackdrop({ altKm }: { altKm: number }) {
+  const ground = 1 - clamp(altKm / 6)
+  const space = clamp((altKm - 25) / 45)
+  const k = ease(clamp(altKm / 60))
+  const sky = mixRgb([96, 150, 215], [6, 11, 26], k)
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden>
+      <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, ${mixRgb([40, 95, 185], [4, 8, 20], k)}, ${sky})` }} />
+      <img src="/assets/bg/stars.webp" alt="" className="absolute inset-0 h-full w-full object-cover" style={{ opacity: space }} />
+      <img src="/assets/bg/mountains.webp" alt="" className="absolute inset-0 h-full w-full object-cover object-bottom"
+        style={{
+          opacity: ground,
+          transform: `translateY(${(1 - ground) * 30}%) scale(${1 + (1 - ground) * 0.1})`,
+          // Soft top edge, so the photo melts into the sky as it drops away
+          maskImage: `linear-gradient(to bottom, transparent 0%, black ${(1 - ground) * 35}%)`,
+          WebkitMaskImage: `linear-gradient(to bottom, transparent 0%, black ${(1 - ground) * 35}%)`,
+        }}
+      />
+    </div>
+  )
 }
 
 /* ---------------- Scene ---------------- */

@@ -98,8 +98,12 @@ export function Engine({ size, vacuum = false, hot = false }: { size: number; va
       <mesh material={m.anodised} position={[0, size * 0.25, 0]}>
         <cylinderGeometry args={[size * 0.22, size * 0.28, size * 0.5, 16]} />
       </mesh>
-      <mesh material={hot ? m.nozzleHot : m.nozzle} position={[0, -len / 2, 0]}>
-        <cylinderGeometry args={[size * 0.14, exit, len, 28, 1, true]} />
+      {/* Regeneratively cooled upper bell, then a lighter radiatively cooled extension */}
+      <mesh material={hot ? m.nozzleHot : m.nozzle} position={[0, -len * 0.3, 0]}>
+        <cylinderGeometry args={[size * 0.14, size * 0.14 + (exit - size * 0.14) * 0.6, len * 0.6, 28, 1, true]} />
+      </mesh>
+      <mesh material={hot ? m.nozzleHot : m.titanium} position={[0, -len * 0.8, 0]}>
+        <cylinderGeometry args={[size * 0.14 + (exit - size * 0.14) * 0.6, exit, len * 0.4, 28, 1, true]} />
       </mesh>
     </group>
   )
@@ -118,8 +122,18 @@ export function FirstStage({ spec, hot = false, legsOut = 0 }: { spec: RocketSpe
   const eSize = s1.engines === 33 ? d * 0.12 : d * 0.3
   return (
     <group>
-      <mesh material={skinMat(s1.skin)} position={[0, s1.len / 2, 0]}>
-        <cylinderGeometry args={[r, r, s1.len, 48]} />
+      <mesh material={s1.skin === 'white' ? m.rocketLivery : skinMat(s1.skin)} position={[0, s1.len / 2, 0]}>
+        <cylinderGeometry args={[r, r, s1.len, 64]} />
+      </mesh>
+      {/* Orange accent band on the dark and steel rockets (the white one has it painted on) */}
+      {s1.skin !== 'white' && (
+        <mesh material={m.orange} position={[0, s1.len * 0.86, 0]}>
+          <cylinderGeometry args={[r * 1.005, r * 1.005, d * 0.14, 64, 1, true]} />
+        </mesh>
+      )}
+      {/* Chrome heat shield over the engine bay */}
+      <mesh material={m.chrome} position={[0, d * 0.17, 0]}>
+        <cylinderGeometry args={[r * 1.0, r * 1.0, d * 0.03, 64]} />
       </mesh>
       {/* Thrust section skirt */}
       <mesh material={m.anodised} position={[0, d * 0.08, 0]}>
@@ -141,15 +155,32 @@ export function FirstStage({ spec, hot = false, legsOut = 0 }: { spec: RocketSpe
               <mesh material={m.rocketBlack} position={[0, d * 1.6, 0]}>
                 <boxGeometry args={[d * 0.08, d * 3.2, d * 0.22]} />
               </mesh>
+              {/* Foot pad */}
+              <mesh material={m.anodised} position={[d * 0.02, -d * 0.02, 0]}>
+                <cylinderGeometry args={[d * 0.12, d * 0.14, d * 0.05, 16]} />
+              </mesh>
             </group>
           </group>
         ))}
       {s1.gridFins &&
         [0, 1, 2, 3].map((i) => (
           <group key={i} rotation={[0, (i * Math.PI) / 2, 0]} position={[0, s1.len - d * 0.4, 0]}>
-            <mesh material={m.titanium} position={[r + d * 0.1, 0, 0]}>
-              <boxGeometry args={[d * 0.05, d * 0.3, d * 0.3]} />
-            </mesh>
+            {/* Lattice grid fin: steers the stage on its way back down */}
+            <group position={[r + d * 0.12, 0, 0]}>
+              {[-0.12, -0.04, 0.04, 0.12].map((k) => (
+                <group key={k}>
+                  <mesh material={m.titanium} position={[0, k * d, 0]}>
+                    <boxGeometry args={[d * 0.06, d * 0.012, d * 0.32]} />
+                  </mesh>
+                  <mesh material={m.titanium} position={[0, 0, k * d]}>
+                    <boxGeometry args={[d * 0.06, d * 0.32, d * 0.012]} />
+                  </mesh>
+                </group>
+              ))}
+              <mesh material={m.anodised} position={[-d * 0.06, 0, 0]}>
+                <boxGeometry args={[d * 0.04, d * 0.06, d * 0.06]} />
+              </mesh>
+            </group>
           </group>
         ))}
     </group>
@@ -166,6 +197,9 @@ export function Booster({ spec, hot = false }: { spec: RocketSpec; hot?: boolean
       <mesh material={m.rocketWhite} position={[0, s1.len + d * 0.9, 0]}>
         <coneGeometry args={[d / 2, d * 1.8, 48]} />
       </mesh>
+      <mesh material={m.orange} position={[0, s1.len + d * 0.1, 0]}>
+        <cylinderGeometry args={[d * 0.46, d * 0.5, d * 0.2, 48, 1, true]} />
+      </mesh>
     </group>
   )
 }
@@ -178,9 +212,14 @@ export function Interstage({ spec }: { spec: RocketSpec }) {
     return c
   }, [spec.inter.skin])
   return (
-    <mesh material={m} position={[0, spec.inter.len / 2, 0]}>
-      <cylinderGeometry args={[r, r, spec.inter.len, 48, 1, true]} />
-    </mesh>
+    <group>
+      <mesh material={m} position={[0, spec.inter.len / 2, 0]}>
+        <cylinderGeometry args={[r, r, spec.inter.len, 48, 1, true]} />
+      </mesh>
+      <mesh material={mats().chrome} position={[0, spec.inter.len - spec.d * 0.03, 0]}>
+        <cylinderGeometry args={[r * 1.006, r * 1.006, spec.d * 0.04, 48, 1, true]} />
+      </mesh>
+    </group>
   )
 }
 
@@ -193,9 +232,25 @@ export function SecondStage({ spec, hot = false }: { spec: RocketSpec; hot?: boo
         <cylinderGeometry args={[r * 0.995, r * 0.995, s2.len, 48]} />
       </mesh>
       {s2.nose && (
-        <mesh material={skinMat(s2.skin)} position={[0, s2.len, 0]}>
-          <sphereGeometry args={[r, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        </mesh>
+        <>
+          <mesh material={skinMat(s2.skin)} position={[0, s2.len, 0]}>
+            <sphereGeometry args={[r, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          </mesh>
+          {/* Heat-tile belly and steering flaps, fore and aft */}
+          <mesh material={mats().rocketBlack} position={[0, s2.len / 2, 0]}>
+            <cylinderGeometry args={[r * 1.004, r * 1.004, s2.len, 48, 1, true, Math.PI / 2, Math.PI]} />
+          </mesh>
+          {[-1, 1].map((sx) => (
+            <group key={sx}>
+              <mesh material={mats().rocketBlack} position={[sx * r * 1.1, s2.len * 0.86, 0]} rotation={[0, 0, sx * 0.12]}>
+                <boxGeometry args={[r * 0.35, s2.len * 0.12, r * 0.08]} />
+              </mesh>
+              <mesh material={mats().rocketBlack} position={[sx * r * 1.25, s2.len * 0.14, 0]} rotation={[0, 0, sx * 0.08]}>
+                <boxGeometry args={[r * 0.6, s2.len * 0.2, r * 0.08]} />
+              </mesh>
+            </group>
+          ))}
+        </>
       )}
       {/* Vacuum engine: hidden inside the interstage until separation */}
       <Engine size={spec.d * (spec.s1.engines === 33 ? 0.3 : 0.55)} vacuum hot={hot} />
@@ -227,7 +282,13 @@ export function FairingHalf({ spec, side, open = 0 }: { spec: RocketSpec; side: 
   }, [spec.fairing.skin])
   return (
     <group position={[(side * spec.fairing.d) / 2, 0, 0]} rotation={[0, 0, -side * open * 0.9]}>
-      <mesh geometry={geo} material={m} position={[(-side * spec.fairing.d) / 2, 0, 0]} />
+      <group position={[(-side * spec.fairing.d) / 2, 0, 0]}>
+        <mesh geometry={geo} material={m} />
+        {/* Orange band at the fairing's base */}
+        <mesh material={mats().orange} position={[0, spec.fairing.len * 0.05, 0]}>
+          <cylinderGeometry args={[spec.fairing.d / 2 + 0.01, spec.fairing.d / 2 + 0.01, spec.fairing.len * 0.04, 48, 1, true, side === 1 ? 0 : Math.PI, Math.PI]} />
+        </mesh>
+      </group>
     </group>
   )
 }
@@ -235,7 +296,7 @@ export function FairingHalf({ spec, side, open = 0 }: { spec: RocketSpec; side: 
 /** Flared adapter between the upper stage and the payload. */
 function Adapter({ spec }: { spec: RocketSpec }) {
   return (
-    <mesh material={mats().anodised} position={[0, spec.d * 0.04, 0]}>
+    <mesh material={mats().aluminium} position={[0, spec.d * 0.04, 0]}>
       <cylinderGeometry args={[spec.d * 0.2, spec.d * 0.42, spec.d * 0.08, 32]} />
     </mesh>
   )

@@ -6,8 +6,9 @@
 
   /* Dark space theme: navy + white with orange accents (matches the art style prompt) */
   --color-space-950: #060b1a;
-  --color-space-900: #0b1328;
-  --color-space-800: #121d3a;
+  /* Panels are slightly see-through so the star field shows behind them */
+  --color-space-900: rgb(11 19 40 / 0.8);
+  --color-space-800: rgb(18 29 58 / 0.85);
   --color-space-700: #1c2a50;
   --color-space-600: #2a3b6b;
   --color-ink: #e8edf8;
@@ -27,7 +28,11 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-space-950);
+  /* Deep-space photo behind the whole app, darkened at the edges so text stays readable */
+  background:
+    radial-gradient(ellipse at 50% 30%, rgb(6 11 26 / 0.35), rgb(6 11 26 / 0.85) 75%),
+    url('/assets/bg/stars.webp') center / cover fixed,
+    var(--color-space-950);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -37,4 +42,25 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
+}
+
+/* Glass panels over the star field */
+.bg-space-900,
+.bg-space-800 {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* A soft orange glow on the main buttons and the active step, like a lit control panel */
+.bg-accent {
+  box-shadow: 0 0 18px -4px rgb(255 138 61 / 0.55);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .bg-space-900,
+  .bg-space-800 {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: #0b1328;
+  }
 }
