@@ -121,7 +121,11 @@ export interface Part extends Described {
   buildMonths: number;
   /** Chance it works for the whole mission, 0 to 1 (used for risk, P1). */
   reliability: number;
-  /** Art file in public/assets/, named by part id. */
+  /**
+   * Art name for Member 2's <Art name={icon} /> (e.g. "part-radio-s" shows
+   * public/assets/svg/radio-s.svg, or the ChatGPT WebP once processed).
+   * The same field on buses, launchers and stations works the same way.
+   */
   icon: string;
 
   /** solar: watts made while in sunlight (already allows for pointing). */
@@ -244,6 +248,77 @@ export interface Scenario extends Described {
   tutorialDesign?: Design;
 }
 
+// ---------------------------------------------------------------------------
+// Random events (task 1.9, PRD F15), src/data/events.json
+// ---------------------------------------------------------------------------
+
+/** What a choice does to the flight. All fields optional. */
+export interface EventEffects {
+  /** Probability (0 to 1) that the harmful effects happen. Missing = always. */
+  chance?: number;
+  /** Instruments off: no data, and their power is saved. */
+  instrumentsOffHours?: number;
+  /** No ground station can receive. */
+  stationOutageHours?: number;
+  /** Radio off for a while. */
+  radioOffHours?: number;
+  /** Radio gone for good (if the chance hits). */
+  radioLost?: boolean;
+  /** Instruments make this share of their usual data for dataFactorHours. */
+  dataFactor?: number;
+  dataFactorHours?: number;
+  /** Health change, e.g. -30. Health 0 = craft lost. */
+  healthDelta?: number;
+  /** Solar panels permanently lose this % of their power. */
+  solarLossPct?: number;
+}
+
+/** true / false, or judged when chosen (e.g. only good if storage can hold 3 days). */
+export type ChoiceQuality = boolean | 'if-storage-holds';
+
+export interface EventChoice {
+  id: string;
+  label: string;
+  text: string;
+  good: ChoiceQuality;
+  effects: EventEffects;
+  /** What happened, when the harmful effect hits (or always, with no chance). */
+  outcome: string;
+  /** What happened when the chance missed. */
+  outcomeIfLucky?: string;
+  /** For storage choices: what happened if storage overflowed. */
+  outcomeIfFull?: string;
+}
+
+export interface GameEvent {
+  id: string;
+  name: string;
+  /** The role whose panel shows the event card. */
+  owner: Role;
+  icon: string;
+  text: string;
+  choices: EventChoice[];
+  source: SourceId;
+  sourceNote?: string;
+}
+
+/** An event planned for this flight (same seed = same events on every device). */
+export interface ScheduledEvent {
+  eventId: string;
+  tMin: number;
+}
+
+/** An event that happened, and what the team chose. */
+export interface EventRecord {
+  eventId: string;
+  choiceId: string;
+  tMin: number;
+  good: boolean;
+  /** True when a chance roll made the harmful effect happen. */
+  hit: boolean;
+  outcome: string;
+}
+
 /** A resource we credit (src/data/sources.json). */
 export interface Source {
   id: SourceId;
@@ -270,6 +345,7 @@ export interface GameData {
   disposalSource: SourceRef;
   stations: GroundStation[];
   scenarios: Scenario[];
+  events: GameEvent[];
   sources: Source[];
 }
 
@@ -516,6 +592,9 @@ export interface SimResult {
   /** Frames are one per minute up to here, then one per orbit. */
   detailUntilMin: number;
   summary: SimSummary;
+  /** Random events that happened and the choices made (replay them to fly the same mission). */
+  events: EventRecord[];
+  seed: number;
 }
 
 /**
@@ -558,6 +637,21 @@ export interface SimState {
    * so live playback at any speed gives exactly the same flight as simulate().
    */
   carryMin: number;
+  /**
+   * An event waiting for a choice. While set, stepSim does nothing: show the
+   * event card to its owner role, then call chooseEvent().
+   */
+  pendingEvent: ScheduledEvent | null;
+  /** Index of the next event in the setup's schedule. */
+  nextEventIndex: number;
+  /** Events handled so far. */
+  eventLog: EventRecord[];
+  /** Temporary effects from event choices, active until their end time. */
+  effects: { kind: 'instrumentsOff' | 'stationOutage' | 'radioOff' | 'dataFactor'; untilMin: number; factor?: number }[];
+  /** Radio gone for good. */
+  radioLost: boolean;
+  /** Solar power left after event damage, 0 to 1 (wear over time is separate). */
+  solarFactor: number;
 }
 
 export type ScoreCategory = 'objective' | 'customer' | 'efficiency' | 'lifetime' | 'decisions' | 'collaboration';

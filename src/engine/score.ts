@@ -49,7 +49,7 @@ export interface ScoreContext {
   allApproved?: boolean;
   /** The team built and compared Option A and B (CML 3, F6). */
   tradeStudyUsed?: boolean;
-  /** Random events (task 1.9): how many choices were good, out of how many events. */
+  /** Override for testing only; normally the score reads sim.events itself. */
   eventChoices?: { good: number; total: number };
 }
 
@@ -153,8 +153,10 @@ export function scoreMission(
   const warns = ev.problems.filter((p) => p.status === 'warn').length;
   const review = Math.max(0, D.review - D.perFail * fails - D.perWarn * warns);
   const trade = ctx.tradeStudyUsed ? D.tradeStudy : 0;
-  // Event points only come from real event choices (task 1.9), never for free.
-  const events = ctx.eventChoices && ctx.eventChoices.total > 0 ? D.events * clamp01(ctx.eventChoices.good / ctx.eventChoices.total) : 0;
+  // Event points only come from real event choices, never for free. The flight
+  // records them itself, so the Lambda can check them by replaying it.
+  const choiceStats = ctx.eventChoices ?? { good: sim.events.filter((e) => e.good).length, total: sim.events.length };
+  const events = choiceStats.total > 0 ? D.events * clamp01(choiceStats.good / choiceStats.total) : 0;
   const decisions = review + trade + events;
   if (decisions < SCORE_MAX.decisions) {
     const open = [fails ? `${fails} red` : '', warns ? `${warns} amber` : ''].filter(Boolean).join(' and ');

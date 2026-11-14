@@ -25,9 +25,39 @@
  */
 import { RULES, evaluate } from './rules';
 import { allPartIds } from './design';
+import { judgeChoice, rollChance, scheduleEvents } from './events';
 import type { Why } from './why';
 import { flight, when } from './why';
-import type { Design, Evaluation, GameData, Part, Scenario, SimFrame, SimMarker, SimResult, SimState, Status } from './types';
+import type {
+  Design,
+  EventChoice,
+  Evaluation,
+  GameData,
+  GameEvent,
+  Part,
+  Scenario,
+  ScheduledEvent,
+  SimFrame,
+  SimMarker,
+  SimResult,
+  SimState,
+  Status,
+} from './types';
+
+/** Options for one flight. */
+export interface SimOptions {
+  /** Shared random seed (room.seed). Same seed = same events everywhere. */
+  seed?: number;
+  /** Choices already made, by event id: replays a flight exactly (report, ghost, Lambda). */
+  choices?: Record<string, string>;
+  /** Pick the first choice for any event not in `choices`, instead of pausing. */
+  autoChoose?: boolean;
+  /** Turn random events off (e.g. the tutorial). Default on. */
+  events?: boolean;
+}
+
+/** Seed used when none is given (solo quick runs, tests). */
+export const DEFAULT_SEED = 1;
 
 export const SIM = {
   /** One frame per minute up to here, then one per orbit. */
@@ -78,9 +108,17 @@ export interface SimSetup {
   solarPartIds: string[];
   /** What happens at the end of the mission. */
   disposal: { status: Status; why: Why; ok: boolean };
+  /** Power the instruments use (saved while they are switched off). */
+  instrumentDrawW: number;
+  seed: number;
+  /** Events planned for this flight, in time order. */
+  schedule: ScheduledEvent[];
+  eventsById: Record<string, GameEvent>;
+  choices: Record<string, string>;
+  autoChoose: boolean;
 }
 
-export function createSim(design: Design, scenario: Scenario, data: GameData): SimSetup {
+export function createSim(design: Design, scenario: Scenario, data: GameData, opts: SimOptions = {}): SimSetup {
   const evaluation = evaluate(design, scenario, data);
   const has = (id: string) => evaluation.problems.find((p) => p.id === id);
   const blocking = evaluation.problems.find((p) => p.blocking);
@@ -119,8 +157,16 @@ export function createSim(design: Design, scenario: Scenario, data: GameData): S
   const instruments = parts.filter((p) => p.category === 'instrument');
   const dataPerMin = sum((p) => p.dataMBPerOrbit ?? 0, instruments) / periodMin;
   const decayMin = info && Number.isFinite(info.decayYears) ? info.decayYears * MIN_PER_YEAR : Infinity;
+  const seed = opts.seed ?? DEFAULT_SEED;
+  const schedule = opts.events === false || launchFailure ? [] : scheduleEvents(seed, scenario, data.events, missionMin);
 
   return {
+    instrumentDrawW: sum((p) => p.powerW, instruments),
+    seed,
+    schedule,
+    eventsById: Object.fromEntries(data.events.map((e) => [e.id, e])),
+    choices: opts.choices ?? {},
+    autoChoose: opts.autoChoose ?? false,
     evaluation,
     launchFailure,
     periodMin,
@@ -212,6 +258,12 @@ export function initialState(setup: SimSetup): SimState {
     orbitMinBatteryWh: setup.batteryUsableWh,
     seen: {},
     carryMin: 0,
+    pendingEvent: null,
+    nextEventIndex: 0,
+    eventLog: [],
+    effects: [],
+    radioLost: false,
+    solarFactor: 1,
   };
   if (setup.launchFailure) {
     s.health = 0;
@@ -228,15 +280,40 @@ export function initialState(setup: SimSetup): SimState {
  * flight is identical whatever the playback speed. Mutates and returns the state.
  */
 export function stepSim(s: SimState, setup: SimSetup, minutes: number): SimState {
+  // Paused on an event card: time stands still until chooseEvent().
+  if (s.pendingEvent) return s;
   let remaining = s.carryMin + minutes;
   while (!s.done) {
     const t0 = s.tMin;
+
+    // A random event is due: replay a known choice, auto-pick, or pause for the team.
+    const due = setup.schedule[s.nextEventIndex];
+    if (due && t0 >= due.tMin - 1e-9) {
+      const ev = setup.eventsById[due.eventId];
+      const known = setup.choices[due.eventId];
+      const choice = ev?.choices.find((c) => c.id === known) ?? (setup.autoChoose ? ev?.choices[0] : undefined);
+      if (!ev) {
+        s.nextEventIndex++;
+        continue;
+      }
+      if (!choice) {
+        s.pendingEvent = due;
+        break;
+      }
+      applyChoice(s, setup, due, ev, choice);
+      continue;
+    }
+
     // The step never depends on `minutes`, only on the mission clock.
-    const dt = Math.min(SIM.maxStepMin, setup.missionMin - t0, (setup.reentryMin ?? Infinity) - t0);
+    const dt = Math.min(SIM.maxStepMin, setup.missionMin - t0, (setup.reentryMin ?? Infinity) - t0, due ? due.tMin - t0 : Infinity);
     if (dt <= 0 || remaining < dt - 1e-9) break;
     const mid = t0 + dt / 2;
     const ecl = inEclipseAt(setup, mid);
     const years = t0 / MIN_PER_YEAR;
+    const active = (kind: SimState['effects'][number]['kind']) => s.effects.find((e) => e.kind === kind && e.untilMin > t0);
+    const instrumentsOff = !!active('instrumentsOff');
+    const dataFactor = active('dataFactor')?.factor ?? 1;
+    const noLink = s.radioLost || !!active('radioOff') || !!active('stationOutage');
 
     // Entering Earth's shadow.
     if (ecl && !s.inEclipse) {
@@ -245,9 +322,10 @@ export function stepSim(s: SimState, setup: SimSetup, minutes: number): SimState
     }
 
     // Power.
-    const wear = Math.max(0, 1 - RULES.solarWearPerYear * years);
+    const wear = Math.max(0, 1 - RULES.solarWearPerYear * years) * s.solarFactor;
     const gen = ecl ? 0 : setup.sunlitW * wear;
-    s.batteryWh = Math.min(setup.batteryUsableWh, s.batteryWh + ((gen - setup.drawW) * dt) / 60);
+    const draw = setup.drawW - (instrumentsOff ? setup.instrumentDrawW : 0);
+    s.batteryWh = Math.min(setup.batteryUsableWh, s.batteryWh + ((gen - draw) * dt) / 60);
     if (s.batteryWh <= 0) {
       s.batteryWh = 0;
       s.tMin = t0 + dt;
@@ -257,13 +335,13 @@ export function stepSim(s: SimState, setup: SimSetup, minutes: number): SimState
     s.orbitMinBatteryWh = Math.min(s.orbitMinBatteryWh, s.batteryWh);
 
     // Data in.
-    const made = setup.dataPerMin * dt;
+    const made = instrumentsOff ? 0 : setup.dataPerMin * dataFactor * dt;
     const bufferBefore = s.bufferMB;
     s.madeMB += made;
     s.bufferMB += made;
 
     // Data down.
-    const station = stationInView(setup, mid);
+    const station = noLink ? null : stationInView(setup, mid);
     let sent = 0;
     if (station && s.bufferMB > 0) {
       sent = Math.min(s.bufferMB, setup.radioMBPerMin * dt);
@@ -346,6 +424,64 @@ export function stepSim(s: SimState, setup: SimSetup, minutes: number): SimState
   }
   s.carryMin = s.done || !Number.isFinite(remaining) ? 0 : Math.max(0, remaining);
   return s;
+}
+
+/**
+ * The team's answer to the event card that paused the flight.
+ * Returns false (and changes nothing) if no event is waiting or the id is unknown.
+ */
+export function chooseEvent(s: SimState, setup: SimSetup, choiceId: string): boolean {
+  const due = s.pendingEvent;
+  if (!due) return false;
+  const ev = setup.eventsById[due.eventId];
+  const choice = ev?.choices.find((c) => c.id === choiceId);
+  if (!ev || !choice) return false;
+  s.pendingEvent = null;
+  applyChoice(s, setup, due, ev, choice);
+  return true;
+}
+
+/** The event card waiting for a choice, if any (for the UI). */
+export function pendingEventCard(s: SimState, setup: SimSetup): GameEvent | null {
+  return s.pendingEvent ? (setup.eventsById[s.pendingEvent.eventId] ?? null) : null;
+}
+
+function applyChoice(s: SimState, setup: SimSetup, due: ScheduledEvent, ev: GameEvent, choice: EventChoice): void {
+  const fx = choice.effects;
+  const t = s.tMin;
+  const facts = { freeStorageMB: Math.max(0, setup.storageMB - s.bufferMB), dataPerMin: setup.dataPerMin * (fx.dataFactor ?? 1) };
+  const good = judgeChoice(choice, facts);
+  const hit = rollChance(setup.seed, due, choice);
+
+  // Always-on effects.
+  if (fx.instrumentsOffHours) s.effects.push({ kind: 'instrumentsOff', untilMin: t + fx.instrumentsOffHours * 60 });
+  if (fx.stationOutageHours) s.effects.push({ kind: 'stationOutage', untilMin: t + fx.stationOutageHours * 60 });
+  if (fx.radioOffHours) s.effects.push({ kind: 'radioOff', untilMin: t + fx.radioOffHours * 60 });
+  if (fx.dataFactor !== undefined) s.effects.push({ kind: 'dataFactor', untilMin: t + (fx.dataFactorHours ?? 24) * 60, factor: fx.dataFactor });
+  // Harmful effects, only if the chance roll hits.
+  if (hit) {
+    if (fx.healthDelta) s.health = Math.max(0, Math.min(100, s.health + fx.healthDelta));
+    if (fx.solarLossPct) s.solarFactor *= 1 - fx.solarLossPct / 100;
+    if (fx.radioLost) s.radioLost = true;
+  }
+
+  const lucky = fx.chance !== undefined && !hit;
+  const outcome = lucky
+    ? (choice.outcomeIfLucky ?? choice.outcome)
+    : choice.good === 'if-storage-holds' && !good
+      ? (choice.outcomeIfFull ?? choice.outcome)
+      : choice.outcome;
+  const harmed = hit && (fx.healthDelta !== undefined || fx.solarLossPct !== undefined || fx.radioLost === true);
+  s.eventLog.push({ eventId: ev.id, choiceId: choice.id, tMin: t, good, hit: harmed, outcome });
+  s.markers.push({
+    tMin: t,
+    kind: 'event',
+    status: harmed ? 'fail' : good ? 'ok' : 'warn',
+    label: `${ev.name}: ${choice.label.toLowerCase()}`,
+    why: outcome,
+    owner: ev.owner,
+  });
+  s.nextEventIndex++;
 }
 
 function die(s: SimState, setup: SimSetup, inEclipse: boolean, wear: number): void {
@@ -439,14 +575,24 @@ export function finishSim(s: SimState, setup: SimSetup): SimResult {
       diedAtMin: s.diedAtMin,
       reenteredAtMin: s.reenteredAtMin,
       disposal: !completed ? 'not-reached' : setup.disposal.ok ? 'ok' : 'debris',
-      solarHealthPct: Math.max(0, 1 - RULES.solarWearPerYear * (s.tMin / MIN_PER_YEAR)) * 100,
+      solarHealthPct: Math.max(0, 1 - RULES.solarWearPerYear * (s.tMin / MIN_PER_YEAR)) * s.solarFactor * 100,
     },
+    events: s.eventLog,
+    seed: setup.seed,
   };
 }
 
-/** Flies the whole mission at once. */
-export function simulate(design: Design, scenario: Scenario, data: GameData): SimResult {
-  const setup = createSim(design, scenario, data);
+/** Choices made in a finished flight, to replay it exactly with simulate(..., { choices }). */
+export function choicesOf(result: SimResult): Record<string, string> {
+  return Object.fromEntries(result.events.map((e) => [e.eventId, e.choiceId]));
+}
+
+/**
+ * Flies the whole mission at once. Events use `opts.choices` when given,
+ * otherwise the first choice of each event (it never pauses).
+ */
+export function simulate(design: Design, scenario: Scenario, data: GameData, opts: SimOptions = {}): SimResult {
+  const setup = createSim(design, scenario, data, { ...opts, autoChoose: true });
   const state = initialState(setup);
   stepSim(state, setup, Infinity);
   return finishSim(state, setup);
