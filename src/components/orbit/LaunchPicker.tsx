@@ -1,4 +1,7 @@
 import { CheckCircle2, Rocket, XCircle } from 'lucide-react'
+import { lazy, Suspense, useState } from 'react'
+import { findBus, findLauncher } from '@/engine/data'
+import { partsOnCraft } from '@/game/ui'
 import { Art } from '@/components/Art'
 import { findOrbit } from '@/engine/data'
 import type { LauncherClass } from '@/engine/types'
@@ -15,6 +18,9 @@ const rocketArt: Record<LauncherClass, [string, string]> = {
   'super-heavy': ['rocket-super', 'h-20'],
 }
 
+// three.js only downloads when a rocket is shown.
+const Rocket3D = lazy(() => import('@/three/Rocket3D'))
+
 /** Launch vehicle cards, greyed out with the engine's reason when they can't do the job (task 2.5, PRD F8). */
 export function LaunchPicker() {
   const scenario = useScenario()
@@ -23,6 +29,10 @@ export function LaunchPicker() {
   const ev = useEvaluation()
   const orbit = findOrbit(gameData, flight.orbitId)
   const canSee = useCanSee()
+  const design = useGame((s) => s.design)
+  // The 3D view shows the rocket you point at, or else the one you picked.
+  const [preview, setPreview] = useState<string | null>(null)
+  const shown = findLauncher(gameData, preview ?? flight.launcherId)
 
   return (
     <div className="flex flex-col gap-3">
@@ -48,6 +58,10 @@ export function LaunchPicker() {
               aria-disabled={!check.ok && !selected}
               disabled={!check.ok && !selected}
               onClick={() => setLauncher(selected ? null : l.id)}
+              onMouseEnter={() => setPreview(l.id)}
+              onMouseLeave={() => setPreview(null)}
+              onFocus={() => setPreview(l.id)}
+              onBlur={() => setPreview(null)}
               title={l.tooltip}
               className={cn(
                 'flex items-end gap-3 rounded-xl border p-3 text-left transition-colors',
@@ -78,6 +92,14 @@ export function LaunchPicker() {
           )
         })}
       </div>
+
+      {shown ? (
+        <Suspense fallback={<div className="flex h-[460px] items-center justify-center rounded-xl border border-space-700 text-sm text-muted">Loading 3D rocket…</div>}>
+          <Rocket3D launcher={shown} bus={findBus(gameData, design.engineer.busId)} parts={partsOnCraft(design)} />
+        </Suspense>
+      ) : (
+        <p className="rounded-xl border border-dashed border-space-700 p-4 text-center text-sm text-muted">Pick a rocket to see it in 3D, with your spacecraft inside.</p>
+      )}
     </div>
   )
 }

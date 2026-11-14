@@ -10,7 +10,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { Box, Orbit as OrbitIcon, RadioTower, Wrench, X } from 'lucide-react'
-import { useState } from 'react'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { LaunchPicker } from '@/components/orbit/LaunchPicker'
 import { OrbitPicker } from '@/components/orbit/OrbitPicker'
@@ -18,6 +18,7 @@ import { StationPicker } from '@/components/orbit/StationPicker'
 import { ResourceGauge } from '@/components/ResourceGauge'
 import { Screen } from '@/components/Screen'
 import { CRAFT_ID, TRAY_ID, type DragData } from '@/components/workbench/dnd'
+import { useDroppable } from '@dnd-kit/core'
 import { PartIcon } from '@/components/workbench/PartIcon'
 import { PartInfo, PartsTray } from '@/components/workbench/PartsTray'
 import { Spacecraft } from '@/components/workbench/Spacecraft'
@@ -31,6 +32,20 @@ import { play } from '@/lib/sound'
 import { useCanSee, useEvaluation, useGame, useScenario } from '@/store/game'
 
 type Tab = 'craft' | 'launch' | 'ground'
+
+// three.js is big: only download it when the 3D view opens.
+const Craft3D = lazy(() => import('@/three/Craft3D'))
+
+/** The 3D view is also where you drop parts from the tray. */
+function CraftDrop({ className, children }: { className?: string; children: ReactNode }) {
+  const { setNodeRef, isOver, active } = useDroppable({ id: CRAFT_ID })
+  const incoming = active && !(active.data.current as DragData | undefined)?.fromCraft
+  return (
+    <div ref={setNodeRef} className={cn('rounded-xl transition-shadow', className, incoming && 'ring-2 ring-accent/50', isOver && incoming && 'ring-accent')}>
+      {children}
+    </div>
+  )
+}
 
 /**
  * CML 4 Point design. Three tabs, one per segment the player builds:
@@ -49,6 +64,7 @@ export function Workbench() {
   const canSee = useCanSee()
   const [dragging, setDragging] = useState<DragData | null>(null)
   const [tab, setTab] = useState<Tab>('craft')
+  const [view, setView] = useState<'3d' | 'slots'>('3d')
 
   const bus = findBus(gameData, design.engineer.busId)
   const buses = gameData.buses.filter((b) => scenario.busIds.includes(b.id))
@@ -185,11 +201,43 @@ export function Workbench() {
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="rounded-xl border border-space-700 bg-[radial-gradient(circle_at_50%_40%,var(--color-space-800),var(--color-space-900)_70%)] p-4">
-            <div className="flex items-baseline justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="font-semibold">Spacecraft</h2>
-              <span className="text-xs text-muted">{n1(ev.totals.massKg)} kg</span>
+              <span className="ml-auto text-xs text-muted">{n1(ev.totals.massKg)} kg</span>
+              <div className="flex rounded-lg bg-space-800 p-0.5 text-xs" role="radiogroup" aria-label="Spacecraft view">
+                {(['3d', 'slots'] as const).map((v) => (
+                  <button
+                    key={v}
+                    role="radio"
+                    aria-checked={view === v}
+                    onClick={() => setView(v)}
+                    className={cn('rounded-md px-2.5 py-1 transition-colors', view === v ? 'bg-accent text-space-950' : 'text-muted hover:text-ink')}
+                  >
+                    {v === '3d' ? '3D' : 'Slots'}
+                  </button>
+                ))}
+              </div>
             </div>
-            <Spacecraft bus={bus} parts={onCraft} problemIds={refly?.partIds} onRemove={remove} onRemoveBus={() => (setBus(null), play('remove'))} canRemove={canEditPart} canRemoveBus={canBus} />
+            {view === '3d' ? (
+              <CraftDrop className="mt-3">
+                <Suspense fallback={<div className="flex h-[420px] items-center justify-center text-sm text-muted sm:h-[480px]">Loading 3D view…</div>}>
+                  <Craft3D
+                    bus={bus}
+                    parts={onCraft}
+                    problemIds={refly?.partIds}
+                    canRemove={canEditPart}
+                    onRemove={remove}
+                    empty={
+                      <span>
+                        Start with a bus. Drag it here, or tap + in the <b className="text-ink">Bus</b> tab of the parts tray.
+                      </span>
+                    }
+                  />
+                </Suspense>
+              </CraftDrop>
+            ) : (
+              <Spacecraft bus={bus} parts={onCraft} problemIds={refly?.partIds} onRemove={remove} onRemoveBus={() => (setBus(null), play('remove'))} canRemove={canEditPart} canRemoveBus={canBus} />
+            )}
           </div>
 
           <PartsTray buses={buses} parts={gameData.parts} availability={availability} counts={counts} currentBusId={design.engineer.busId} onAdd={add} busLocked={canBus ? undefined : `Only the ${roleNames.engineer} picks the bus.`} />
