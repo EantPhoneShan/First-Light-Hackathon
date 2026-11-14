@@ -17,8 +17,12 @@ export const ROLE_LABELS: Record<Role, string> = {
   flight: 'Flight Dynamics',
 };
 
-/** Game phase shared by the whole room. */
-export type Phase = 'lobby' | 'design' | 'launch' | 'simulate' | 'report';
+/**
+ * Game phase shared by the whole room: the team flow's step (engine/flow.ts Step).
+ * The first five are the original phases, so older rooms still read correctly.
+ */
+export const PHASES = ['lobby', 'design', 'launch', 'simulate', 'report', 'briefing', 'feasibility', 'review'] as const;
+export type Phase = (typeof PHASES)[number];
 
 export interface Player {
   id: string;

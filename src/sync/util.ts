@@ -1,5 +1,5 @@
 import type { DesignSection, Role, Room } from './types';
-import { ROLES } from './types';
+import { PHASES, ROLES } from './types';
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I
 
@@ -62,7 +62,7 @@ export function sanitiseRoom(raw: unknown): Room | null {
   return {
     code: r.code,
     scenario: typeof r.scenario === 'string' ? r.scenario : 'wildfire-watch',
-    phase: (['lobby', 'design', 'launch', 'simulate', 'report'] as const).includes(r.phase as never)
+    phase: PHASES.includes(r.phase as never)
       ? (r.phase as Room['phase'])
       : 'lobby',
     hostId: String(r.hostId ?? ''),
