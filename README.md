@@ -17,6 +17,16 @@ npm run dev
 
 Works fully offline (solo, and team mode across browser tabs).
 
+## Game logic
+
+The rules, simulation, scoring and mission report live in `src/engine/` (plain TypeScript, no UI), with all numbers in `src/data/*.json`. Every number names the NASA resource it comes from (mostly CubeSat 101) and is labelled approximate. Guide for the other screens and the score Lambda: [docs/ENGINE.md](docs/ENGINE.md).
+
+```bash
+npm test
+```
+
+runs the engine tests: the tutorial CubeSat dies 29 minutes into its first eclipse, the fixed craft flies its 3-year mission, live playback matches the replay exactly, and every data file passes its schema.
+
 ## Team mode / cloud
 
 - Sync API for game code: [docs/SYNC.md](docs/SYNC.md)
@@ -40,4 +50,5 @@ Local development against AWS (optional): configure AWS credentials, run `npx am
 |---|---|---|
 | `src/sync/` | Member 3 | Multiplayer sync (only import `src/sync/index.ts`) |
 | `amplify/` | Member 3 | AWS backend definition |
-| `src/` (rest) | Members 1 & 2 | Game logic and screens |
+| `src/engine/`, `src/data/` | Member 1 | Game logic: rules, simulation, events, score, report, team flow ([docs/ENGINE.md](docs/ENGINE.md)) |
+| `src/` (rest) | Member 2 | Screens, art and sound |
