@@ -64,6 +64,44 @@
       "tooltip": "Firefighters need to know about new fires quickly. A small CubeSat can watch for them, if it can get its pictures home in time.",
       "source": "cubesat101",
       "sourceNote": "A 6U CubeSat mission. Build time from CubeSat 101 (typically 18 to 24 months); budget keeps CubeSat 101's advice of at least a 10% reserve."
+    },
+    {
+      "id": "flood-radar",
+      "name": "Flood Radar",
+      "objective": "Map flooding during storms, when clouds hide the ground, every 2 days for 3 years.",
+      "difficulty": "medium",
+      "customer": { "name": "Disaster agencies", "needsDataWithinHours": 6 },
+      "busIds": ["bus-smallsat"],
+      "budgetM": 28,
+      "baseOpsCostPerYearM": 0.3,
+      "launchInMonths": 40,
+      "lifetimeYears": 3,
+      "revisitDays": 2,
+      "criticalResources": ["power", "mass"],
+      "goals": [
+        {
+          "id": "map-floods",
+          "name": "Map floods as they happen",
+          "measurements": [
+            {
+              "id": "through-clouds",
+              "name": "The ground under storm clouds",
+              "why": "Storms bring thick clouds. Radar waves pass straight through them, and work at night too.",
+              "instrumentIds": ["radar"]
+            },
+            {
+              "id": "flood-extent",
+              "name": "Flooded land on clear days",
+              "why": "Between storms, water and wet ground look different from dry land in several colours of light.",
+              "instrumentIds": ["multispectral-imager"]
+            }
+          ]
+        }
+      ],
+      "eventsAllowed": ["solar-storm", "station-outage", "part-failure"],
+      "tooltip": "When rivers burst during a storm, rescue teams need maps, but clouds block normal cameras. A radar satellite can see through them, if it has enough power.",
+      "source": "science-missions",
+      "sourceNote": "A user-segment-led mission (disaster agencies need maps within hours). Radar sees through clouds and at night. Budget and build time are game estimates sized for a small satellite with a radar."
     }
   ]
 }

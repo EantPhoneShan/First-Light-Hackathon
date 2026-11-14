@@ -138,7 +138,7 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
           title: 'Meet your CubeSat',
           body: (
             <>
-              This <Term id="cubesat">CubeSat</Term> is built to spot wildfires from <Term id="sso">sun-synchronous orbit</Term>. The Power gauge at the top is red, but lots of teams launch anyway. Let's launch it and see what that means.
+              This <Term id="cubesat">CubeSat</Term> is built to spot wildfires from <Term id="sso">sun-synchronous orbit</Term>. The Power gauge at the top is red on purpose: this craft has a design mistake built in. Launch it anyway and watch what the mistake does in flight.
             </>
           ),
           action: { label: 'Launch it', to: '/launch' },
@@ -168,7 +168,11 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
         id: 'review',
         n: fixed ? 6 : 2,
         title: 'Design review',
-        body: <>In a real mission every role signs off here. Notice anything red? The tutorial lets you launch anyway.</>,
+        body: fixed ? (
+          <>In a real mission every role signs off here. Everything should be green now.</>
+        ) : (
+          <>In a real mission every role signs off here, and a red check would stop the launch. This red one is deliberate: launch anyway so you can see what it does to the craft.</>
+        ),
         action: { label: 'Go to launch', to: '/launch' },
       }
 
