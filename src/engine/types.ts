@@ -492,6 +492,8 @@ export interface SimSummary {
   onTimePct: number;
   /** Average age of data when it reached the ground. */
   avgDelayHours: number;
+  /** "First light": when the first data reached the ground, or null if it never did. */
+  firstLightMin: number | null;
   orbits: number;
   eclipses: number;
   /** When the craft died, or null. */
@@ -544,6 +546,7 @@ export interface SimState {
   eclipses: number;
   diedAtMin: number | null;
   reenteredAtMin: number | null;
+  firstLightMin: number | null;
   frames: SimFrame[];
   markers: SimMarker[];
   /** Lowest battery seen in the current orbit (for per-orbit frames). */
@@ -576,6 +579,83 @@ export interface RoleGoal {
   met: boolean;
   /** What actually happened, e.g. "17% power margin". */
   detail: string;
+}
+
+// ---------------------------------------------------------------------------
+// Mission report (task 1.8, PRD F16 and F18)
+// ---------------------------------------------------------------------------
+
+/** Workbench area that holds the fix, so the UI can open the right tab. */
+export type FixArea = 'spacecraft' | 'science' | 'launch' | 'ground' | 'mission';
+
+/** One thing that went wrong (or could be better), with why and how to fix it. */
+export interface Finding {
+  id: string;
+  /** When it happened in the flight, or null for a design-level issue. */
+  tMin: number | null;
+  /** bad = broke the mission, warn = cost points, tip = a way to score more. */
+  kind: 'bad' | 'warn' | 'tip';
+  title: string;
+  why: string;
+  fix: string;
+  owner: Role;
+  /** Parts to highlight on the workbench when re-flying (F18). */
+  partIds: string[];
+  area: FixArea;
+  /** Rough points this costs; findings are sorted by it. */
+  impact: number;
+  /** One of the 3 biggest problems, shown first. */
+  top: boolean;
+}
+
+export interface ScoreLine {
+  id: ScoreCategory;
+  label: string;
+  points: number;
+  max: number;
+  /** Why points were lost, if any. */
+  note?: string;
+}
+
+/** Change since the previous flight (the ghost), for "+120 points" style feedback. */
+export interface ReportCompare {
+  totalDelta: number;
+  starsDelta: number;
+  byCategory: Record<ScoreCategory, number>;
+  survivedDeltaMin: number;
+  deliveredPctDelta: number;
+  /** Findings from last time that are now gone. */
+  fixedTitles: string[];
+}
+
+export interface MissionReport {
+  outcome: Outcome;
+  total: number;
+  stars: 0 | 1 | 2 | 3;
+  /** One plain sentence: what happened. */
+  headline: string;
+  lines: ScoreLine[];
+  /** Every finding, biggest first; the first 3 have top = true. */
+  findings: Finding[];
+  /** Flight timeline markers, in time order (F16). */
+  markers: SimMarker[];
+  roleGoals: RoleGoal[];
+  customer: {
+    name: string;
+    needsDataWithinHours: number;
+    /** Data a full mission would have made. */
+    expectedMB: number;
+    deliveredMB: number;
+    deliveredPct: number;
+    onTimePct: number;
+    avgDelayHours: number;
+  };
+  firstLightMin: number | null;
+  survivedMin: number;
+  missionMin: number;
+  /** Every part to highlight on re-fly: the union of all findings' parts. */
+  highlightPartIds: string[];
+  compare: ReportCompare | null;
 }
 
 export interface ScoreResult {

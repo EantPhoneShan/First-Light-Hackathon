@@ -263,7 +263,7 @@ export const flight = {
     hint: 'Try a faster radio or a second ground station.',
   }),
   reentered: (yearsUp: number, needYears: number): Why => ({
-    why: `After ${years(yearsUp)}, air drag pulled the craft down and it burned up, before the ${years(needYears)} mission was over.`,
+    why: `After ${years(yearsUp)}, air drag pulled the craft down and it burned up, before the ${fmt(needYears)}-year mission was over.`,
     hint: 'Fly higher, where the air is thinner.',
   }),
   complete: (yrs: number, deliveredPct: number): Why => ({

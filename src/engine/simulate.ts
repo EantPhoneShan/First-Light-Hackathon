@@ -206,6 +206,7 @@ export function initialState(setup: SimSetup): SimState {
     eclipses: 0,
     diedAtMin: null,
     reenteredAtMin: null,
+    firstLightMin: null,
     frames: [],
     markers: [],
     orbitMinBatteryWh: setup.batteryUsableWh,
@@ -270,6 +271,10 @@ export function stepSim(s: SimState, setup: SimSetup, minutes: number): SimState
       const ageMin = setup.dataPerMin > 0 ? Math.max(0, bufferBefore - sent / 2) / setup.dataPerMin : 0;
       s.delayMBMin += sent * ageMin;
       if (ageMin <= setup.customerDeadlineMin) s.onTimeMB += sent;
+      if (s.firstLightMin === null && sent > 0) {
+        s.firstLightMin = t0;
+        s.markers.push({ tMin: t0, kind: 'event', status: 'ok', label: 'First light', why: 'The first data reaches the ground station.' });
+      }
       s.deliveredMB += sent;
       s.bufferMB -= sent;
       if (setup.dataMBPerDay > 0) s.scienceScore += (sent / setup.dataMBPerDay) * setup.sciencePerDay;
@@ -428,6 +433,7 @@ export function finishSim(s: SimState, setup: SimSetup): SimResult {
       deliveredPct,
       onTimePct,
       avgDelayHours: s.deliveredMB > 0 ? s.delayMBMin / s.deliveredMB / 60 : 0,
+      firstLightMin: s.firstLightMin,
       orbits: s.orbits,
       eclipses: s.eclipses,
       diedAtMin: s.diedAtMin,
