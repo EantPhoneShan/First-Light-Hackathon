@@ -1,0 +1,16 @@
+{
+  "sources": [
+    { "id": "challenge", "title": "NASA Space Apps 2026: Space Mission Design Game (challenge text)" },
+    {
+      "id": "cubesat101",
+      "title": "CubeSat 101: Basic Concepts and Processes for First-Time CubeSat Developers (NASA CubeSat Launch Initiative)",
+      "url": "https://www.nasa.gov/wp-content/uploads/2017/03/nasa_csli_cubesat_101_508.pdf"
+    },
+    { "id": "science-missions", "title": "NASA: Design and Develop Science Missions (launch, space, ground and user segments)" },
+    { "id": "cml", "title": "JPL: Concept Maturity Levels (CML 1 to 4)" },
+    { "id": "mdl", "title": "NASA Goddard: Mission Design Lab" },
+    { "id": "gmat", "title": "NASA General Mission Analysis Tool (GMAT)" },
+    { "id": "physics", "title": "Standard orbit and rocket formulas (orbit period, eclipse geometry, rocket equation)" },
+    { "id": "estimate", "title": "Rounded game estimate (see the note on each item)" }
+  ]
+}

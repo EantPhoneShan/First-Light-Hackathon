@@ -107,7 +107,7 @@ export const CATEGORY_OWNER: Record<PartCategory, Role> = {
 export interface Part extends Described {
   category: PartCategory;
   tier: Tier;
-  /** Bus slots it fills. 0 = mounted outside (solar wings, antennas). */
+  /** Bus slots it fills. 0 = mounted outside (solar cells and wings). */
   slots: number;
   /** Most copies allowed on one craft (e.g. 1 pair of solar wings). */
   maxPerCraft?: number;
@@ -200,7 +200,7 @@ export interface GroundStation extends Described {
   lat: number;
   lon: number;
   bands: Band[];
-  /** Usable passes per day for each orbit id. */
+  /** Usable passes per day for each orbit id. Missing orbit = never in view. */
   passesPerDay: Record<string, number>;
   passMinutes: number;
   costPerYearM: number;
@@ -244,6 +244,19 @@ export interface Scenario extends Described {
   tutorialDesign?: Design;
 }
 
+/** A resource we credit (src/data/sources.json). */
+export interface Source {
+  id: SourceId;
+  title: string;
+  url?: string;
+}
+
+/** A source reference for a whole table, e.g. the decay table. */
+export interface SourceRef {
+  source: SourceId;
+  sourceNote?: string;
+}
+
 /** Everything loaded from the data files, passed into every engine function. */
 export interface GameData {
   parts: Part[];
@@ -251,8 +264,13 @@ export interface GameData {
   launchers: Launcher[];
   orbits: Orbit[];
   decay: DecayPoint[];
+  decaySource: SourceRef;
+  /** Most years a dead craft may stay in orbit before it must come down. */
+  disposalRuleYears: number;
+  disposalSource: SourceRef;
   stations: GroundStation[];
   scenarios: Scenario[];
+  sources: Source[];
 }
 
 // ---------------------------------------------------------------------------

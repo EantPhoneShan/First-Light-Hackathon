@@ -1,0 +1,68 @@
+{
+  "orbits": [
+    {
+      "id": "iss",
+      "name": "Space Station orbit",
+      "kind": "leo",
+      "altitudeKm": 400,
+      "minAltitudeKm": 380,
+      "maxAltitudeKm": 420,
+      "inclinationDeg": 51.6,
+      "betaDeg": 0,
+      "revisitDays": 3,
+      "tooltip": "Low and easy to reach, but the thin air up there slowly drags the craft down. It never passes over the far north or south.",
+      "source": "cubesat101",
+      "sourceNote": "CubeSat 101 section 3.5: CubeSats released from the Space Station share its orbit. Revisit is a rounded estimate."
+    },
+    {
+      "id": "sso",
+      "name": "Sun-synchronous orbit",
+      "kind": "sso",
+      "altitudeKm": 550,
+      "minAltitudeKm": 500,
+      "maxAltitudeKm": 650,
+      "inclinationDeg": 97.6,
+      "betaDeg": 20,
+      "revisitDays": 2,
+      "tooltip": "Goes over the poles and passes each place at the same time of day, so every photo has the same lighting. A favourite for Earth-watching satellites.",
+      "source": "estimate",
+      "sourceNote": "Typical Earth-observation orbit. Revisit and sun angle are rounded estimates."
+    },
+    {
+      "id": "geo",
+      "name": "Geostationary orbit (GEO)",
+      "kind": "geo",
+      "altitudeKm": 35786,
+      "minAltitudeKm": 35786,
+      "maxAltitudeKm": 35786,
+      "inclinationDeg": 0,
+      "betaDeg": 0,
+      "revisitDays": 0,
+      "tooltip": "So high that one orbit takes a whole day, so the craft seems to hover over one spot. Great for watching weather, but very far away and hard to reach.",
+      "source": "physics",
+      "sourceNote": "35,786 km is the altitude where one orbit takes one day."
+    }
+  ],
+  "decay": [
+    { "altitudeKm": 300, "years": 0.1 },
+    { "altitudeKm": 350, "years": 0.4 },
+    { "altitudeKm": 400, "years": 1.2 },
+    { "altitudeKm": 450, "years": 3 },
+    { "altitudeKm": 500, "years": 6 },
+    { "altitudeKm": 550, "years": 12 },
+    { "altitudeKm": 600, "years": 25 },
+    { "altitudeKm": 650, "years": 45 },
+    { "altitudeKm": 700, "years": 80 },
+    { "altitudeKm": 800, "years": 200 },
+    { "altitudeKm": 1000, "years": 1000 }
+  ],
+  "decaySource": {
+    "source": "gmat",
+    "sourceNote": "Rounded typical lifetimes for a small craft with average solar activity. To check against GMAT runs; real decay changes a lot with the solar cycle."
+  },
+  "disposalRuleYears": 25,
+  "disposalSource": {
+    "source": "cubesat101",
+    "sourceNote": "CubeSat 101 section 6.1: an orbital debris report must show the craft will deorbit in a reasonable time. We use NASA's 25-year guideline; FCC-licensed craft now face a stricter 5-year rule."
+  }
+}
