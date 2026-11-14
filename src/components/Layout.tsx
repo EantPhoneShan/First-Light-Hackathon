@@ -10,14 +10,13 @@ import { ROLE_ORDER, roleNames } from '@/game/ui'
 import type { Role } from '@/engine/types'
 import { SyncStatusDot } from '@/components/SyncStatusDot'
 import { useTeamSyncBridge } from '@/sync/teamBridge'
-import { useFollowRoomStep, useTeamFlow } from '@/game/teamFlow'
+import { useTeamFlow } from '@/game/teamFlow'
 import { useGame, useScenario } from '@/store/game'
 
 export function Layout() {
   const { pathname } = useLocation()
   useConflictAlerts()
   useTeamSyncBridge()
-  useFollowRoomStep()
   const teamFlow = useTeamFlow()
   // Expose the header's height so sticky bars (like the gauges) sit right under it on any screen.
   const headerRef = useRef<HTMLElement>(null)

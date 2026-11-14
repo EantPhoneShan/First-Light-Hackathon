@@ -213,7 +213,8 @@ function RoleCard({ role, checks }: { role: Role; checks: Check[] }) {
             setApproval(role, 'hold', note.trim() || undefined)
             play('hold')
             // Team rule: a Hold sends everyone back to the design to talk it through.
-            if (flow.team) {
+            // In a device room the leader's sync does that (teamBridge); on one shared screen, we do.
+            if (flow.team && !flow.deviceRoom) {
               const back = backStep('review')
               if (back) flow.goTo(back)
             }

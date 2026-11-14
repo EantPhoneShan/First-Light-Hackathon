@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react'
 import { LeadButton } from '@/components/LeadButton'
 import { Leaderboard, OtherBuilds, RealMissionCard } from '@/components/ReportExtras'
 import { backStep } from '@/engine/flow'
+import { useTeamFlow } from '@/game/teamFlow'
 import { Screen } from '@/components/Screen'
 import { buildMissionReport, formatDuration } from '@/engine/report'
 import { scoreMission } from '@/engine/score'
@@ -49,6 +50,8 @@ export function Report() {
     )
   }
 
+  const flow = useTeamFlow()
+  const canRewrite = flow.canRewriteDesign
   const refly = () => {
     // Runs on the leader's device just before the room moves back to design (backStep).
     const fixes = report.findings.filter((f) => f.kind !== 'tip')
@@ -89,9 +92,10 @@ export function Report() {
       <OtherBuilds flight={flight} />
 
       <div className="flex flex-wrap justify-end gap-3">
-        <LeadButton to={backStep('report') ?? 'design'} ignoreCheck onGo={startOver} icon={null} quietWhenWaiting className="border border-space-600 bg-transparent font-normal text-ink hover:bg-space-800">
+        {/* Starting over wipes every role's part, so only when this device plays all four roles */}
+        {canRewrite && <LeadButton to={backStep('report') ?? 'design'} ignoreCheck onGo={startOver} icon={null} quietWhenWaiting className="border border-space-600 bg-transparent font-normal text-ink hover:bg-space-800">
           New design
-        </LeadButton>
+        </LeadButton>}
         <LeadButton to={backStep('report') ?? 'design'} ignoreCheck onGo={refly} icon={RotateCcw}>
           Modify and re-fly
         </LeadButton>

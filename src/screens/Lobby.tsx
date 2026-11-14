@@ -94,8 +94,8 @@ export function Lobby() {
         <h2 id="mission-h" className="font-semibold">
           Mission
         </h2>
-        {/* On one shared screen anyone can pick; with separate devices it's the Mission Planner's call. */}
-        <ScenarioPicker disabled={flow.deviceRoom && !flow.lead} />
+        {/* Pick the mission before making a room: inside a room the mission is fixed (sync locks the design in the lobby). */}
+        <ScenarioPicker disabled={flow.deviceRoom} who="host, before creating the room," />
       </section>
 
       <TeamDevicesPanel />

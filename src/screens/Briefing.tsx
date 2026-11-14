@@ -25,7 +25,7 @@ export function Briefing() {
 
   return (
     <Screen title="Mission briefing" subtitle="CML 1 · Idea: start from the science goal." reqs="F2, F3" nextLabel="Set requirements">
-      <ScenarioPicker disabled={!flow.lead} />
+      <ScenarioPicker disabled={!flow.lead || flow.deviceRoom} who={flow.deviceRoom ? 'host, before creating the room,' : undefined} />
       {/* Got a code from a friend? Load their whole design here. */}
       <ShareCode />
 

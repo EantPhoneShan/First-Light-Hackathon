@@ -6,6 +6,7 @@ import { makeSubmission } from '@/engine/verify'
 import { gameData } from '@/game/ui'
 import { cn } from '@/lib/cn'
 import type { FlightResult } from '@/sim/types'
+import { useTeamFlow } from '@/game/teamFlow'
 import { useGame } from '@/store/game'
 import { sync } from '@/sync'
 import { ScoreRejectedError, submitFlight, topScores, type ScoreEntry, type SubmittedScore } from '@/sync/leaderboard'
@@ -42,6 +43,8 @@ export function RealMissionCard({ flight }: { flight: FlightResult }) {
  */
 export function OtherBuilds({ flight }: { flight: FlightResult }) {
   const loadDesign = useGame((s) => s.loadDesign)
+  // "Try it" replaces every role's part, so only when this device plays all four roles.
+  const canTry = useTeamFlow().canRewriteDesign
   const [builds, setBuilds] = useState<OtherBuild[] | null>(null)
   useEffect(() => {
     setBuilds(null)
@@ -76,7 +79,12 @@ export function OtherBuilds({ flight }: { flight: FlightResult }) {
                 ))}
               </span>
               <span className="font-display tabular-nums">{b.score}</span>
-              <button onClick={() => loadDesign(b.design)} className="rounded-md border border-space-600 px-2 py-1 text-xs hover:bg-space-800">
+              <button
+                onClick={() => loadDesign(b.design)}
+                disabled={!canTry}
+                title={canTry ? 'Load this build onto the workbench' : 'In a team, each role changes its own part to try this.'}
+                className="rounded-md border border-space-600 px-2 py-1 text-xs hover:bg-space-800 disabled:cursor-not-allowed disabled:opacity-40"
+              >
                 Try it
               </button>
             </li>

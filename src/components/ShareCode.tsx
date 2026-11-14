@@ -67,11 +67,11 @@ export function ShareCode({ allowLoad = true }: { allowLoad?: boolean }) {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Paste a friend's code"
             aria-label="Paste a share code to load"
-            disabled={!flow.lead}
-            title={!flow.lead ? 'Only the Mission Planner loads a design in a team.' : undefined}
+            disabled={!flow.canRewriteDesign}
+            title={!flow.canRewriteDesign ? 'A code replaces every role’s part, so it only loads when you play all four roles.' : undefined}
             className="min-w-0 flex-1 rounded-lg border border-space-600 bg-space-950 px-2 py-1.5 font-mono text-xs placeholder:font-sans placeholder:text-muted/60 disabled:opacity-50"
           />
-          <button type="submit" disabled={!input.trim() || !flow.lead} className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-space-700 px-2.5 py-1.5 text-xs hover:bg-space-600 disabled:opacity-40">
+          <button type="submit" disabled={!input.trim() || !flow.canRewriteDesign} className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-space-700 px-2.5 py-1.5 text-xs hover:bg-space-600 disabled:opacity-40">
             <Download className="size-3.5" aria-hidden />
             Load
           </button>

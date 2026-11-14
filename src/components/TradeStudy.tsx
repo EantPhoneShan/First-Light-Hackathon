@@ -41,8 +41,8 @@ export function TradeStudy() {
   // A changed option makes the old comparison wrong.
   useEffect(() => setStudy(null), [a, b])
 
-  // Loading an option rewrites every role's part, so in a team only the leader does it.
-  const canLoad = flow.lead
+  // Loading an option rewrites every role's part, so only someone acting for every role can.
+  const canLoad = flow.lead && flow.canRewriteDesign
   const canSave = !flow.team || flow.lead
 
   const compare = () => {
@@ -115,7 +115,7 @@ export function TradeStudy() {
                   <button
                     onClick={() => fly(slot)}
                     disabled={!canLoad}
-                    title={!canLoad ? 'Only the Mission Planner switches the team to an option.' : 'Put this option on the workbench, ready to review and launch'}
+                    title={!canLoad ? 'In a team, each role rebuilds its own part to match this option.' : 'Put this option on the workbench, ready to review and launch'}
                     className={cn(
                       'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40',
                       win ? 'bg-accent text-space-950 hover:bg-accent-strong' : 'bg-space-700 hover:bg-space-600',

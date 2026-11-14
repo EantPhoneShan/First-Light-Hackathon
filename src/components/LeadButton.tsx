@@ -36,7 +36,7 @@ export function LeadButton({ children, facts = {}, to, onGo, icon: Icon = ArrowR
   const leaderName = useGame((s) => s.players.find((p) => p.role === leader)?.name)
   const reasonId = useId()
 
-  if (!flow.lead) return quietWhenWaiting ? null : <WaitingFor role={roleNames[leader]} name={leaderName} />
+  if (!flow.lead) return quietWhenWaiting ? null : <WaitingFor role={roleNames[leader]} name={flow.leaderName ?? leaderName} />
 
   const check = flow.check(facts)
   const target = to ?? check.to
