@@ -100,6 +100,7 @@ class Sync {
   private room: Room | null = null;
   private status: SyncStatus = 'solo';
   private myRoles: Role[] = [...ROLES];
+  private openEditing = false;
   private me = loadPlayer();
   private unsub: (() => void) | null = null;
   private heartbeat: ReturnType<typeof setInterval> | null = null;
@@ -131,7 +132,16 @@ class Sync {
     return [...this.myRoles];
   }
   canEdit(role: Role) {
-    return this.myRoles.includes(role);
+    return this.openEditing || this.myRoles.includes(role);
+  }
+
+  /**
+   * Let this device write every role's section, not only its own roles.
+   * The game UI lets anyone place any part, so the team bridge turns this on;
+   * version checks still catch two devices editing the same section at once.
+   */
+  setOpenEditing(on: boolean) {
+    this.openEditing = on;
   }
 
   // ---------- subscribe ----------
