@@ -74,7 +74,7 @@ function approvalFor(s: GameState, role: Role): Payload | null {
   return { state: a.state, note: a.note ?? null, hash: designHash(s.design) }
 }
 
-/** The four section payloads for the store's current state. Key order is fixed so JSON compares work. */
+/** The four section payloads for the store's current state. Compared with canon(), never plain JSON. */
 function payloads(s: GameState): Record<Role, Payload> {
   const d = s.design
   return {
@@ -89,6 +89,17 @@ function payloads(s: GameState): Record<Role, Payload> {
       approval: approvalFor(s, 'flight'),
     },
   }
+}
+
+/**
+ * JSON text with object keys sorted. The cloud does not keep key order, so a
+ * plain JSON.stringify compare would see every echo as a new change and resend
+ * it forever.
+ */
+function canon(v: unknown): string {
+  return JSON.stringify(v, (_k, x) =>
+    x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) : x,
+  )
 }
 
 const isEmpty = (p: Payload | undefined) => !p || Object.keys(p).length === 0
@@ -165,7 +176,7 @@ function pushChanges(s: GameState) {
   if (!state.active || applyingRemote) return
   const p = payloads(s)
   for (const r of ROLES) {
-    const text = JSON.stringify(p[r])
+    const text = canon(p[r])
     if (text === lastSynced[r]) continue
     // Wait a moment (sliders send many changes) and never send two writes for one role at once.
     clearTimeout(timers.get(r))
@@ -174,7 +185,7 @@ function pushChanges(s: GameState) {
       r,
       setTimeout(() => {
         pending.delete(r)
-        const now = JSON.stringify(payloads(useGame.getState())[r])
+        const now = canon(payloads(useGame.getState())[r])
         if (now === lastSynced[r]) return
         lastSynced[r] = now
         const prev = writing.get(r) ?? Promise.resolve()
@@ -188,7 +199,7 @@ function pushChanges(s: GameState) {
 function onRoom(room: Room) {
   if (!state.active) return
   const keepLocal = new Set(pending)
-  for (const r of ROLES) if (!keepLocal.has(r) && !isEmpty(room.sections[r].data)) lastSynced[r] = JSON.stringify(room.sections[r].data)
+  for (const r of ROLES) if (!keepLocal.has(r) && !isEmpty(room.sections[r].data)) lastSynced[r] = canon(room.sections[r].data)
   applyingRemote = true
   try {
     applyRemote(room, keepLocal)

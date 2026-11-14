@@ -101,6 +101,8 @@ class Sync {
   private status: SyncStatus = 'solo';
   private myRoles: Role[] = [...ROLES];
   private openEditing = false;
+  /** True once this player has picked roles in the current room: from then on this device owns its own roles. */
+  private rolesChosen = false;
   private me = loadPlayer();
   private unsub: (() => void) | null = null;
   private heartbeat: ReturnType<typeof setInterval> | null = null;
@@ -240,7 +242,12 @@ class Sync {
     );
     const granted = roles.filter((r) => !takenByOthers.has(r));
     this.myRoles = granted;
-    await this.adapter.upsertPlayer(room.code, { id: this.me.id, name: this.me.name, roles: granted, lastSeen: Date.now() });
+    this.rolesChosen = true;
+    const meNow: Player = { id: this.me.id, name: this.me.name, roles: granted, lastSeen: Date.now() };
+    // Show the choice here straight away; the server copy can arrive a moment later.
+    room.players = [...room.players.filter((p) => p.id !== this.me.id), meNow];
+    this.emitRoom();
+    await this.adapter.upsertPlayer(room.code, meNow);
     return granted;
   }
 
@@ -273,6 +280,7 @@ class Sync {
     if (this.heartbeat) clearInterval(this.heartbeat);
     this.heartbeat = null;
     this.queue.clear();
+    this.rolesChosen = false;
     if (room && room.code !== 'SOLO' && this.status !== 'solo') {
       this.adapter.removePlayer(room.code, this.me.id).catch(() => {});
     }
@@ -439,7 +447,11 @@ class Sync {
       }
     }
     const me = incoming.players.find((p) => p.id === this.me.id);
-    if (me) this.myRoles = me.roles;
+    if (this.rolesChosen) {
+      // A late copy of my own row (for example from before I picked a role) must not undo my choice.
+      if (me) me.roles = [...this.myRoles];
+      else incoming.players.push({ id: this.me.id, name: this.me.name, roles: [...this.myRoles], lastSeen: Date.now() });
+    } else if (me) this.myRoles = me.roles;
 
     if (prev) this.diff(prev, incoming);
     this.room = incoming;
