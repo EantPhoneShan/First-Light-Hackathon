@@ -11,12 +11,12 @@
 import { ROLE_LABELS } from '../sync/types';
 import { evaluate } from './rules';
 import type { Design, Evaluation, GameData, Problem, ProblemKind, ResourceId, Role, Scenario, Status } from './types';
-import { RESOURCES } from './types';
+import { RESOURCES, RESOURCE_WATCHER } from './types';
 import { fmt, list, pct } from './why';
 
 export interface ConflictAlert {
   id: string;
-  /** The role whose panel gets the alert. */
+  /** The role that gets the alert: the gauge's watcher (RESOURCE_WATCHER), or the problem's owner. */
   hurtRole: Role;
   /** The role that made the change. */
   byRole: Role;
@@ -74,7 +74,8 @@ export function conflictAlerts(before: Design, after: Design, scenario: Scenario
     const sentence = b.status === 'fail' && b.used <= b.limit && linked ? linked.why : gaugeSentence(b);
     alerts.push({
       id: `alert.${r}`,
-      hurtRole: b.owner,
+      // The team rule: whoever watches the gauge hears about it.
+      hurtRole: RESOURCE_WATCHER[r],
       byRole,
       by,
       resource: r,

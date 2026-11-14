@@ -60,6 +60,21 @@ export const RESOURCE_OWNER: Record<ResourceId, Role> = {
   deltaV: 'flight',
 };
 
+/**
+ * Who WATCHES each gauge in team play (team decision, 14 Nov): only the watcher
+ * sees it, so the role that builds must be told when it pushes a gauge too far.
+ * Conflict alerts go to the watcher. RESOURCE_OWNER is who fixes it.
+ */
+export const RESOURCE_WATCHER: Record<ResourceId, Role> = {
+  time: 'engineer',
+  power: 'science',
+  data: 'science',
+  comms: 'science',
+  budget: 'planner',
+  mass: 'flight',
+  deltaV: 'flight',
+};
+
 export type Tier = 'simple' | 'advanced';
 export type Band = 'uhf' | 's' | 'x';
 export type BusSize = 'cubesat' | 'smallsat' | 'large';

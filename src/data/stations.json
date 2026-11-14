@@ -16,7 +16,7 @@
     },
     {
       "id": "station-campus",
-      "name": "Your own campus station",
+      "name": "Campus station (your own)",
       "lat": 35,
       "lon": -100,
       "bands": ["uhf", "s"],

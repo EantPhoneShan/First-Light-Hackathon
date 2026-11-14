@@ -37,6 +37,11 @@ export const SCORING = {
   oneKindShare: 0.8,
   /** Decision points: review quality, trade study, event choices. */
   decisions: { review: 75, tradeStudy: 25, events: 25, perFail: 25, perWarn: 10 },
+  /**
+   * The trade study screen (CML 3, F6) exists yet. While false, its points are
+   * added to the review instead, and no "compare two designs" tip is shown.
+   */
+  tradeStudyAvailable: false,
   /** Collaboration points: each role goal, and everyone approving. */
   collaboration: { perGoal: 10, approved: 10 },
   /** PRD private role goals. */
@@ -151,8 +156,10 @@ export function scoreMission(
   const D = SCORING.decisions;
   const fails = ev.problems.filter((p) => p.status === 'fail').length;
   const warns = ev.problems.filter((p) => p.status === 'warn').length;
-  const review = Math.max(0, D.review - D.perFail * fails - D.perWarn * warns);
-  const trade = ctx.tradeStudyUsed ? D.tradeStudy : 0;
+  const tradeOn = SCORING.tradeStudyAvailable;
+  const reviewMax = D.review + (tradeOn ? 0 : D.tradeStudy);
+  const review = Math.max(0, reviewMax - D.perFail * fails - D.perWarn * warns);
+  const trade = tradeOn && ctx.tradeStudyUsed ? D.tradeStudy : 0;
   // Event points only come from real event choices, never for free. The flight
   // records them itself, so the Lambda can check them by replaying it.
   const choiceStats = ctx.eventChoices ?? { good: sim.events.filter((e) => e.good).length, total: sim.events.length };
@@ -163,7 +170,7 @@ export function scoreMission(
     notes.decisions =
       fails + warns > 0
         ? `Launched with ${open} warning${fails + warns === 1 ? '' : 's'} still open.`
-        : !ctx.tradeStudyUsed
+        : tradeOn && !ctx.tradeStudyUsed
           ? 'Try a trade study: compare two designs before choosing.'
           : events === 0
             ? 'Good choices during random events earn the last points.'

@@ -4,7 +4,7 @@
  * holds UI-only decisions such as who watches which gauge.
  */
 import { findPart, gameData } from '@/engine/data'
-import type { Design, Part, PartCategory, ResourceId, Role } from '@/engine/types'
+import { RESOURCE_WATCHER, type Design, type Part, type PartCategory, type ResourceId, type Role } from '@/engine/types'
 import { ROLE_LABELS } from '@/sync/types'
 
 export { gameData }
@@ -57,17 +57,10 @@ export const isExternal = (p: Part) => p.slots === 0
 /**
  * Who WATCHES each gauge in team play (team decision, 14 Nov): only the watcher sees it,
  * so the Engineer, who builds, has to be told when power or data gets too high.
- * This is a UI rule. Member 1's RESOURCE_OWNER (whose panel shows a warning) is separate.
+ * Now lives in Member 1's engine (RESOURCE_WATCHER), which conflictAlerts() also uses,
+ * so alerts and hidden gauges always agree.
  */
-export const GAUGE_WATCHER: Record<ResourceId, Role> = {
-  time: 'engineer',
-  power: 'science',
-  data: 'science',
-  comms: 'science',
-  budget: 'planner',
-  mass: 'flight',
-  deltaV: 'flight',
-}
+export const GAUGE_WATCHER: Record<ResourceId, Role> = RESOURCE_WATCHER
 
 /** Short gauge labels for the 7-across row on phones. */
 export const shortLabel: Partial<Record<ResourceId, string>> = { data: 'Storage', comms: 'Comms', time: 'Time', deltaV: 'Δv' }
