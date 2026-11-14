@@ -18,6 +18,7 @@
  * means AWS when amplify_outputs.json exists, otherwise local). If the
  * cloud backend fails, the game keeps running on this device and retries.
  */
+import { normalizeEngineer, normalizeFlight, normalizePlanner, normalizeScience } from '../engine/design';
 import { canEditSection, canLead, stepInfo } from '../engine/flow';
 import type { DesignSection, Phase, Player, Role, Room, SyncAdapter, SyncEvent, SyncStatus } from './types';
 import { ConflictError, EditRefusedError, ROLES } from './types';
@@ -64,10 +65,21 @@ function canonical(v: unknown): string {
   );
 }
 
-/** True when two section payloads differ only in their `approval` field. */
-function sameExceptApproval(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+/** What a part that nobody has filled in yet looks like once the game reads it (an empty room section). */
+function blankSection(role: Role, scenario: string): Record<string, unknown> {
+  const blank = { planner: normalizePlanner, science: normalizeScience, engineer: normalizeEngineer, flight: normalizeFlight }[role]({});
+  return role === 'planner' ? { ...blank, scenarioId: scenario } : { ...blank };
+}
+
+/**
+ * True when two section payloads differ only in their `approval` field.
+ * An empty section counts as the blank part, so a role that never changed its
+ * part can still press Approve or Hold.
+ */
+function sameExceptApproval(a: Record<string, unknown>, b: Record<string, unknown>, role: Role, scenario: string): boolean {
   const strip = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o ?? {}).filter(([k]) => k !== 'approval'));
-  return canonical(strip(a)) === canonical(strip(b));
+  const before = Object.keys(a ?? {}).length ? a : blankSection(role, scenario);
+  return canonical(strip(before)) === canonical(strip(b));
 }
 
 export function isOnline(p: Player, now = Date.now()): boolean {
@@ -435,7 +447,7 @@ class Sync {
     const acting = this.getActingRoles();
     if (!acting.includes(role)) return `Only the ${ROLE_NAMES[role]} can change that part.`;
     // Approve/Hold travels inside the section (see teamBridge.ts); it is allowed outside the flight.
-    if (sameExceptApproval(cur.data, data)) {
+    if (sameExceptApproval(cur.data, data, role, room.scenario)) {
       return room.phase === 'launch' || room.phase === 'simulate' ? 'The design is locked during the flight.' : null;
     }
     // The host fills in the room's starting design right after creating it.
