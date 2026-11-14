@@ -12,4 +12,6 @@ export interface FlightResult {
   scenarioId: string
   /** Every role had approved this exact design at launch (for the collaboration score). */
   allApproved: boolean
+  /** The design came out of a trade study (CML 3): Option A vs B compared, one picked. */
+  tradeStudyUsed?: boolean
 }

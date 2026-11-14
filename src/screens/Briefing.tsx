@@ -5,6 +5,7 @@ import { gameData, roleNames } from '@/game/ui'
 import { useScenario } from '@/store/game'
 import { EditGate } from '@/components/LeadButton'
 import { ScenarioPicker } from '@/components/ScenarioPicker'
+import { ShareCode } from '@/components/ShareCode'
 import { useTeamFlow } from '@/game/teamFlow'
 import { Term } from '@/components/Term'
 
@@ -25,6 +26,8 @@ export function Briefing() {
   return (
     <Screen title="Mission briefing" subtitle="CML 1 · Idea: start from the science goal." reqs="F2, F3" nextLabel="Set requirements">
       <ScenarioPicker disabled={!flow.lead} />
+      {/* Got a code from a friend? Load their whole design here. */}
+      <ShareCode />
 
       <div className="rounded-xl border border-space-700 bg-space-900 p-5">
         <h2 className="text-xl font-semibold">{scenario.name}</h2>

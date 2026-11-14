@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { AlertTriangle, CheckCircle2, Lightbulb, RotateCcw, Sparkles, Star, Target, Wrench, XCircle } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { LeadButton } from '@/components/LeadButton'
+import { Leaderboard, OtherBuilds, RealMissionCard } from '@/components/ReportExtras'
 import { backStep } from '@/engine/flow'
 import { Screen } from '@/components/Screen'
 import { buildMissionReport, formatDuration } from '@/engine/report'
@@ -16,8 +17,8 @@ import { useGame, useScenario } from '@/store/game'
 /** Score and report for one flight, from Member 1's score.ts and report.ts. */
 function reportFor(f: FlightResult, previous?: FlightResult): MissionReport {
   const sc = gameData.scenarios.find((s) => s.id === f.scenarioId) ?? gameData.scenarios[0]
-  const score = scoreMission(f.design, sc, gameData, f.sim, { allApproved: f.allApproved })
-  const prev = previous && { sim: previous.sim, score: scoreMission(previous.design, sc, gameData, previous.sim, { allApproved: previous.allApproved }) }
+  const score = scoreMission(f.design, sc, gameData, f.sim, { allApproved: f.allApproved, tradeStudyUsed: f.tradeStudyUsed })
+  const prev = previous && { sim: previous.sim, score: scoreMission(previous.design, sc, gameData, previous.sim, { allApproved: previous.allApproved, tradeStudyUsed: previous.tradeStudyUsed }) }
   return buildMissionReport(f.design, sc, gameData, f.sim, score, prev)
 }
 
@@ -80,6 +81,12 @@ export function Report() {
 
       <Timeline report={report} />
       <Findings findings={report.findings} />
+
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <RealMissionCard flight={flight} />
+        <Leaderboard flight={flight} />
+      </div>
+      <OtherBuilds flight={flight} />
 
       <div className="flex flex-wrap justify-end gap-3">
         <LeadButton to={backStep('report') ?? 'design'} ignoreCheck onGo={startOver} icon={null} quietWhenWaiting className="border border-space-600 bg-transparent font-normal text-ink hover:bg-space-800">

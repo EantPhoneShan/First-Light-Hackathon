@@ -41,7 +41,7 @@ export const SCORING = {
    * The trade study screen (CML 3, F6) exists yet. While false, its points are
    * added to the review instead, and no "compare two designs" tip is shown.
    */
-  tradeStudyAvailable: false,
+  tradeStudyAvailable: true,
   /** Collaboration points: each role goal, and everyone approving. */
   collaboration: { perGoal: 10, approved: 10 },
   /** PRD private role goals. */

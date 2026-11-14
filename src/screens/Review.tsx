@@ -5,10 +5,14 @@ import type { Role, Status } from '@/engine/types'
 import { checkTerm, reviewChecks, type Check } from '@/game/checks'
 import { ROLE_ORDER, roleNames } from '@/game/ui'
 import { cn } from '@/lib/cn'
-import { useEvaluation, useGame } from '@/store/game'
+import { useEvaluation, useGame, useScenario } from '@/store/game'
 import { Term } from '@/components/Term'
 import { play } from '@/lib/sound'
 import { LeadButton } from '@/components/LeadButton'
+import { ShareCode } from '@/components/ShareCode'
+import { missionRisk } from '@/engine/risk'
+import { gameData } from '@/game/ui'
+import { Dices } from 'lucide-react'
 import { useApprovalFacts, useTeamFlow } from '@/game/teamFlow'
 import { backStep } from '@/engine/flow'
 
@@ -40,6 +44,8 @@ export function Review() {
 
   return (
     <Screen title="Design review" subtitle="Every check, with the reason. Each role signs off before launch." reqs="F12" hideNext>
+      <RiskCard />
+
       <div className="grid grid-cols-3 gap-2 sm:gap-3" aria-label="Checklist summary">
         {(['ok', 'warn', 'fail'] as const).map((st) => {
           const { icon: Icon, text, word } = statusStyle[st]
@@ -61,6 +67,7 @@ export function Review() {
         </ul>
 
         <div className="flex flex-col gap-3 lg:sticky lg:top-[120px] lg:self-start">
+          <ShareCode allowLoad={false} />
           <h2 className="font-semibold">Sign-off</h2>
           {roles.map((r) => (
             <RoleCard key={r} role={r} checks={checks.filter((c) => c.owner === r)} />
@@ -88,6 +95,47 @@ export function Review() {
         </div>
       </div>
     </Screen>
+  )
+}
+
+/** Mission risk (Member 1's risk.ts): the chance the mission is lost, as "1 in N", and the biggest single cause. */
+function RiskCard() {
+  const design = useGame((s) => s.design)
+  const scenario = useScenario()
+  const risk = missionRisk(design, scenario, gameData)
+  const tone = risk.riskPct >= 30 ? 'text-bad' : risk.riskPct >= 15 ? 'text-warn' : 'text-ok'
+  const top = [...risk.items].sort((a, b) => b.failPct - a.failPct).slice(0, 3)
+  return (
+    <section aria-label="Mission risk" className="flex flex-col gap-3 rounded-xl border border-space-700 bg-space-900 p-4 sm:flex-row sm:items-center">
+      <div className="flex items-center gap-3">
+        <Dices className={cn('size-8 shrink-0', tone)} aria-hidden />
+        <div>
+          <p className="text-xs text-muted uppercase">Chance of losing the mission</p>
+          <p className={cn('font-display text-2xl font-semibold tabular-nums', tone)}>
+            {risk.oneIn} <span className="text-base font-normal text-muted">({Math.round(risk.riskPct)}%)</span>
+          </p>
+        </div>
+      </div>
+      <div className="min-w-0 flex-1 text-sm sm:border-l sm:border-space-700 sm:pl-4">
+        {risk.biggest ? (
+          <>
+            <p>
+              <span className="text-muted">Biggest risk:</span> {risk.biggest.why}
+            </p>
+            {risk.biggest.hint && <p className="mt-0.5 text-xs text-accent">{risk.biggest.hint}</p>}
+          </>
+        ) : (
+          <p className="text-muted">Add parts to see the risks.</p>
+        )}
+        <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted">
+          {top.map((r) => (
+            <li key={r.system}>
+              {r.system}: {r.failPct < 1 ? '<1' : Math.round(r.failPct)}%{r.count > 1 ? ` (${r.count} for backup)` : ''}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   )
 }
 

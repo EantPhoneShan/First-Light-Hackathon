@@ -9,7 +9,8 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { Box, Orbit as OrbitIcon, RadioTower, Wrench, X } from 'lucide-react'
+import { Box, Orbit as OrbitIcon, RadioTower, Scale, Wrench, X } from 'lucide-react'
+import { TradeStudy } from '@/components/TradeStudy'
 import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { LaunchPicker } from '@/components/orbit/LaunchPicker'
@@ -31,7 +32,7 @@ import { cn } from '@/lib/cn'
 import { play } from '@/lib/sound'
 import { useCanSee, useEvaluation, useGame, useScenario } from '@/store/game'
 
-type Tab = 'craft' | 'launch' | 'ground'
+type Tab = 'craft' | 'launch' | 'ground' | 'trade'
 
 // three.js is big: only download it when the 3D view opens.
 const Craft3D = lazy(() => import('@/three/Craft3D'))
@@ -86,6 +87,7 @@ export function Workbench() {
     { id: 'craft' as const, label: 'Spacecraft', icon: Box, missing: !bus },
     { id: 'launch' as const, label: 'Orbit & launch', icon: OrbitIcon, missing: !design.flight.orbitId || !design.flight.launcherId },
     { id: 'ground' as const, label: 'Ground', icon: RadioTower, missing: design.flight.stationIds.length === 0 },
+    { id: 'trade' as const, label: 'Trade study', icon: Scale, missing: false },
   ]
 
   const sensors = useSensors(
@@ -191,6 +193,7 @@ export function Workbench() {
           <LaunchPicker />
         </EditGate>
       )}
+      {tab === 'trade' && <TradeStudy />}
       {tab === 'ground' && (
         <EditGate can={flow.canEdit('flight')} who={roleNames.flight}>
           <StationPicker />

@@ -149,7 +149,7 @@ export function Simulation() {
         savedRef.current = true
         // Solo play counts as everyone approving (Member 1's score.ts).
         const allApproved = players.length === 0 || (['planner', 'science', 'engineer', 'flight'] as const).every((r) => approvals[r]?.state === 'approved' && approvals[r]?.version === designVersion)
-        saveFlight({ sim: finishSim(s, setup), design, designVersion, scenarioId: scenario.id, allApproved })
+        saveFlight({ sim: finishSim(s, setup), design, designVersion, scenarioId: scenario.id, allApproved, tradeStudyUsed: useGame.getState().tradeUsed })
       }
       if (now - lastUi > 80 || s.done) {
         lastUi = now

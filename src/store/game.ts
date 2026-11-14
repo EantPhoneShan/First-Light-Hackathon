@@ -50,6 +50,16 @@ interface GameState {
   /** Design review sign-off per role (F12). Only counts if `version` matches designVersion. */
   approvals: Partial<Record<Role, Approval>>
   setApproval: (role: Role, state: Approval['state'] | null, note?: string) => void
+  /**
+   * Trade study (CML 3, F6): two saved options to compare, and whether the
+   * design about to fly was picked from a comparison (worth decision points).
+   */
+  tradeA: Design | null
+  tradeB: Design | null
+  tradeUsed: boolean
+  saveTradeOption: (slot: 'a' | 'b') => void
+  /** Load a saved option onto the workbench; `picked` marks it as the trade study's choice. */
+  loadDesign: (design: Design, picked?: boolean) => void
   /** Tutorial mode (F1): the guide card walks the player through fly, fail, fix, re-fly. */
   tutorial: boolean
   startTutorial: () => void
@@ -77,7 +87,7 @@ const firstScenario = gameData.scenarios[0]
 
 export const useGame = create<GameState>((set, get) => ({
   scenarioId: firstScenario.id,
-  setScenario: (id) => set({ scenarioId: id, design: emptyDesign(), designVersion: 0, approvals: {} }),
+  setScenario: (id) => set({ scenarioId: id, design: emptyDesign(), designVersion: 0, approvals: {}, tradeA: null, tradeB: null, tradeUsed: false }),
 
   design: emptyDesign(),
   designVersion: 0,
@@ -138,6 +148,12 @@ export const useGame = create<GameState>((set, get) => ({
       else delete approvals[role]
       return { approvals }
     }),
+
+  tradeA: null,
+  tradeB: null,
+  tradeUsed: false,
+  saveTradeOption: (slot) => set((s) => (slot === 'a' ? { tradeA: structuredClone(s.design) } : { tradeB: structuredClone(s.design) })),
+  loadDesign: (design, picked = false) => set((s) => ({ design: structuredClone(design), designVersion: s.designVersion + 1, tradeUsed: picked, approvals: {} })),
 
   tutorial: false,
   startTutorial: () =>
