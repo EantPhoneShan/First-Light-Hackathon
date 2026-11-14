@@ -1,0 +1,69 @@
+{
+  "scenarios": [
+    {
+      "id": "wildfire-watch",
+      "name": "Wildfire Watch",
+      "objective": "Image fire-prone areas every 2 days for 3 years, and get the pictures to firefighters fast.",
+      "difficulty": "easy",
+      "customer": { "name": "Firefighters", "needsDataWithinHours": 12 },
+      "busIds": ["bus-cubesat-6u"],
+      "budgetM": 2.5,
+      "baseOpsCostPerYearM": 0.08,
+      "launchInMonths": 24,
+      "lifetimeYears": 3,
+      "revisitDays": 2,
+      "criticalResources": ["data", "comms"],
+      "goals": [
+        {
+          "id": "spot-fires",
+          "name": "Spot new wildfires early",
+          "measurements": [
+            {
+              "id": "heat",
+              "name": "Heat from active fires",
+              "why": "Fires glow brightly in infrared light, even through thin smoke.",
+              "instrumentIds": ["thermal-imager"]
+            },
+            {
+              "id": "smoke-and-scars",
+              "name": "Smoke plumes and burned land",
+              "why": "Smoke and fresh burn scars show where a fire is and which way it is spreading.",
+              "instrumentIds": ["multispectral-imager", "camera"]
+            }
+          ]
+        },
+        {
+          "id": "find-risk",
+          "name": "Find areas at risk before they burn",
+          "measurements": [
+            {
+              "id": "dry-plants",
+              "name": "Dry plants",
+              "why": "Dry plants reflect light differently from healthy green ones, and they burn easily.",
+              "instrumentIds": ["multispectral-imager"]
+            }
+          ]
+        }
+      ],
+      "eventsAllowed": ["solar-storm", "station-outage", "part-failure"],
+      "tutorialDesign": {
+        "planner": { "weights": { "coverage": 0.5, "detail": 0.5, "lifetime": 0.5 }, "disposal": "natural-decay" },
+        "science": { "goalId": "spot-fires", "measurementId": "heat", "instrumentIds": ["thermal-imager"] },
+        "engineer": {
+          "busId": "bus-cubesat-6u",
+          "partIds": ["solar-body", "solar-wings", "battery-small", "computer", "magnetorquer"]
+        },
+        "flight": {
+          "orbitId": "sso",
+          "altitudeKm": 550,
+          "launcherId": "rideshare",
+          "antennaIds": ["antenna-s"],
+          "stationIds": ["station-polar"]
+        }
+      },
+      "tooltip": "Firefighters need to know about new fires quickly. A small CubeSat can watch for them, if it can get its pictures home in time.",
+      "source": "cubesat101",
+      "sourceNote": "A 6U CubeSat mission. Build time from CubeSat 101 (typically 18 to 24 months); budget keeps CubeSat 101's advice of at least a 10% reserve."
+    }
+  ]
+}
