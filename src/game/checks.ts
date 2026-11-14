@@ -1,10 +1,9 @@
 /**
- * Design review checklist (F12) and conflict alerts (F11), built from Member 1's evaluate().
+ * Design review checklist (F12), built from Member 1's evaluate().
  * The checks are evaluate().problems as-is; green rows are added for gauges with nothing wrong.
- * Conflict alerts stay here until Member 1's alerts.ts lands.
  */
-import { RESOURCES, RESOURCE_LABELS, type Evaluation, type ProblemKind, type ResourceId, type Role, type Status } from '@/engine/types'
-import { GAUGE_WATCHER, n1, roleNames } from '@/game/ui'
+import { RESOURCES, RESOURCE_LABELS, type Evaluation, type ProblemKind, type Role, type Status } from '@/engine/types'
+import { n1 } from '@/game/ui'
 
 export interface Check {
   id: string
@@ -66,32 +65,4 @@ export function reviewChecks(ev: Evaluation): Check[] {
     })
   }
   return checks
-}
-
-export interface Alert {
-  resource: ResourceId
-  status: Status
-  /** Role that watches the gauge (and gets the alert). */
-  hurt: Role
-  title: string
-  body: string
-}
-
-const RANK: Record<Status, number> = { ok: 0, warn: 1, fail: 2 }
-
-/** Gauges that just got worse between two evaluations, with who they affect. */
-export function conflictAlerts(before: Evaluation, after: Evaluation, by: Role | null): Alert[] {
-  return RESOURCES.filter((r) => RANK[after.gauges[r].status] > RANK[before.gauges[r].status] && after.gauges[r].used > 0).map((r) => {
-    const g = after.gauges[r]
-    const hurt = GAUGE_WATCHER[r]
-    const problem = after.problems.find((p) => p.kind === r)
-    const who = by === hurt ? `That's in the ${roleNames[hurt]}'s own area.` : `${by ? `${roleNames[by]}'s change` : 'That change'} affects the ${roleNames[hurt]}.`
-    return {
-      resource: r,
-      status: g.status,
-      hurt,
-      title: `${g.label} ${g.status === 'fail' ? 'is now over the limit' : 'is close to the limit'}`,
-      body: `${who} ${problem?.why ?? `${n1(g.used)} of ${n1(g.limit)} ${g.unit}.`}`,
-    }
-  })
 }

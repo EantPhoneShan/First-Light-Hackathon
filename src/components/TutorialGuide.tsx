@@ -34,8 +34,10 @@ export function TutorialGuide() {
   // Fixed = Member 1's engine no longer finds the battery problem.
   const ev = useEvaluation()
   const fixed = !!design.engineer.busId && !ev.problems.some((p) => p.id === 'power.battery')
-  const won = last?.status === 'complete'
-  const step = tutorial ? pickStep(pathname, !!last, last?.status === 'dead', fixed, won) : null
+  // Member 1's SimResult: died = battery ran out (or burned up); won = flew the whole mission.
+  const died = !!last && (last.sim.summary.diedAtMin !== null || last.sim.summary.reenteredAtMin !== null)
+  const won = !!last && !died && last.sim.survivedMin >= last.sim.missionMin
+  const step = tutorial ? pickStep(pathname, !!last, died, fixed, won) : null
 
   // On the fix step, outline the battery slot even if the player skipped the report.
   useEffect(() => {

@@ -1,49 +1,15 @@
 /**
- * Types for the stand-in flight simulation (src/sim/standInSim.ts).
- * Member 1's simulate.ts will return SimResult (src/engine/types.ts); when it lands,
- * the simulation view switches to that and these types go away.
+ * A finished flight, kept in the store for the report and the ghost of the next flight.
+ * The flight itself is Member 1's SimResult (src/engine/simulate.ts).
  */
-import type { Design } from '@/engine/types'
-
-export type SimStatus = 'flying' | 'dead' | 'complete'
-
-export interface SimEvent {
-  tMin: number
-  kind: 'info' | 'good' | 'warn' | 'bad'
-  text: string
-}
-
-export interface SimSample {
-  tMin: number
-  batteryPct: number
-  bufferPct: number
-  deliveredMB: number
-}
-
-export interface SimState {
-  tMin: number
-  batteryWh: number
-  bufferMB: number
-  madeMB: number
-  deliveredMB: number
-  lostMB: number
-  inEclipse: boolean
-  inContact: boolean
-  status: SimStatus
-  events: SimEvent[]
-  samples: SimSample[]
-}
+import type { Design, SimResult } from '@/engine/types'
 
 export interface FlightResult {
-  status: SimStatus
-  endMin: number
-  lifetimeMin: number
-  madeMB: number
-  deliveredMB: number
-  lostMB: number
-  events: SimEvent[]
-  samples: SimSample[]
-  designVersion: number
+  sim: SimResult
   /** Snapshot of the design that flew, so the report still matches after edits. */
   design: Design
+  designVersion: number
+  scenarioId: string
+  /** Every role had approved this exact design at launch (for the collaboration score). */
+  allApproved: boolean
 }
