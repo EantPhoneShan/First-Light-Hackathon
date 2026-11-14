@@ -4,6 +4,10 @@ A cooperative space mission design game for 1 to 4 players. Build a spacecraft, 
 
 **Play:** _live link coming soon_
 
+## Credits
+
+NASA resources used and AI use: [docs/CREDITS.md](docs/CREDITS.md). Not endorsed by NASA.
+
 ## Run locally
 
 ```bash
@@ -20,10 +24,15 @@ Works fully offline (solo, and team mode across browser tabs).
 - Hosting: AWS Amplify Hosting builds and deploys backend + frontend on every push to `main` (`amplify.yml`).
 - Fallback: set `VITE_SYNC=firebase` and the `VITE_FIREBASE_*` vars (see `.env.example`) to use Firebase Realtime Database instead. If no cloud is reachable the game plays solo.
 
-```
-Browser (React + Vite) ──GraphQL / WebSocket──> AWS AppSync ──> DynamoDB (Room, Player, Section, Score)
-        └── hosted on AWS Amplify Hosting (CI/CD from GitHub)
-```
+![Architecture](docs/architecture.svg)
+
+## Deploy your own (setup)
+
+1. Fork or clone this repo.
+2. In the AWS console (region **ap-southeast-2**, Sydney; the AWS Free plan is tied to one region), open **Amplify → Create new app → GitHub**, pick the repo and the `main` branch, keep the defaults and **Save and deploy**. Amplify reads `amplify.yml`, creates the AppSync API and DynamoDB tables from `amplify/data/resource.ts`, then builds and hosts the game.
+3. Every push to `main` redeploys. Nothing needs to be installed or configured on your computer.
+
+Local development against AWS (optional): configure AWS credentials, run `npx ampx sandbox` (writes `amplify_outputs.json`), then `npm run dev`. Delete it after with `npx ampx sandbox delete`.
 
 ## Project layout
 

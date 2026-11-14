@@ -5,7 +5,8 @@ backend:
   phases:
     build:
       commands:
-        - npm ci --cache .npm --prefer-offline
+        # npm ci is strict about nested Amplify/CDK peer deps; npm install is reliable here
+        - npm install --no-audit --no-fund --cache .npm --prefer-offline
         - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
 frontend:
   phases:
