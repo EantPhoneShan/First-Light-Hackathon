@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-36.20 -4 72.40 136.79">
+  <path d="M-6.75,18.90 Q-6.75,5.67 0,0 Q6.75,5.67 6.75,18.90Z" fill="#eef2fa" stroke="#0b1328" stroke-width="0.8"/>
+  <path d="M0,0 Q6.75,5.67 6.75,18.90 L0,18.90Z" fill="#c9d1e3"/>
+  <rect x="-6.75" y="18.90" width="13.50" height="72.90" fill="#eef2fa" stroke="#0b1328" stroke-width="0.8"/>
+  <rect x="0.00" y="18.90" width="6.75" height="72.90" fill="#c9d1e3"/>
+  <rect x="-6.75" y="87.75" width="13.50" height="2.70" fill="#ff8a3d"/>
+  <rect x="-6.75" y="91.80" width="13.50" height="31.59" fill="#eef2fa" stroke="#0b1328" stroke-width="0.8"/>
+  <rect x="0.00" y="91.80" width="6.75" height="31.59" fill="#c9d1e3"/>
+  <rect x="-6.75" y="119.34" width="13.50" height="2.70" fill="#2a3b6b"/>
+  <rect x="-15.12" y="96.54" width="8.10" height="26.85" rx="2.03" fill="#c9d1e3" stroke="#0b1328" stroke-width="0.8"/>
+  <path d="M-15.12,98.54 Q-11.07,88.44 -7.02,98.54Z" fill="#eef2fa" stroke="#0b1328" stroke-width="0.8"/>
+  <rect x="7.02" y="96.54" width="8.10" height="26.85" rx="2.03" fill="#c9d1e3" stroke="#0b1328" stroke-width="0.8"/>
+  <path d="M7.02,98.54 Q11.07,88.44 15.12,98.54Z" fill="#eef2fa" stroke="#0b1328" stroke-width="0.8"/>
+  <path d="M-6.75,109.89 L-14.85,126.09 L-6.75,123.39Z" fill="#1c2a50" stroke="#0b1328" stroke-width="0.8"/>
+  <path d="M6.75,109.89 L14.85,126.09 L6.75,123.39Z" fill="#1c2a50" stroke="#0b1328" stroke-width="0.8"/>
+  <path d="M-4.05,123.39 L4.05,123.39 L5.40,128.79 L-5.40,128.79Z" fill="#121d3a" stroke="#0b1328" stroke-width="0.8"/>
+  <circle cx="0" cy="27.00" r="2.43" fill="#2a5bd7" stroke="#0b1328" stroke-width="0.6"/>
+</svg>

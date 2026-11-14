@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-14.72 -23.00 35.50 35.50">
+  <polygon points="-6.06,3.50 6.06,10.50 6.06,-10.50 -6.06,-17.50" fill="#a3aec8" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="12.12,7.00 6.06,10.50 6.06,-10.50 12.12,-14.00" fill="#c9d1e3" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="0.00,-21.00 12.12,-14.00 6.06,-10.50 -6.06,-17.50" fill="#eef2fa" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <line x1="-6.06" y1="-3.50" x2="6.06" y2="3.50" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
+  <line x1="12.12" y1="0.00" x2="6.06" y2="3.50" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
+  <line x1="-6.06" y1="-10.50" x2="6.06" y2="-3.50" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
+  <line x1="12.12" y1="-7.00" x2="6.06" y2="-3.50" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
+  <line x1="-6.06" y1="3.50" x2="-6.06" y2="-17.50" stroke="#ff8a3d" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="12.12" y1="7.00" x2="12.12" y2="-14.00" stroke="#ff8a3d" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="6.06" y1="10.50" x2="6.06" y2="-10.50" stroke="#ff8a3d" stroke-width="1.4" stroke-linecap="round"/>
+</svg>
