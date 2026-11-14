@@ -433,7 +433,11 @@ export interface Evaluation {
 // Member 2 can build the simulation view and report with mock data.
 // ---------------------------------------------------------------------------
 
-/** One sample of the mission, taken at a fixed time step (F14). */
+/**
+ * One sample of the mission (F14). The first day has one frame per minute, so
+ * eclipses and passes can be animated; after that there is one frame per orbit,
+ * and batteryWh/batteryPct hold that orbit's lowest point (so dips still show).
+ */
 export interface SimFrame {
   /** Mission time in minutes since orbit insertion. */
   tMin: number;
@@ -475,6 +479,31 @@ export interface SimMarker {
 
 export type Outcome = 'success' | 'partial' | 'failure' | 'launch-failure';
 
+/** End-of-flight numbers for the report and the score. */
+export interface SimSummary {
+  madeMB: number;
+  deliveredMB: number;
+  lostMB: number;
+  /** Delivered within the customer's deadline (e.g. firefighters: 12 hours). */
+  onTimeMB: number;
+  /** delivered / made, 0 to 100. */
+  deliveredPct: number;
+  /** onTime / made, 0 to 100. */
+  onTimePct: number;
+  /** Average age of data when it reached the ground. */
+  avgDelayHours: number;
+  orbits: number;
+  eclipses: number;
+  /** When the craft died, or null. */
+  diedAtMin: number | null;
+  /** When drag brought it down before the end, or null. */
+  reenteredAtMin: number | null;
+  /** End of mission: did the craft leave orbit within the debris rule? */
+  disposal: 'ok' | 'debris' | 'not-reached';
+  /** Solar power left at the end, as % of new (panels wear out). */
+  solarHealthPct: number;
+}
+
 export interface SimResult {
   frames: SimFrame[];
   markers: SimMarker[];
@@ -482,6 +511,50 @@ export interface SimResult {
   /** Minutes the craft survived (equals the mission length on success). */
   survivedMin: number;
   missionMin: number;
+  /** Frames are one per minute up to here, then one per orbit. */
+  detailUntilMin: number;
+  summary: SimSummary;
+}
+
+/**
+ * Live simulation state for the playback view (stepSim mutates it).
+ * frames and markers grow as the mission plays.
+ */
+export interface SimState {
+  tMin: number;
+  orbitAngleDeg: number;
+  inEclipse: boolean;
+  downlinking: boolean;
+  stationId: string | null;
+  batteryWh: number;
+  bufferMB: number;
+  madeMB: number;
+  deliveredMB: number;
+  lostMB: number;
+  onTimeMB: number;
+  /** Sum of (MB sent x its age in minutes), for the average delay. */
+  delayMBMin: number;
+  propellantKg: number;
+  health: number;
+  scienceScore: number;
+  alive: boolean;
+  /** True once the mission is over (complete, dead or re-entered). */
+  done: boolean;
+  orbits: number;
+  eclipses: number;
+  diedAtMin: number | null;
+  reenteredAtMin: number | null;
+  frames: SimFrame[];
+  markers: SimMarker[];
+  /** Lowest battery seen in the current orbit (for per-orbit frames). */
+  orbitMinBatteryWh: number;
+  /** Markers already shown once, by key. */
+  seen: Record<string, true>;
+  /**
+   * Time asked for but not simulated yet. The engine only takes whole steps,
+   * so live playback at any speed gives exactly the same flight as simulate().
+   */
+  carryMin: number;
 }
 
 export type ScoreCategory = 'objective' | 'customer' | 'efficiency' | 'lifetime' | 'decisions' | 'collaboration';

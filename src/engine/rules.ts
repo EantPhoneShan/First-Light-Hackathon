@@ -51,6 +51,8 @@ export const RULES = {
   batteryUsable: 0.6,
   /** GEO graveyard orbit: about 300 km above GEO. */
   graveyardRaiseKm: 300,
+  /** Solar panels lose this share of their power each year in space (estimate). */
+  solarWearPerYear: 0.02,
 };
 
 const BUS_RANK: Record<BusSize, number> = { cubesat: 0, smallsat: 1, large: 2 };
