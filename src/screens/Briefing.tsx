@@ -1,14 +1,16 @@
 import { Screen } from '@/components/Screen'
 import { Traceability } from '@/components/Traceability'
 import { RESOURCE_LABELS } from '@/engine/types'
-import { gameData } from '@/game/ui'
-import { cn } from '@/lib/cn'
-import { useGame, useScenario } from '@/store/game'
+import { gameData, roleNames } from '@/game/ui'
+import { useScenario } from '@/store/game'
+import { EditGate } from '@/components/LeadButton'
+import { ScenarioPicker } from '@/components/ScenarioPicker'
+import { useTeamFlow } from '@/game/teamFlow'
 import { Term } from '@/components/Term'
 
 export function Briefing() {
   const scenario = useScenario()
-  const setScenario = useGame((s) => s.setScenario)
+  const flow = useTeamFlow()
 
   const facts = [
     ['Data customer', `${scenario.customer.name} (need images within ${scenario.customer.needsDataWithinHours} h)`],
@@ -22,22 +24,7 @@ export function Briefing() {
 
   return (
     <Screen title="Mission briefing" subtitle="CML 1 · Idea: start from the science goal." reqs="F2, F3" nextLabel="Set requirements">
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Scenario">
-        {gameData.scenarios.map((sc) => (
-          <button
-            key={sc.id}
-            role="tab"
-            aria-selected={sc.id === scenario.id}
-            onClick={() => setScenario(sc.id)}
-            className={cn(
-              'rounded-full border px-4 py-1.5 text-sm transition-colors',
-              sc.id === scenario.id ? 'border-accent bg-accent/15 text-ink' : 'border-space-700 text-muted hover:text-ink',
-            )}
-          >
-            {sc.name}
-          </button>
-        ))}
-      </div>
+      <ScenarioPicker disabled={!flow.lead} />
 
       <div className="rounded-xl border border-space-700 bg-space-900 p-5">
         <h2 className="text-xl font-semibold">{scenario.name}</h2>
@@ -52,7 +39,9 @@ export function Briefing() {
         </dl>
       </div>
 
-      <Traceability />
+      <EditGate can={flow.canEdit('science')} who={roleNames.science}>
+        <Traceability />
+      </EditGate>
     </Screen>
   )
 }

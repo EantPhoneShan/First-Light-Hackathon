@@ -1,6 +1,5 @@
 import { AlertTriangle, CheckCircle2, Hand, Rocket, ThumbsUp, Wrench, XCircle } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
 import { Screen } from '@/components/Screen'
 import type { Role, Status } from '@/engine/types'
 import { checkTerm, reviewChecks, type Check } from '@/game/checks'
@@ -9,6 +8,9 @@ import { cn } from '@/lib/cn'
 import { useEvaluation, useGame } from '@/store/game'
 import { Term } from '@/components/Term'
 import { play } from '@/lib/sound'
+import { LeadButton } from '@/components/LeadButton'
+import { useApprovalFacts, useTeamFlow } from '@/game/teamFlow'
+import { backStep } from '@/engine/flow'
 
 const roles = ROLE_ORDER
 
@@ -21,10 +23,10 @@ const statusStyle: Record<Status, { icon: typeof CheckCircle2; text: string; box
 /** PRD F12: every check with its reason, sign-off per role. Launch is allowed with warnings. */
 export function Review() {
   const version = useGame((s) => s.designVersion)
-  const navigate = useNavigate()
   const ev = useEvaluation()
   const checks = reviewChecks(ev)
   const approvals = useGame((s) => s.approvals)
+  const approvalFacts = useApprovalFacts()
 
   const count = (st: Status) => checks.filter((c) => c.status === st).length
   const blockers = checks.filter((c) => c.blocker)
@@ -68,32 +70,21 @@ export function Review() {
       </div>
 
       <div className="flex flex-col items-end gap-2">
-        {!canLaunch && (
-          <p className="text-sm text-bad" role="status">
-            {blockers.length > 0
-              ? `Can't launch yet: ${blockers.map((b) => b.label.toLowerCase()).join(', ')}.`
-              : `On hold by ${holds.map((r) => roleNames[r]).join(', ')}.`}
-          </p>
-        )}
         {canLaunch && problems > 0 && (
           <p className="max-w-md text-right text-sm text-muted">You can launch with problems. The flight will show what they cause, and the report will explain.</p>
         )}
-        <div className="flex flex-wrap justify-end gap-3">
-          <Link to="/workbench" className="inline-flex items-center gap-2 rounded-lg border border-space-600 px-5 py-2.5 hover:bg-space-800">
-            <Wrench className="size-4" aria-hidden />
+        <div className="flex flex-wrap items-start justify-end gap-3">
+          <LeadButton to={backStep('review') ?? 'design'} ignoreCheck icon={Wrench} quietWhenWaiting className="border border-space-600 bg-transparent font-normal text-ink hover:bg-space-800">
             Back to the workbench
-          </Link>
-          <button
-            onClick={() => navigate('/launch')}
-            disabled={!canLaunch}
-            className={cn(
-              'inline-flex items-center gap-2 rounded-lg px-5 py-2.5 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40',
-              problems > 0 ? 'bg-warn text-space-950 hover:bg-warn/80' : 'bg-accent text-space-950 hover:bg-accent-strong',
-            )}
+          </LeadButton>
+          <LeadButton
+            facts={{ evaluation: ev, ...approvalFacts }}
+            blocked={!canLaunch ? (blockers.length > 0 ? `Can't launch yet: ${blockers.map((b) => b.label.toLowerCase()).join(', ')}.` : `On hold by ${holds.map((r) => roleNames[r]).join(', ')}.`) : undefined}
+            icon={Rocket}
+            className={problems > 0 ? 'bg-warn hover:bg-warn/80' : undefined}
           >
-            <Rocket className="size-4" aria-hidden />
             {problems > 0 ? `Launch with ${problems} problem${problems > 1 ? 's' : ''}` : 'Launch'}
-          </button>
+          </LeadButton>
         </div>
       </div>
     </Screen>
@@ -128,6 +119,9 @@ function RoleCard({ role, checks }: { role: Role; checks: Check[] }) {
   const setApproval = useGame((s) => s.setApproval)
   const player = useGame((s) => s.players.find((p) => p.role === role)?.name)
   const [holding, setHolding] = useState(false)
+  const flow = useTeamFlow()
+  // Each role signs off only for itself (solo players hold every role).
+  const mine = flow.myRoles.includes(role)
   const [note, setNote] = useState('')
 
   const current = approval && approval.version === version ? approval : undefined
@@ -161,13 +155,20 @@ function RoleCard({ role, checks }: { role: Role; checks: Check[] }) {
               : 'Waiting for sign-off.'}
       </p>
 
-      {holding ? (
+      {!mine ? (
+        <p className="mt-2 text-xs text-muted/80">Only the {roleNames[role]} signs off here.</p>
+      ) : holding ? (
         <form
           className="mt-2 flex gap-2"
           onSubmit={(e) => {
             e.preventDefault()
             setApproval(role, 'hold', note.trim() || undefined)
             play('hold')
+            // Team rule: a Hold sends everyone back to the design to talk it through.
+            if (flow.team) {
+              const back = backStep('review')
+              if (back) flow.goTo(back)
+            }
             setHolding(false)
             setNote('')
           }}

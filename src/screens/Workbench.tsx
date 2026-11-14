@@ -22,7 +22,9 @@ import { PartIcon } from '@/components/workbench/PartIcon'
 import { PartInfo, PartsTray } from '@/components/workbench/PartsTray'
 import { Spacecraft } from '@/components/workbench/Spacecraft'
 import { findBus, findPart } from '@/engine/data'
-import { RESOURCES, type Availability, type Part } from '@/engine/types'
+import { CATEGORY_OWNER, RESOURCES, type Availability, type Part } from '@/engine/types'
+import { EditGate } from '@/components/LeadButton'
+import { useTeamFlow } from '@/game/teamFlow'
 import { GAUGE_WATCHER, gameData, n1, partsOnCraft, roleNames } from '@/game/ui'
 import { cn } from '@/lib/cn'
 import { play } from '@/lib/sound'
@@ -56,6 +58,14 @@ export function Workbench() {
   const availability: Record<string, Availability> = { ...ev.compat.parts }
   for (const [id, a] of Object.entries(ev.compat.instruments)) if (!a.ok) availability[id] = a
 
+  // Team flow: each role builds only its own part of the craft (engine/flow.ts canEditSection).
+  const flow = useTeamFlow()
+  const canEditPart = (p: Part) => flow.canEdit(CATEGORY_OWNER[p.category])
+  const canBus = flow.canEdit('engineer')
+  for (const p of gameData.parts) {
+    if (!canEditPart(p)) availability[p.id] = { ok: false, reason: `Only the ${roleNames[CATEGORY_OWNER[p.category]]} adds this.` }
+  }
+
   const tabs = [
     { id: 'craft' as const, label: 'Spacecraft', icon: Box, missing: !bus },
     { id: 'launch' as const, label: 'Orbit & launch', icon: OrbitIcon, missing: !design.flight.orbitId || !design.flight.launcherId },
@@ -71,6 +81,7 @@ export function Workbench() {
   /** Add a bus or one more of a part, unless the engine says it can't go on. */
   const add = (kind: 'part' | 'bus', id: string) => {
     if (kind === 'bus') {
+      if (!canBus) return toast.error(`Only the ${roleNames.engineer} picks the bus.`)
       setBus(id)
       return play('place')
     }
@@ -88,6 +99,8 @@ export function Workbench() {
   }
 
   const remove = (id: string) => {
+    const p = findPart(gameData, id)
+    if (p && !canEditPart(p)) return toast.error(`Only the ${roleNames[CATEGORY_OWNER[p.category]]} can take this off.`)
     removePart(id)
     play('remove')
   }
@@ -157,12 +170,16 @@ export function Workbench() {
       </div>
 
       {tab === 'launch' && (
-        <div className="flex flex-col gap-8">
+        <EditGate can={flow.canEdit('flight')} who={roleNames.flight} className="flex flex-col gap-8">
           <OrbitPicker />
           <LaunchPicker />
-        </div>
+        </EditGate>
       )}
-      {tab === 'ground' && <StationPicker />}
+      {tab === 'ground' && (
+        <EditGate can={flow.canEdit('flight')} who={roleNames.flight}>
+          <StationPicker />
+        </EditGate>
+      )}
 
       {tab === 'craft' && (
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
@@ -172,10 +189,10 @@ export function Workbench() {
               <h2 className="font-semibold">Spacecraft</h2>
               <span className="text-xs text-muted">{n1(ev.totals.massKg)} kg</span>
             </div>
-            <Spacecraft bus={bus} parts={onCraft} problemIds={refly?.partIds} onRemove={remove} onRemoveBus={() => (setBus(null), play('remove'))} />
+            <Spacecraft bus={bus} parts={onCraft} problemIds={refly?.partIds} onRemove={remove} onRemoveBus={() => (setBus(null), play('remove'))} canRemove={canEditPart} canRemoveBus={canBus} />
           </div>
 
-          <PartsTray buses={buses} parts={gameData.parts} availability={availability} counts={counts} currentBusId={design.engineer.busId} onAdd={add} />
+          <PartsTray buses={buses} parts={gameData.parts} availability={availability} counts={counts} currentBusId={design.engineer.busId} onAdd={add} busLocked={canBus ? undefined : `Only the ${roleNames.engineer} picks the bus.`} />
         </div>
 
         <DragOverlay dropAnimation={null}>

@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { conflictAlerts } from '@/engine/alerts'
 import { RESOURCES, type ResourceId } from '@/engine/types'
-import { GAUGE_WATCHER, gameData, roleNames } from '@/game/ui'
+import { gameData, roleNames } from '@/game/ui'
 import { play } from '@/lib/sound'
 import { canSeeGauge, scenarioById, useGame } from '@/store/game'
 
@@ -22,20 +22,16 @@ export function useConflictAlerts() {
         if (state.tutorial !== prev.tutorial || prev.designVersion === 0) return
         const solo = state.players.length === 0
         const byName = state.players.find((p) => p.role === state.updatedBy)?.name
+        // Member 1's alerts now go to the gauge's watcher (RESOURCE_WATCHER) and already leave out
+        // the player's own role. Solo players hold every role, so they want every alert.
         const alerts = conflictAlerts(prev.design, state.design, scenarioById(state.scenarioId), gameData, {
           byRole: state.updatedBy ?? undefined,
           byName,
-          // Ask for every alert: Member 1's hurtRole uses RESOURCE_OWNER (Engineer owns power), but in
-          // team play the gauge's WATCHER is who needs to hear (team rule), so we route below.
-          includeSelf: true,
-        }).filter((a) => {
-          const to = isGauge(a.resource) ? GAUGE_WATCHER[a.resource] : a.hurtRole
-          return solo || to !== a.byRole
+          includeSelf: solo,
         })
         if (alerts.length) play(alerts.some((a) => a.after === 'fail') ? 'error' : 'alert')
         for (const a of alerts) {
-          // Gauge alerts go to whoever watches that gauge (team rule); others to Member 1's hurt role.
-          const hurt = isGauge(a.resource) ? GAUGE_WATCHER[a.resource] : a.hurtRole
+          const hurt = a.hurtRole
           const visible = solo || (isGauge(a.resource) ? canSeeGauge(a.resource, { myRole: state.myRole, players: state.players }) : state.myRole === hurt)
           if (!visible) {
             const name = state.players.find((p) => p.role === hurt)?.name

@@ -10,12 +10,15 @@ import { ROLE_ORDER, roleNames } from '@/game/ui'
 import type { Role } from '@/engine/types'
 import { SyncStatusDot } from '@/components/SyncStatusDot'
 import { useTeamSyncBridge } from '@/sync/teamBridge'
+import { useFollowRoomStep, useTeamFlow } from '@/game/teamFlow'
 import { useGame, useScenario } from '@/store/game'
 
 export function Layout() {
   const { pathname } = useLocation()
   useConflictAlerts()
   useTeamSyncBridge()
+  useFollowRoomStep()
+  const teamFlow = useTeamFlow()
   // Expose the header's height so sticky bars (like the gauges) sit right under it on any screen.
   const headerRef = useRef<HTMLElement>(null)
   useEffect(() => {
@@ -31,7 +34,10 @@ export function Layout() {
   const players = useGame((s) => s.players)
   const myRole = useGame((s) => s.myRole)
   const setMyRole = useGame((s) => s.setMyRole)
-  const current = flow.findIndex((s) => s.path === pathname)
+  // In a team the stepper shows the room's step and can't be used to jump ahead:
+  // only the Mission Planner moves everyone on, with Next.
+  const locked = teamFlow.team || teamFlow.deviceRoom
+  const current = flow.findIndex((s) => (locked ? s.id === teamFlow.step : s.path === pathname))
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -45,7 +51,8 @@ export function Layout() {
             {scenario.name}
             {tutorial && <span className="ml-2 rounded-full bg-accent/15 px-2 py-0.5 text-xs text-accent">Tutorial</span>}
           </span>
-          {players.length > 0 && (
+          {/* Shared screen only: on separate devices each player is their own role. */}
+          {players.length > 0 && !teamFlow.deviceRoom && (
             <label className="ml-auto flex items-center gap-2 text-sm text-muted">
               <span className="hidden sm:inline">Acting as</span>
               <select
@@ -66,7 +73,7 @@ export function Layout() {
             </label>
           )}
           <SyncStatusDot showLabel />
-          <Link to="/learn" className={cn('-m-2 flex items-center gap-1.5 rounded-lg p-2 text-sm text-muted hover:text-ink', players.length === 0 && 'ml-auto')}>
+          <Link to="/learn" className={cn('-m-2 flex items-center gap-1.5 rounded-lg p-2 text-sm text-muted hover:text-ink', (players.length === 0 || teamFlow.deviceRoom) && 'ml-auto')}>
             <BookOpen className="size-4" aria-hidden />
             <span className="hidden sm:inline">Space words</span>
           </Link>
@@ -85,20 +92,32 @@ export function Layout() {
           <ol className="flex min-w-max gap-1">
             {flow.map((step, i) => (
               <li key={step.path}>
-                <Link
-                  to={step.path}
-                  aria-current={i === current ? 'step' : undefined}
-                  className={cn(
+                {(() => {
+                  const cls = cn(
                     'flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-colors sm:py-1',
                     i === current && 'bg-accent text-space-950',
                     i < current && 'bg-space-700 text-ink',
-                    i > current && 'text-muted hover:text-ink',
-                  )}
-                >
-                  <span className="tabular-nums">{i + 1}</span>
-                  {step.label}
-                  {step.cml && <span className="opacity-70">· {step.cml}</span>}
-                </Link>
+                    i > current && 'text-muted',
+                    i > current && !locked && 'hover:text-ink',
+                  )
+                  const body = (
+                    <>
+                      <span className="tabular-nums">{i + 1}</span>
+                      {step.label}
+                      {step.cml && <span className="opacity-70">· {step.cml}</span>}
+                    </>
+                  )
+                  // Team play: everyone is on the room's step, so the stepper is a map, not a menu.
+                  return locked ? (
+                    <span aria-current={i === current ? 'step' : undefined} title={step.what} className={cls}>
+                      {body}
+                    </span>
+                  ) : (
+                    <Link to={step.path} aria-current={i === current ? 'step' : undefined} title={step.what} className={cls}>
+                      {body}
+                    </Link>
+                  )
+                })()}
               </li>
             ))}
           </ol>

@@ -16,12 +16,14 @@ interface PartsTrayProps {
   counts: Record<string, number>
   currentBusId: string | null
   onAdd: (kind: 'part' | 'bus', id: string) => void
+  /** Team flow: why this player can't change the bus (only the Spacecraft Engineer can). */
+  busLocked?: string
 }
 
 type Tab = 'all' | 'bus' | PartCategory
 
 /** Buses and parts by category. Drag onto the spacecraft, or tap + to add. */
-export function PartsTray({ buses, parts, availability, counts, currentBusId, onAdd }: PartsTrayProps) {
+export function PartsTray({ buses, parts, availability, counts, currentBusId, onAdd, busLocked }: PartsTrayProps) {
   const categories = [...new Set(parts.map((p) => p.category))]
   const [tab, setTab] = useState<Tab>('all')
   const { setNodeRef, isOver } = useDroppable({ id: TRAY_ID })
@@ -59,7 +61,7 @@ export function PartsTray({ buses, parts, availability, counts, currentBusId, on
       <ul className="mt-2 flex max-h-[460px] flex-col gap-1.5 overflow-y-auto pr-1">
         {showBuses &&
           buses.map((b) => (
-            <TrayItem key={b.id} kind="bus" id={b.id} item={b} count={b.id === currentBusId ? 1 : 0} onAdd={onAdd}>
+            <TrayItem key={b.id} kind="bus" id={b.id} item={b} count={b.id === currentBusId ? 1 : 0} locked={busLocked} onAdd={onAdd}>
               <Stats item={b} extra={`${b.slots} slots · carries ${n1(b.maxMassKg)} kg`} />
             </TrayItem>
           ))}

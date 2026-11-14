@@ -4,7 +4,9 @@ import { Screen } from '@/components/Screen'
 import { Term } from '@/components/Term'
 import { orbitInfo } from '@/engine/orbit'
 import type { DisposalPlan, PlannerData } from '@/engine/types'
-import { gameData, n1 } from '@/game/ui'
+import { gameData, n1, roleNames } from '@/game/ui'
+import { useTeamFlow } from '@/game/teamFlow'
+import { EditGate } from '@/components/LeadButton'
 import { cn } from '@/lib/cn'
 import { useEvaluation, useGame, useScenario } from '@/store/game'
 
@@ -32,6 +34,7 @@ export function Feasibility() {
   const setDisposal = useGame((s) => s.setDisposal)
   const lead = useGame((s) => s.players.find((p) => p.role === 'planner')?.name)
   const ev = useEvaluation()
+  const flow = useTeamFlow()
 
   return (
     <Screen title="Requirements" subtitle="CML 2 · Feasibility: decide what matters most, then check it's possible." reqs="F4, F5, F10" nextLabel="Start designing">
@@ -41,7 +44,7 @@ export function Feasibility() {
       </p>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-4 rounded-xl border border-space-700 bg-space-900 p-4">
+        <EditGate can={flow.canEdit('planner')} who={roleNames.planner} className="flex flex-col gap-4 rounded-xl border border-space-700 bg-space-900 p-4">
           <div>
             <h2 className="font-semibold">What matters most?</h2>
             <p className="text-sm text-muted">These set how the final score is weighted. You can't max everything: that's the trade-off.</p>
@@ -77,7 +80,7 @@ export function Feasibility() {
               ))}
             </div>
           </div>
-        </div>
+        </EditGate>
 
         <div className="flex flex-col gap-3 rounded-xl border border-space-700 bg-space-900 p-4">
           <div>
@@ -139,7 +142,7 @@ function Slider(props: { label: string; value: number; onChange: (v: number) => 
         value={props.value}
         onChange={(e) => props.onChange(Number(e.target.value))}
         aria-valuetext={props.display}
-        className="mt-1 h-8 w-full cursor-pointer accent-accent"
+        className="mt-1 h-8 w-full cursor-pointer accent-accent disabled:cursor-not-allowed"
       />
       <p className="mt-1 text-xs text-muted">{props.note}</p>
     </div>

@@ -1,7 +1,6 @@
-import { ArrowRight } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { nextPath } from '@/routes'
+import type { FlowFacts } from '@/engine/flow'
+import { LeadButton } from '@/components/LeadButton'
 
 interface ScreenProps {
   title: string
@@ -11,13 +10,16 @@ interface ScreenProps {
   nextLabel?: string
   /** Hide the Next button, for screens that show their own (e.g. the simulation). */
   hideNext?: boolean
+  /** Extra facts the step's Next needs (see engine/flow.ts canAdvance). */
+  facts?: Omit<FlowFacts, 'design' | 'players'>
   children?: ReactNode
 }
 
-/** Shared frame for every phase screen: heading, body, and a Next button. */
-export function Screen({ title, subtitle, reqs, nextLabel = 'Next', hideNext, children }: ScreenProps) {
-  const next = nextPath(useLocation().pathname)
-
+/**
+ * Shared frame for every phase screen: heading, body, and the step's Next button.
+ * Next moves the whole room (team flow), so only the Mission Planner sees it.
+ */
+export function Screen({ title, subtitle, reqs, nextLabel = 'Next', hideNext, facts, children }: ScreenProps) {
   return (
     <section className="flex flex-col gap-6">
       <div>
@@ -28,15 +30,9 @@ export function Screen({ title, subtitle, reqs, nextLabel = 'Next', hideNext, ch
 
       {children}
 
-      {next && !hideNext && (
+      {!hideNext && (
         <div className="flex justify-end">
-          <Link
-            to={next}
-            className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-medium text-space-950 transition-colors hover:bg-accent-strong"
-          >
-            {nextLabel}
-            <ArrowRight className="size-4" aria-hidden />
-          </Link>
+          <LeadButton facts={facts}>{nextLabel}</LeadButton>
         </div>
       )}
     </section>

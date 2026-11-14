@@ -1,7 +1,7 @@
 import { useReducedMotion } from 'framer-motion'
-import { ArrowRight, FastForward, RotateCcw, Wrench } from 'lucide-react'
+import { FastForward, RotateCcw, Wrench } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { LeadButton } from '@/components/LeadButton'
 import { Screen } from '@/components/Screen'
 import { findLauncher, findOrbit } from '@/engine/data'
 import { clampAltitude } from '@/engine/rules'
@@ -81,9 +81,11 @@ export function Launch() {
       <Screen title="Launch" reqs="F13" hideNext>
         <div className="rounded-xl border border-space-700 bg-space-900 p-6">
           <p>Nothing on the pad yet. The design needs a bus, an orbit and a rocket before it can launch.</p>
-          <Link to="/workbench" className="mt-4 inline-block rounded-lg bg-accent px-5 py-2.5 font-medium text-space-950 hover:bg-accent-strong">
-            Back to the workbench
-          </Link>
+          <div className="mt-4">
+            <LeadButton to="design" ignoreCheck icon={Wrench}>
+              Back to the workbench
+            </LeadButton>
+          </div>
         </div>
       </Screen>
     )
@@ -133,22 +135,11 @@ export function Launch() {
           Watch again
         </button>
         {fails ? (
-          <Link to="/workbench" className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-medium text-space-950 hover:bg-accent-strong">
-            <Wrench className="size-4" aria-hidden />
+          <LeadButton to="design" ignoreCheck icon={Wrench}>
             Fix the design
-          </Link>
+          </LeadButton>
         ) : (
-          <Link
-            to="/sim"
-            aria-disabled={!finished}
-            className={cn(
-              'inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-medium text-space-950 transition-opacity hover:bg-accent-strong',
-              !finished && 'pointer-events-none opacity-40',
-            )}
-          >
-            Go to orbit
-            <ArrowRight className="size-4" aria-hidden />
-          </Link>
+          <LeadButton facts={{ launchDone: finished }}>Go to orbit</LeadButton>
         )}
       </div>
     </Screen>
