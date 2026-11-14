@@ -4,6 +4,10 @@ A cooperative space mission design game for 1 to 4 players. Build a spacecraft, 
 
 **Play:** _live link coming soon_
 
+## Credits
+
+NASA resources used and AI use: [docs/CREDITS.md](docs/CREDITS.md). Not endorsed by NASA.
+
 ## Run locally
 
 ```bash
