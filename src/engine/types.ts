@@ -569,8 +569,20 @@ export const SCORE_MAX: Record<ScoreCategory, number> = {
   collaboration: 50,
 };
 
+/** One role's private goal (PRD roles table), e.g. "Keep a 15% power margin". */
+export interface RoleGoal {
+  role: Role;
+  label: string;
+  met: boolean;
+  /** What actually happened, e.g. "17% power margin". */
+  detail: string;
+}
+
 export interface ScoreResult {
   total: number;
   stars: 0 | 1 | 2 | 3;
   byCategory: Record<ScoreCategory, number>;
+  /** Short reason for each category that lost points (for the report). */
+  notes: Partial<Record<ScoreCategory, string>>;
+  roleGoals: RoleGoal[];
 }

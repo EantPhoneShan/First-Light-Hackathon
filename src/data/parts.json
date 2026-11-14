@@ -314,7 +314,7 @@
       "tier": "simple",
       "slots": 2,
       "massKg": 1.2,
-      "powerW": 5,
+      "powerW": 4,
       "dataMBPerOrbit": 50,
       "measures": ["smoke", "burn-scars", "vegetation"],
       "scienceValue": 75,
