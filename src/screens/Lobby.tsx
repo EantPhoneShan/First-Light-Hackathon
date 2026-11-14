@@ -2,6 +2,7 @@ import { ArrowRight, Box, ClipboardList, FlaskConical, RadioTower, type LucideIc
 import { useNavigate } from 'react-router-dom'
 import { Art } from '@/components/Art'
 import { Screen } from '@/components/Screen'
+import { TeamDevicesPanel } from '@/components/TeamDevicesPanel'
 import { roleNames } from '@/engine/mockReview'
 import type { Role } from '@/engine/placeholderTypes'
 import { cn } from '@/lib/cn'
@@ -14,7 +15,7 @@ const roleInfo: Record<Role, { icon: LucideIcon; owns: string; does: string }> =
   flight: { icon: RadioTower, owns: 'Mass, delta-v', does: 'Picks the orbit, rocket and ground stations, and watches mass and delta-v.' },
 }
 
-/** Team mode MVP: one shared screen, four role panels. Room codes for separate devices are P2 (Member 3). */
+/** Team mode MVP: one shared screen, four role panels. Separate devices with room codes: TeamDevicesPanel (Member 3). */
 export function Lobby() {
   const players = useGame((s) => s.room.players)
   const setPlayer = useGame((s) => s.setPlayer)
@@ -74,7 +75,7 @@ export function Lobby() {
       <div className="flex flex-col gap-3 rounded-xl border border-space-700 bg-space-900 p-4 text-sm text-muted sm:flex-row sm:items-center">
         <p className="flex-1">
           Each role only sees its own gauges, so talk to each other! Fewer than four players? Gauges for roles with no name are shared by everyone. Switch who is at the controls with <b className="text-ink">Acting as</b> at the top of
-          the screen. Room codes for separate devices are coming later.
+          the screen. Or each player can use their own device: see below.
         </p>
         <button
           onClick={start}
@@ -85,6 +86,8 @@ export function Lobby() {
           <ArrowRight className="size-4" aria-hidden />
         </button>
       </div>
+
+      <TeamDevicesPanel />
     </Screen>
   )
 }
