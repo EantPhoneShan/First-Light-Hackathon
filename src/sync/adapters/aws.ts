@@ -156,11 +156,14 @@ export function awsAdapter(): SyncAdapter {
       let sections: Any[] = [];
       let ready = { room: false, players: false, sections: false };
       let announced = false;
+      let catchUp: ReturnType<typeof setTimeout> | undefined;
       const push = () => {
         if (!ready.room || !ready.players || !ready.sections) return;
         if (!announced) {
           announced = true;
           onStatus('connected');
+          // A change made while the live feed was starting can be missed; read once more to catch it.
+          catchUp = setTimeout(() => fetchRoom(code).then((r) => r && onRoom(r)).catch(() => {}), 2000);
         }
         const r = assemble(roomRow, players, sections);
         if (r) onRoom(r);
@@ -212,6 +215,7 @@ export function awsAdapter(): SyncAdapter {
       });
 
       return () => {
+        clearTimeout(catchUp);
         subs.forEach((s) => s.unsubscribe());
         stopHub();
         ready = { room: false, players: false, sections: false };
