@@ -258,6 +258,12 @@ export interface Scenario extends Described {
   /** The 2 resources this scenario is mainly about (they glow in the UI). */
   criticalResources: ResourceId[];
   goals: ScienceGoal[];
+  /**
+   * Measurement ids the objective can't do without (e.g. seeing through storm
+   * clouds for Flood Radar). A build that covers none of them earns only part
+   * of the objective score.
+   */
+  mustMeasure?: string[];
   eventsAllowed: string[];
   /** The tutorial's deliberately flawed starting design (F1), if this scenario has one. */
   tutorialDesign?: Design;
@@ -610,6 +616,8 @@ export interface SimResult {
   /** Random events that happened and the choices made (replay them to fly the same mission). */
   events: EventRecord[];
   seed: number;
+  /** False for tutorial or practice flights flown with random events off. */
+  eventsEnabled: boolean;
 }
 
 /**

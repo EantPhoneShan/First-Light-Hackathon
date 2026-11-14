@@ -35,6 +35,8 @@ export const SCORING = {
   efficiencyResources: ['mass', 'power', 'budget', 'comms', 'time'] as ResourceId[],
   /** Detail score with only one kind of science, as a share of two kinds. */
   oneKindShare: 0.8,
+  /** Objective share kept when the build can't make the scenario's must-have measurement. */
+  missingMustMeasureShare: 0.5,
   /** Decision points: review quality, trade study, event choices. */
   decisions: { review: 75, tradeStudy: 25, events: 25, perFail: 25, perWarn: 10 },
   /**
@@ -93,9 +95,15 @@ export function scoreMission(
   const lifetime = survived;
   const w = design.planner.weights;
   const wSum = w.coverage + w.detail + w.lifetime;
-  const objectiveShare = wSum > 0 ? (w.coverage * coverage + w.detail * detail + w.lifetime * lifetime) / wSum : (coverage + detail + lifetime) / 3;
+  const rawShare = wSum > 0 ? (w.coverage * coverage + w.detail * detail + w.lifetime * lifetime) / wSum : (coverage + detail + lifetime) / 3;
+  // The objective's must-have measurement (e.g. seeing through storm clouds).
+  const must = measurements.filter((m) => scenario.mustMeasure?.includes(m.id));
+  const missingMust = must.length > 0 && !must.some((m) => covered.includes(m));
+  const objectiveShare = rawShare * (missingMust ? SCORING.missingMustMeasureShare : 1);
   const objective = SCORE_MAX.objective * objectiveShare;
-  if (objectiveShare < 0.9) {
+  if (missingMust && flew) {
+    notes.objective = `The objective needs ${must.map((m) => m.name.toLowerCase()).join(' or ')}, and no instrument on board can measure that.`;
+  } else if (objectiveShare < 0.9) {
     notes.objective = !flew
       ? 'The craft never reached orbit.'
       : survived < 1

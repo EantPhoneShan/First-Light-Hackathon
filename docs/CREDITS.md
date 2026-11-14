@@ -1,6 +1,6 @@
 # Credits and data sources
 
-First Light is an independent student project for the NASA Space Apps Challenge 2026. It is not endorsed by NASA. No NASA logos, insignia or mission identifiers are used.
+First Light is an independent student project for the NASA Space Apps Challenge 2026. It is not endorsed by NASA. No NASA logos, insignia, mission patches or mission art are used. The mission report may name a real NASA mission that is similar to the player's design (for example Landsat 9 or NISAR), as plain text with a link to NASA's own page, the way NASA's "A Learning Game About Telescopes" does.
 
 ## NASA resources used (from the challenge Resources tab)
 

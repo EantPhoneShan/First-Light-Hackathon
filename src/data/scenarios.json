@@ -98,6 +98,7 @@
           ]
         }
       ],
+      "mustMeasure": ["through-clouds"],
       "eventsAllowed": ["solar-storm", "station-outage", "part-failure"],
       "tooltip": "When rivers burst during a storm, rescue teams need maps, but clouds block normal cameras. A radar satellite can see through them, if it has enough power.",
       "source": "science-missions",

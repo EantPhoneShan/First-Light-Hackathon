@@ -61,6 +61,13 @@ describe('score', () => {
     const oneArray = fly(mod(radarBuild, (d) => (d.engineer.partIds = ['solar-array', 'battery-pack', 'computer', 'reaction-wheel'])), flood);
     expect(oneArray.sim.outcome).toBe('failure');
   });
+
+  it('halves the Flood Radar objective without a way to see through clouds', () => {
+    const withRadar = fly(mod(radarBuild, (d) => (d.science.instrumentIds = ['radar'])), flood).score;
+    const noRadar = fly(mod(radarBuild, (d) => (d.science.instrumentIds = ['multispectral-imager'])), flood).score;
+    expect(noRadar.byCategory.objective).toBeLessThan(withRadar.byCategory.objective * 0.6);
+    expect(noRadar.notes.objective).toMatch(/needs the ground under storm clouds/);
+  });
 });
 
 describe('mission report', () => {
