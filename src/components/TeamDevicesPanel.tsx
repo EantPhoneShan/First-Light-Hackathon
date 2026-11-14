@@ -1,6 +1,5 @@
 import { Copy, LogOut, Smartphone } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { roleNames } from '@/game/ui'
 import { cn } from '@/lib/cn'
@@ -8,6 +7,7 @@ import { useGame } from '@/store/game'
 import { ROLES, type Role } from '@/sync'
 import { hostDeviceRoom, joinDeviceRoom, leaveDeviceRoom, useDeviceRoom } from '@/sync/teamBridge'
 import { SyncStatusDot } from '@/components/SyncStatusDot'
+import { LeadButton } from '@/components/LeadButton'
 
 /**
  * Team mode on separate devices (Member 3). Each player picks a role on their
@@ -16,7 +16,6 @@ import { SyncStatusDot } from '@/components/SyncStatusDot'
 export function TeamDevicesPanel() {
   const room = useDeviceRoom()
   const players = useGame((s) => s.players)
-  const navigate = useNavigate()
   const [name, setName] = useState('')
   const [role, setRole] = useState<Role>('planner')
   const [code, setCode] = useState('')
@@ -46,12 +45,10 @@ export function TeamDevicesPanel() {
           <SyncStatusDot /> {players.length} player{players.length === 1 ? '' : 's'}:{' '}
           {players.map((p) => `${p.name} (${roleNames[p.role]})`).join(', ') || 'waiting…'}
         </p>
-        <button
-          onClick={() => navigate('/briefing')}
-          className="mt-3 rounded-lg bg-accent px-5 py-2.5 font-medium text-space-950 hover:bg-accent-strong"
-        >
-          Start briefing
-        </button>
+        {/* Team flow: the Mission Planner moves the whole room on. */}
+        <div className="mt-3">
+          <LeadButton to="briefing">Start briefing</LeadButton>
+        </div>
       </div>
     )
   }

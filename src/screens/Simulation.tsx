@@ -1,20 +1,26 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { BatteryMedium, Database, Moon, Pause, Play, RadioTower, RotateCcw, Satellite, Send, Sun } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fallback3D } from '@/components/Fallback3D'
 import { drawScene, makeStars, toCanvasAngle } from '@/components/sim/drawScene'
 import { Screen } from '@/components/Screen'
 import { Term } from '@/components/Term'
-import { findOrbit } from '@/engine/data'
+import { findBus, findOrbit } from '@/engine/data'
 import { clampAltitude } from '@/engine/rules'
 import { chooseEvent, createSim, DEFAULT_SEED, finishSim, initialState, pendingEventCard, stepSim } from '@/engine/simulate'
 import type { GameEvent, MarkerKind, SimMarker, SimState, Status } from '@/engine/types'
-import { gameData, roleNames } from '@/game/ui'
+import { gameData, partsOnCraft, roleNames } from '@/game/ui'
 import { cn } from '@/lib/cn'
 import { play } from '@/lib/sound'
 import { useGame, useScenario } from '@/store/game'
+import { LeadButton, WaitingFor } from '@/components/LeadButton'
+import { canChooseEvent } from '@/engine/flow'
+import { useTeamFlow } from '@/game/teamFlow'
 import { sync } from '@/sync'
 import { answerEvent, canAnswerEvent, useRoomChoices } from '@/sync/teamBridge'
+
+// three.js only downloads on this screen.
+const Orbit3D = lazy(() => import('@/three/Orbit3D'))
 
 /** Playback speeds in simulated minutes per real second (PRD: 1 orbit in a few s, 1 year in ~30 s). */
 const speeds = [
@@ -61,7 +67,9 @@ export function Simulation() {
   const tutorial = useGame((s) => s.tutorial)
   const approvals = useGame((s) => s.approvals)
   const players = useGame((s) => s.players)
+  const flow = useTeamFlow()
   const orbit = findOrbit(gameData, design.flight.orbitId)
+  const craftParts = useMemo(() => partsOnCraft(design), [design])
   const altitudeKm = orbit ? clampAltitude(orbit, design.flight.altitudeKm) : 500
   // Same seed on every device in a team room, so everyone gets the same events (Member 3's room.seed).
   const seed = sync.getRoom()?.seed ?? DEFAULT_SEED
@@ -105,6 +113,7 @@ export function Simulation() {
       const dtSec = Math.min(0.1, (now - last) / 1000)
       last = now
       const s = stateRef.current
+      // Team room: the owner's answer arrives through sync and is replayed here on every device.
       const answered = s.pendingEvent && choicesRef.current[s.pendingEvent.eventId]
       if (answered && chooseEvent(s, setup, answered)) setFrame((f) => f + 1)
       if (!pausedRef.current && !s.done && !s.pendingEvent) {
@@ -140,7 +149,7 @@ export function Simulation() {
         savedRef.current = true
         // Solo play counts as everyone approving (Member 1's score.ts).
         const allApproved = players.length === 0 || (['planner', 'science', 'engineer', 'flight'] as const).every((r) => approvals[r]?.state === 'approved' && approvals[r]?.version === designVersion)
-        saveFlight({ sim: finishSim(s, setup), design, designVersion, scenarioId: scenario.id, allApproved })
+        saveFlight({ sim: finishSim(s, setup), design, designVersion, scenarioId: scenario.id, allApproved, tradeStudyUsed: useGame.getState().tradeUsed })
       }
       if (now - lastUi > 80 || s.done) {
         lastUi = now
@@ -162,9 +171,11 @@ export function Simulation() {
               <li key={m}>{m}</li>
             ))}
           </ul>
-          <Link to="/workbench" className="mt-4 inline-block rounded-lg bg-accent px-5 py-2.5 font-medium text-space-950 hover:bg-accent-strong">
-            Back to the workbench
-          </Link>
+          <div className="mt-4">
+            <LeadButton to="design" ignoreCheck>
+              Back to the workbench
+            </LeadButton>
+          </div>
         </div>
       </Screen>
     )
@@ -185,7 +196,20 @@ export function Simulation() {
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Orbit view */}
         <div className="relative overflow-hidden rounded-xl border border-space-700">
-          <canvas ref={canvasRef} className="block aspect-square w-full sm:aspect-[4/3]" aria-label="Spacecraft orbiting Earth" role="img" />
+          <div className="aspect-square w-full sm:aspect-[4/3]">
+            <Fallback3D fallback={<canvas ref={canvasRef} className="block h-full w-full" aria-label="Spacecraft orbiting Earth" role="img" />}>
+              <Suspense fallback={<canvas ref={canvasRef} className="block h-full w-full" aria-label="Spacecraft orbiting Earth" role="img" />}>
+                <Orbit3D
+                  getView={() => ({ tMin: stateRef.current.tMin, angleDeg: stateRef.current.orbitAngleDeg, inEclipse: stateRef.current.inEclipse, downlinking: stateRef.current.downlinking, alive: stateRef.current.alive })}
+                  altitudeKm={altitudeKm}
+                  inclinationDeg={orbit?.inclinationDeg ?? 50}
+                  bus={findBus(gameData, design.engineer.busId)}
+                  parts={craftParts}
+                  stations={gameData.stations.filter((st) => design.flight.stationIds.includes(st.id))}
+                />
+              </Suspense>
+            </Fallback3D>
+          </div>
 
           <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
             <Chip on={!s.inEclipse} icon={s.inEclipse ? Moon : Sun} tone={s.inEclipse ? 'muted' : 'warn'}>
@@ -200,7 +224,7 @@ export function Simulation() {
             <EventCard
               ev={card}
               who={players.find((p) => p.role === card.owner)?.name}
-              locked={!canAnswerEvent(card.owner)}
+              canChoose={canChooseEvent(flow.myRoles, card) && canAnswerEvent(card.owner)}
               onChoose={(id) => {
                 const eventId = s.pendingEvent?.eventId
                 if (!eventId || !chooseEvent(s, setup, id)) return
@@ -224,12 +248,15 @@ export function Simulation() {
                   </p>
                   <p className="mt-2 text-sm">{lastMarker?.why ?? lastMarker?.label}</p>
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
-                    <Link to="/report" className="rounded-lg bg-accent px-4 py-2 font-medium text-space-950 hover:bg-accent-strong">
+                    <LeadButton facts={{ flight: s }} icon={null} className="px-4 py-2">
                       {lost ? "Let's find out why" : 'See mission report'}
-                    </Link>
-                    <button onClick={restart} className="rounded-lg border border-space-600 px-4 py-2 hover:bg-space-800">
-                      Fly again
-                    </button>
+                    </LeadButton>
+                    {/* Each device flies its own copy, so in a team a restart would split the room. */}
+                    {!flow.team && (
+                      <button onClick={restart} className="rounded-lg border border-space-600 px-4 py-2 hover:bg-space-800">
+                        Fly again
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               </motion.div>
@@ -269,9 +296,11 @@ export function Simulation() {
                   </button>
                 ))}
               </div>
-              <button onClick={restart} className="rounded-lg bg-space-700 p-2 hover:bg-space-600" aria-label="Restart flight">
-                <RotateCcw className="size-4" />
-              </button>
+              {!flow.team && (
+                <button onClick={restart} className="rounded-lg bg-space-700 p-2 hover:bg-space-600" aria-label="Restart flight">
+                  <RotateCcw className="size-4" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -342,7 +371,7 @@ function Chip({ on, icon: Icon, tone, children }: { on: boolean; icon: typeof Su
 }
 
 /** PRD F15: a random event pauses the flight until the team picks what to do. */
-function EventCard({ ev, who, locked, onChoose }: { ev: GameEvent; who?: string; locked?: boolean; onChoose: (choiceId: string) => void }) {
+function EventCard({ ev, who, canChoose, onChoose }: { ev: GameEvent; who?: string; canChoose: boolean; onChoose: (choiceId: string) => void }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-space-950/75 p-3 backdrop-blur-[2px]" role="dialog" aria-labelledby="event-h">
       <motion.div initial={{ scale: 0.9, y: 10 }} animate={{ scale: 1, y: 0 }} className="max-h-full w-full max-w-md overflow-y-auto rounded-xl border border-warn/60 bg-space-900 p-4 shadow-2xl">
@@ -354,12 +383,24 @@ function EventCard({ ev, who, locked, onChoose }: { ev: GameEvent; who?: string;
           {ev.name}
         </h2>
         <p className="mt-1 text-sm text-muted">{ev.text}</p>
+        {!canChoose ? (
+          <div className="mt-3 flex flex-col gap-2">
+            <WaitingFor role={roleNames[ev.owner]} name={who} doing="deciding" />
+            <ul className="flex flex-col gap-1 text-xs text-muted" aria-label="Their options">
+              {ev.choices.map((c) => (
+                <li key={c.id} className="rounded-lg border border-dashed border-space-700 p-2">
+                  <span className="font-medium text-ink/80">{c.label}</span>
+                  <span className="mt-0.5 block">{c.text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
         <div className="mt-3 flex flex-col gap-2">
           {ev.choices.map((c) => (
             <button
               key={c.id}
               onClick={() => onChoose(c.id)}
-              disabled={locked}
               className="rounded-lg border border-space-600 p-2.5 text-left text-sm hover:border-accent hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-space-600 disabled:hover:bg-transparent"
             >
               <span className="font-medium">{c.label}</span>
@@ -367,10 +408,6 @@ function EventCard({ ev, who, locked, onChoose }: { ev: GameEvent; who?: string;
             </button>
           ))}
         </div>
-        {locked && (
-          <p className="mt-3 text-sm text-muted" role="status">
-            Waiting for {who ?? `the ${roleNames[ev.owner]}`} to choose.
-          </p>
         )}
       </motion.div>
     </div>

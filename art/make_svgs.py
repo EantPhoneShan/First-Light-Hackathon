@@ -135,6 +135,34 @@ def bus_12u():
     return cubesat(2, 2, 3).svg()
 
 
+def bus_smallsat():
+    """A fridge-sized small satellite: gold-foil box, white top deck, two folded-out solar wings.
+    Bigger than any CubeSat, so it reads as a different class of craft in the parts tray."""
+    p = Pic(4.2)
+    # left wing (behind the body)
+    w1 = p.box(-3.9, 0.6, 2.0, 3.2, 1.8, 0.02, CELL, CELL_D, CELL)
+    grid(p, w1['top'], 3, 2, CELL_L, inset=0.04)
+    p.line(p.P(-0.7, 1.5, 2.0), p.P(0, 1.5, 2.0), WHITE_D, 1.6)
+    # body: gold foil (thermal blanket) with a white top deck
+    f = p.box(0, 0, 0, 3.0, 3.0, 3.4, GOLD_L, GOLD_D, GOLD)
+    for k in (0.33, 0.66):
+        p.line(fp(f['left'], k, 0.06), fp(f['left'], k, 0.94), GOLD_D, 0.45)
+        p.line(fp(f['right'], k, 0.06), fp(f['right'], k, 0.94), GOLD_D, 0.45)
+    deck = p.box(-0.1, -0.1, 3.4, 3.2, 3.2, 0.25, WHITE, WHITE_D, WHITE_S)
+    # orange accent band round the base
+    p.line(fp(f['left'], 0, 0.1), fp(f['left'], 1, 0.1), ORANGE, 1.3)
+    p.line(fp(f['right'], 0, 0.1), fp(f['right'], 1, 0.1), ORANGE, 1.3)
+    # star tracker and antenna on the deck
+    p.box(0.4, 0.4, 3.65, 0.6, 0.6, 0.5, NAVY_L, NAVY_D, NAVY)
+    ellipse_on(p, deck['top'], 0.68, 0.62, 0.17, ORANGE, sw=0.4)
+    ellipse_on(p, deck['top'], 0.68, 0.62, 0.08, ORANGE_L, sw=0.3)
+    # right wing (in front)
+    p.line(p.P(3.0, 1.5, 2.0), p.P(3.7, 1.5, 2.0), WHITE_D, 1.6)
+    w2 = p.box(3.7, 0.6, 2.0, 3.2, 1.8, 0.02, CELL, CELL_D, CELL)
+    grid(p, w2['top'], 3, 2, CELL_L, inset=0.04)
+    return p.svg()
+
+
 def solar_body():
     p = Pic(9)
     f = p.box(0, 0, 0, 1.6, 1.6, 2.2, SLATE_L, SLATE_D, SLATE)
@@ -469,7 +497,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     files = {
         # Buses and parts, named by Member 1's ids in src/data/parts.json
-        'bus-cubesat-6u': bus_6u(), 'bus-smallsat': bus_12u(), 'bus-large': cubesat(3, 3, 3, cells=True).svg(),
+        'bus-cubesat-3u': bus_3u(), 'bus-cubesat-6u': bus_6u(), 'bus-cubesat-12u': bus_12u(), 'bus-smallsat': bus_smallsat(), 'bus-large': cubesat(3, 3, 3, cells=True).svg(),
         'solar-body': solar_body(), 'solar-wings': solar_wings(), 'solar-array': solar_array(),
         'battery-small': battery(False), 'battery-large': battery(True), 'battery-pack': battery_pack(),
         'computer': computer(), 'magnetorquer': magnetorquer(), 'reaction-wheel': reaction_wheel(),

@@ -1,9 +1,13 @@
 import { Check, RadioTower } from 'lucide-react'
+import { lazy, Suspense, useState } from 'react'
 import { Art } from '@/components/Art'
 import { findOrbit } from '@/engine/data'
 import { gameData } from '@/game/ui'
 import { cn } from '@/lib/cn'
 import { useEvaluation, useGame, useScenario } from '@/store/game'
+
+// three.js only downloads when a station is shown.
+const Station3D = lazy(() => import('@/three/Station3D'))
 
 /** Ground segment: pick stations. More stations = more passes but higher yearly cost (PRD F9). */
 export function StationPicker() {
@@ -13,6 +17,10 @@ export function StationPicker() {
   const ev = useEvaluation()
   const orbit = findOrbit(gameData, flight.orbitId)
   const stations = gameData.stations
+  // The 3D view shows the station you point at, else the last one you picked, else your first.
+  const [preview, setPreview] = useState<string | null>(null)
+  const [last, setLast] = useState<string | null>(null)
+  const shown = stations.find((s) => s.id === (preview ?? last ?? flight.stationIds[0])) ?? stations[0]
 
   const yearly = scenario.baseOpsCostPerYearM + stations.filter((s) => flight.stationIds.includes(s.id)).reduce((n, s) => n + s.costPerYearM, 0)
 
@@ -39,7 +47,11 @@ export function StationPicker() {
               <button
                 role="checkbox"
                 aria-checked={on}
-                onClick={() => toggle(st.id)}
+                onClick={() => (toggle(st.id), setLast(st.id))}
+                onMouseEnter={() => setPreview(st.id)}
+                onMouseLeave={() => setPreview(null)}
+                onFocus={() => setPreview(st.id)}
+                onBlur={() => setPreview(null)}
                 className={cn(
                   'flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-colors',
                   on ? 'border-ok/70 bg-ok/10' : 'border-space-700 bg-space-900 hover:border-space-600',
@@ -70,6 +82,10 @@ export function StationPicker() {
           )
         })}
       </ul>
+
+      <Suspense fallback={<div className="flex h-[300px] items-center justify-center rounded-xl border border-space-700 text-sm text-muted">Loading 3D station…</div>}>
+        <Station3D station={shown} active={flight.stationIds.includes(shown.id)} />
+      </Suspense>
     </div>
   )
 }

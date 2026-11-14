@@ -3,7 +3,7 @@ import { Screen } from '@/components/Screen'
 
 export function NotFound() {
   return (
-    <Screen title="Lost in space" subtitle="That page doesn't exist.">
+    <Screen title="Lost in space" subtitle="That page doesn't exist." hideNext>
       <Link to="/" className="text-accent underline">Back to the title screen</Link>
     </Screen>
   )

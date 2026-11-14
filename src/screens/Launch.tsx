@@ -1,7 +1,12 @@
 import { useReducedMotion } from 'framer-motion'
-import { ArrowRight, FastForward, RotateCcw, Wrench } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { FastForward, RotateCcw, Wrench } from 'lucide-react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Fallback3D } from '@/components/Fallback3D'
+import { AscentCharts } from '@/components/AscentCharts'
+import { findBus } from '@/engine/data'
+import { flightTime, sampleAt, simulateAscent } from '@/game/ascent'
+import { partsOnCraft } from '@/game/ui'
+import { LeadButton } from '@/components/LeadButton'
 import { Screen } from '@/components/Screen'
 import { findLauncher, findOrbit } from '@/engine/data'
 import { clampAltitude } from '@/engine/rules'
@@ -12,6 +17,10 @@ import { play, type Sfx } from '@/lib/sound'
 
 /** Timeline in seconds. Everything in the scene is a pure function of `t`. */
 const T = { liftoff: 3, maxQ: 5, sep: 7, fairing: 8.2, orbit: 9.6, deploy: 11, done: 12.6, fail: 6 }
+
+// three.js only downloads on this screen.
+const Launch3D = lazy(() => import('@/three/Launch3D'))
+
 
 const clamp = (v: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v))
 const mix = (a: number, b: number, k: number) => a + (b - a) * k
@@ -35,6 +44,18 @@ export function Launch() {
   const [t, setT] = useState(0)
   const [run, setRun] = useState(0)
   const tRef = useRef(0)
+
+  // Realistic ascent for this rocket, payload and orbit (game/ascent.ts): drives the 3D scene and the charts.
+  const altKm = orbit ? clampAltitude(orbit, design.flight.altitudeKm) : 500
+  const profile = useMemo(() => {
+    if (!launcher) return null
+    const extra = launcher.id === 'iss-deploy' ? 6000 : launcher.class === 'rideshare' ? 3000 : 0
+    // GEO missions go to a low parking orbit first; the long climb to GEO comes later.
+    const targetKm = orbit?.kind === 'geo' ? 250 : altKm
+    return simulateAscent({ klass: launcher.class, payloadKg: ev.totals.massKg + extra, targetKm, fails })
+  }, [launcher, orbit?.kind, altKm, ev.totals.massKg, fails])
+  const bus = findBus(gameData, design.engineer.busId)
+  const parts = useMemo(() => partsOnCraft(design), [design])
   const cueRef = useRef(-1) // last time we checked for sound cues (-1 = before the countdown)
 
   // Sound cues, fired when the timeline passes each moment (not when skipping past them).
@@ -81,9 +102,11 @@ export function Launch() {
       <Screen title="Launch" reqs="F13" hideNext>
         <div className="rounded-xl border border-space-700 bg-space-900 p-6">
           <p>Nothing on the pad yet. The design needs a bus, an orbit and a rocket before it can launch.</p>
-          <Link to="/workbench" className="mt-4 inline-block rounded-lg bg-accent px-5 py-2.5 font-medium text-space-950 hover:bg-accent-strong">
-            Back to the workbench
-          </Link>
+          <div className="mt-4">
+            <LeadButton to="design" ignoreCheck icon={Wrench}>
+              Back to the workbench
+            </LeadButton>
+          </div>
         </div>
       </Screen>
     )
@@ -96,7 +119,18 @@ export function Launch() {
   return (
     <Screen title="Launch" subtitle={`${launcher.name} to ${orbit.name}, ${clampAltitude(orbit, design.flight.altitudeKm).toLocaleString()} km`} reqs="F13" hideNext>
       <div className="relative overflow-hidden rounded-xl border border-space-700 bg-space-950">
-        <Scene t={t} fails={fails} deep={deep} />
+        {profile && <SkyBackdrop altKm={sampleAt(profile, Math.max(0, flightTime(profile, t, T, fails))).altKm} />}
+        {profile ? (
+          <Fallback3D fallback={<Scene t={t} fails={fails} deep={deep} />}>
+            <Suspense fallback={<Scene t={t} fails={fails} deep={deep} />}>
+              <div className="relative h-[56vh] min-h-[340px] w-full sm:h-[520px]">
+                <Launch3D getT={() => tRef.current} T={T} fails={fails} launcher={launcher} bus={bus} parts={parts} profile={profile} />
+              </div>
+            </Suspense>
+          </Fallback3D>
+        ) : (
+          <Scene t={t} fails={fails} deep={deep} />
+        )}
         <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-1 p-4 text-center">
           {t < T.liftoff && !finished && (
             <span key={Math.ceil(T.liftoff - t)} className="font-display text-6xl font-semibold tabular-nums drop-shadow">
@@ -108,8 +142,12 @@ export function Launch() {
           </p>
         </div>
         <span className="absolute bottom-3 left-3 rounded bg-space-950/70 px-2 py-1 font-mono text-xs tabular-nums text-muted">
-          T{t < T.liftoff ? '−' : '+'}
-          {Math.abs(Math.round((t - T.liftoff) * 10) / 10).toFixed(1)} s
+          {(() => {
+            // Real flight time from the ascent model (the animation is sped up).
+            const ft = profile ? flightTime(profile, t, T, fails) : t - T.liftoff
+            const a = Math.abs(ft)
+            return `T${ft < 0 ? '−' : '+'}${a >= 60 ? `${Math.floor(a / 60)}:${String(Math.floor(a % 60)).padStart(2, '0')}` : `${a.toFixed(1)} s`}`
+          })()}
         </span>
         {!finished && (
           <button onClick={skip} className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-lg bg-space-950/70 px-3 py-1.5 text-sm text-muted backdrop-blur hover:text-ink">
@@ -118,6 +156,8 @@ export function Launch() {
           </button>
         )}
       </div>
+
+      {profile && <AscentCharts profile={profile} now={flightTime(profile, t, T, fails)} failed={fails} />}
 
       {finished && fails && (
         <div className="rounded-xl border border-bad/50 bg-bad/10 p-4" role="alert">
@@ -133,22 +173,11 @@ export function Launch() {
           Watch again
         </button>
         {fails ? (
-          <Link to="/workbench" className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-medium text-space-950 hover:bg-accent-strong">
-            <Wrench className="size-4" aria-hidden />
+          <LeadButton to="design" ignoreCheck icon={Wrench}>
             Fix the design
-          </Link>
+          </LeadButton>
         ) : (
-          <Link
-            to="/sim"
-            aria-disabled={!finished}
-            className={cn(
-              'inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-medium text-space-950 transition-opacity hover:bg-accent-strong',
-              !finished && 'pointer-events-none opacity-40',
-            )}
-          >
-            Go to orbit
-            <ArrowRight className="size-4" aria-hidden />
-          </Link>
+          <LeadButton facts={{ launchDone: finished }}>Go to orbit</LeadButton>
         )}
       </div>
     </Screen>
@@ -165,6 +194,34 @@ function captionAt(t: number, fails: boolean, rocket: string, orbit: string, dee
   if (t < T.deploy) return deep ? 'Engine burn to leave Earth orbit.' : `Upper stage burn into ${orbit}.`
   if (t < T.done) return 'Spacecraft deployed. Solar panels opening.'
   return deep ? `On its way. Heading for ${orbit === 'Moon' ? 'the Moon' : orbit}.` : `Orbit insertion complete. Welcome to ${orbit}.`
+}
+
+/* ---------------- Sky behind the 3D launch ---------------- */
+
+/**
+ * Photo backdrop under the see-through 3D canvas: mountains on the pad, a sky
+ * that darkens with altitude, and the deep-space star photo above the air.
+ */
+function SkyBackdrop({ altKm }: { altKm: number }) {
+  const ground = 1 - clamp(altKm / 6)
+  const space = clamp((altKm - 25) / 45)
+  const k = ease(clamp(altKm / 60))
+  const sky = mixRgb([96, 150, 215], [6, 11, 26], k)
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden>
+      <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, ${mixRgb([40, 95, 185], [4, 8, 20], k)}, ${sky})` }} />
+      <img src="/assets/bg/stars.webp" alt="" className="absolute inset-0 h-full w-full object-cover" style={{ opacity: space }} />
+      <img src="/assets/bg/mountains.webp" alt="" className="absolute inset-0 h-full w-full object-cover object-bottom"
+        style={{
+          opacity: ground,
+          transform: `translateY(${(1 - ground) * 30}%) scale(${1 + (1 - ground) * 0.1})`,
+          // Soft top edge, so the photo melts into the sky as it drops away
+          maskImage: `linear-gradient(to bottom, transparent 0%, black ${(1 - ground) * 35}%)`,
+          WebkitMaskImage: `linear-gradient(to bottom, transparent 0%, black ${(1 - ground) * 35}%)`,
+        }}
+      />
+    </div>
+  )
 }
 
 /* ---------------- Scene ---------------- */

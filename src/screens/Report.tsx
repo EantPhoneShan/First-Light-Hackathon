@@ -1,7 +1,10 @@
 import { motion } from 'framer-motion'
 import { AlertTriangle, CheckCircle2, Lightbulb, RotateCcw, Sparkles, Star, Target, Wrench, XCircle } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { LeadButton } from '@/components/LeadButton'
+import { Leaderboard, OtherBuilds, RealMissionCard } from '@/components/ReportExtras'
+import { backStep } from '@/engine/flow'
+import { useTeamFlow } from '@/game/teamFlow'
 import { Screen } from '@/components/Screen'
 import { buildMissionReport, formatDuration } from '@/engine/report'
 import { scoreMission } from '@/engine/score'
@@ -15,8 +18,8 @@ import { useGame, useScenario } from '@/store/game'
 /** Score and report for one flight, from Member 1's score.ts and report.ts. */
 function reportFor(f: FlightResult, previous?: FlightResult): MissionReport {
   const sc = gameData.scenarios.find((s) => s.id === f.scenarioId) ?? gameData.scenarios[0]
-  const score = scoreMission(f.design, sc, gameData, f.sim, { allApproved: f.allApproved })
-  const prev = previous && { sim: previous.sim, score: scoreMission(previous.design, sc, gameData, previous.sim, { allApproved: previous.allApproved }) }
+  const score = scoreMission(f.design, sc, gameData, f.sim, { allApproved: f.allApproved, tradeStudyUsed: f.tradeStudyUsed })
+  const prev = previous && { sim: previous.sim, score: scoreMission(previous.design, sc, gameData, previous.sim, { allApproved: previous.allApproved, tradeStudyUsed: previous.tradeStudyUsed }) }
   return buildMissionReport(f.design, sc, gameData, f.sim, score, prev)
 }
 
@@ -26,7 +29,6 @@ export function Report() {
   const flights = useGame((s) => s.flights)
   const setRefly = useGame((s) => s.setRefly)
   const resetDesign = useGame((s) => s.resetDesign)
-  const navigate = useNavigate()
 
   const flight = flights[flights.length - 1]
   const ghost = flights.length > 1 ? flights[flights.length - 2] : undefined
@@ -35,31 +37,34 @@ export function Report() {
 
   if (!flight || !report) {
     return (
-      <Screen title="Mission report" reqs="F16, F18">
+      <Screen title="Mission report" reqs="F16, F18" hideNext>
         <div className="rounded-xl border border-space-700 bg-space-900 p-6">
           <p>No flight yet. Fly your mission first and the report will explain what happened.</p>
-          <Link to="/sim" className="mt-4 inline-block rounded-lg bg-accent px-5 py-2.5 font-medium text-space-950 hover:bg-accent-strong">
-            Go to the simulation
-          </Link>
+          <div className="mt-4">
+            <LeadButton to="simulate" ignoreCheck>
+              Go to the simulation
+            </LeadButton>
+          </div>
         </div>
       </Screen>
     )
   }
 
+  const flow = useTeamFlow()
+  const canRewrite = flow.canRewriteDesign
   const refly = () => {
+    // Runs on the leader's device just before the room moves back to design (backStep).
     const fixes = report.findings.filter((f) => f.kind !== 'tip')
     setRefly({
       partIds: report.highlightPartIds,
       tabs: [...new Set(fixes.map((f) => f.area).filter((a): a is 'launch' | 'ground' => a === 'launch' || a === 'ground'))],
       fixes: fixes.filter((f) => f.top).map((f) => f.fix),
     })
-    navigate('/workbench')
   }
 
   const startOver = () => {
     resetDesign()
     setRefly(null)
-    navigate('/workbench')
   }
 
   return (
@@ -80,14 +85,20 @@ export function Report() {
       <Timeline report={report} />
       <Findings findings={report.findings} />
 
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <RealMissionCard flight={flight} />
+        <Leaderboard flight={flight} />
+      </div>
+      <OtherBuilds flight={flight} />
+
       <div className="flex flex-wrap justify-end gap-3">
-        <button onClick={startOver} className="inline-flex items-center gap-2 rounded-lg border border-space-600 px-5 py-2.5 hover:bg-space-800">
+        {/* Starting over wipes every role's part, so only when this device plays all four roles */}
+        {canRewrite && <LeadButton to={backStep('report') ?? 'design'} ignoreCheck onGo={startOver} icon={null} quietWhenWaiting className="border border-space-600 bg-transparent font-normal text-ink hover:bg-space-800">
           New design
-        </button>
-        <button onClick={refly} className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-medium text-space-950 hover:bg-accent-strong">
-          <RotateCcw className="size-4" aria-hidden />
+        </LeadButton>}
+        <LeadButton to={backStep('report') ?? 'design'} ignoreCheck onGo={refly} icon={RotateCcw}>
           Modify and re-fly
-        </button>
+        </LeadButton>
       </div>
     </Screen>
   )

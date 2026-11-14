@@ -21,7 +21,7 @@ Built-in SVG art is original and needs no credit. Record the prompts you actuall
 | Name | Prompt after the style prompt | Used |
 |---|---|---|
 | part-bus-cubesat-6u | A 3U CubeSat frame: a tall white aluminium box made of three stacked 10 cm cubes, orange corner rails. | |
-| part-bus-smallsat | A 6U CubeSat frame: a white aluminium box two cubes wide and three tall, orange corner rails. | |
+| part-bus-smallsat | A fridge-sized small satellite (about 1 m): a box wrapped in gold thermal foil with a white top deck, a small navy star tracker and an orange antenna on top, and two blue solar wings folded out to each side. Clearly bigger and heavier-looking than a CubeSat. Used by the Flood Radar scenario. | Parts tray, Flood Radar scenario card |
 | part-bus-large | A 12U CubeSat frame: a chunky white aluminium box two by two cubes and three tall, orange corner rails. | |
 | part-solar-body | A small cube covered in blue solar cells on every face, thin navy frame. | |
 | part-solar-wings | A small white satellite body with two long deployable blue solar panels unfolded to each side, orange hinges. | |

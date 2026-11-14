@@ -5,6 +5,8 @@ import { Screen } from '@/components/Screen'
 import { ROLE_ORDER, roleNames } from '@/game/ui'
 import type { Role } from '@/engine/types'
 import { TeamDevicesPanel } from '@/components/TeamDevicesPanel'
+import { ScenarioPicker } from '@/components/ScenarioPicker'
+import { useTeamFlow } from '@/game/teamFlow'
 import { cn } from '@/lib/cn'
 import { useGame } from '@/store/game'
 
@@ -24,6 +26,7 @@ export function Lobby() {
   const roles = ROLE_ORDER
   const nameOf = (r: Role) => players.find((p) => p.role === r)?.name ?? ''
   const filled = players.length
+  const flow = useTeamFlow()
 
   const start = () => {
     const first = roles.find((r) => nameOf(r))
@@ -77,15 +80,23 @@ export function Lobby() {
           Each role only sees its own gauges, so talk to each other! Fewer than four players? Gauges for roles with no name are shared by everyone. Switch who is at the controls with <b className="text-ink">Acting as</b> at the top of
           the screen. Or each player can use their own device: see below.
         </p>
-        <button
+        {!flow.deviceRoom && <button
           onClick={start}
           disabled={filled === 0}
           className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-accent px-5 py-2.5 font-medium text-space-950 hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-40"
         >
           Start briefing ({filled} player{filled === 1 ? '' : 's'})
           <ArrowRight className="size-4" aria-hidden />
-        </button>
+        </button>}
       </div>
+
+      <section aria-labelledby="mission-h" className="flex flex-col gap-2">
+        <h2 id="mission-h" className="font-semibold">
+          Mission
+        </h2>
+        {/* Pick the mission before making a room: inside a room the mission is fixed (sync locks the design in the lobby). */}
+        <ScenarioPicker disabled={flow.deviceRoom} who="host, before creating the room," />
+      </section>
 
       <TeamDevicesPanel />
     </Screen>

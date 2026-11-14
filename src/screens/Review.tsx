@@ -1,14 +1,20 @@
 import { AlertTriangle, CheckCircle2, Hand, Rocket, ThumbsUp, Wrench, XCircle } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
 import { Screen } from '@/components/Screen'
 import type { Role, Status } from '@/engine/types'
 import { checkTerm, reviewChecks, type Check } from '@/game/checks'
 import { ROLE_ORDER, roleNames } from '@/game/ui'
 import { cn } from '@/lib/cn'
-import { useEvaluation, useGame } from '@/store/game'
+import { useEvaluation, useGame, useScenario } from '@/store/game'
 import { Term } from '@/components/Term'
 import { play } from '@/lib/sound'
+import { LeadButton } from '@/components/LeadButton'
+import { ShareCode } from '@/components/ShareCode'
+import { missionRisk } from '@/engine/risk'
+import { gameData } from '@/game/ui'
+import { Dices } from 'lucide-react'
+import { useApprovalFacts, useTeamFlow } from '@/game/teamFlow'
+import { backStep } from '@/engine/flow'
 
 const roles = ROLE_ORDER
 
@@ -21,10 +27,10 @@ const statusStyle: Record<Status, { icon: typeof CheckCircle2; text: string; box
 /** PRD F12: every check with its reason, sign-off per role. Launch is allowed with warnings. */
 export function Review() {
   const version = useGame((s) => s.designVersion)
-  const navigate = useNavigate()
   const ev = useEvaluation()
   const checks = reviewChecks(ev)
   const approvals = useGame((s) => s.approvals)
+  const approvalFacts = useApprovalFacts()
 
   const count = (st: Status) => checks.filter((c) => c.status === st).length
   const blockers = checks.filter((c) => c.blocker)
@@ -38,6 +44,8 @@ export function Review() {
 
   return (
     <Screen title="Design review" subtitle="Every check, with the reason. Each role signs off before launch." reqs="F12" hideNext>
+      <RiskCard />
+
       <div className="grid grid-cols-3 gap-2 sm:gap-3" aria-label="Checklist summary">
         {(['ok', 'warn', 'fail'] as const).map((st) => {
           const { icon: Icon, text, word } = statusStyle[st]
@@ -59,6 +67,7 @@ export function Review() {
         </ul>
 
         <div className="flex flex-col gap-3 lg:sticky lg:top-[120px] lg:self-start">
+          <ShareCode allowLoad={false} />
           <h2 className="font-semibold">Sign-off</h2>
           {roles.map((r) => (
             <RoleCard key={r} role={r} checks={checks.filter((c) => c.owner === r)} />
@@ -68,35 +77,65 @@ export function Review() {
       </div>
 
       <div className="flex flex-col items-end gap-2">
-        {!canLaunch && (
-          <p className="text-sm text-bad" role="status">
-            {blockers.length > 0
-              ? `Can't launch yet: ${blockers.map((b) => b.label.toLowerCase()).join(', ')}.`
-              : `On hold by ${holds.map((r) => roleNames[r]).join(', ')}.`}
-          </p>
-        )}
         {canLaunch && problems > 0 && (
           <p className="max-w-md text-right text-sm text-muted">You can launch with problems. The flight will show what they cause, and the report will explain.</p>
         )}
-        <div className="flex flex-wrap justify-end gap-3">
-          <Link to="/workbench" className="inline-flex items-center gap-2 rounded-lg border border-space-600 px-5 py-2.5 hover:bg-space-800">
-            <Wrench className="size-4" aria-hidden />
+        <div className="flex flex-wrap items-start justify-end gap-3">
+          <LeadButton to={backStep('review') ?? 'design'} ignoreCheck icon={Wrench} quietWhenWaiting className="border border-space-600 bg-transparent font-normal text-ink hover:bg-space-800">
             Back to the workbench
-          </Link>
-          <button
-            onClick={() => navigate('/launch')}
-            disabled={!canLaunch}
-            className={cn(
-              'inline-flex items-center gap-2 rounded-lg px-5 py-2.5 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40',
-              problems > 0 ? 'bg-warn text-space-950 hover:bg-warn/80' : 'bg-accent text-space-950 hover:bg-accent-strong',
-            )}
+          </LeadButton>
+          <LeadButton
+            facts={{ evaluation: ev, ...approvalFacts }}
+            blocked={!canLaunch ? (blockers.length > 0 ? `Can't launch yet: ${blockers.map((b) => b.label.toLowerCase()).join(', ')}.` : `On hold by ${holds.map((r) => roleNames[r]).join(', ')}.`) : undefined}
+            icon={Rocket}
+            className={problems > 0 ? 'bg-warn hover:bg-warn/80' : undefined}
           >
-            <Rocket className="size-4" aria-hidden />
             {problems > 0 ? `Launch with ${problems} problem${problems > 1 ? 's' : ''}` : 'Launch'}
-          </button>
+          </LeadButton>
         </div>
       </div>
     </Screen>
+  )
+}
+
+/** Mission risk (Member 1's risk.ts): the chance the mission is lost, as "1 in N", and the biggest single cause. */
+function RiskCard() {
+  const design = useGame((s) => s.design)
+  const scenario = useScenario()
+  const risk = missionRisk(design, scenario, gameData)
+  const tone = risk.riskPct >= 30 ? 'text-bad' : risk.riskPct >= 15 ? 'text-warn' : 'text-ok'
+  const top = [...risk.items].sort((a, b) => b.failPct - a.failPct).slice(0, 3)
+  return (
+    <section aria-label="Mission risk" className="flex flex-col gap-3 rounded-xl border border-space-700 bg-space-900 p-4 sm:flex-row sm:items-center">
+      <div className="flex items-center gap-3">
+        <Dices className={cn('size-8 shrink-0', tone)} aria-hidden />
+        <div>
+          <p className="text-xs text-muted uppercase">Chance of losing the mission</p>
+          <p className={cn('font-display text-2xl font-semibold tabular-nums', tone)}>
+            {risk.oneIn} <span className="text-base font-normal text-muted">({Math.round(risk.riskPct)}%)</span>
+          </p>
+        </div>
+      </div>
+      <div className="min-w-0 flex-1 text-sm sm:border-l sm:border-space-700 sm:pl-4">
+        {risk.biggest ? (
+          <>
+            <p>
+              <span className="text-muted">Biggest risk:</span> {risk.biggest.why}
+            </p>
+            {risk.biggest.hint && <p className="mt-0.5 text-xs text-accent">{risk.biggest.hint}</p>}
+          </>
+        ) : (
+          <p className="text-muted">Add parts to see the risks.</p>
+        )}
+        <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted">
+          {top.map((r) => (
+            <li key={r.system}>
+              {r.system}: {r.failPct < 1 ? '<1' : Math.round(r.failPct)}%{r.count > 1 ? ` (${r.count} for backup)` : ''}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   )
 }
 
@@ -128,6 +167,9 @@ function RoleCard({ role, checks }: { role: Role; checks: Check[] }) {
   const setApproval = useGame((s) => s.setApproval)
   const player = useGame((s) => s.players.find((p) => p.role === role)?.name)
   const [holding, setHolding] = useState(false)
+  const flow = useTeamFlow()
+  // Each role signs off only for itself (solo players hold every role).
+  const mine = flow.myRoles.includes(role)
   const [note, setNote] = useState('')
 
   const current = approval && approval.version === version ? approval : undefined
@@ -161,13 +203,21 @@ function RoleCard({ role, checks }: { role: Role; checks: Check[] }) {
               : 'Waiting for sign-off.'}
       </p>
 
-      {holding ? (
+      {!mine ? (
+        <p className="mt-2 text-xs text-muted/80">Only the {roleNames[role]} signs off here.</p>
+      ) : holding ? (
         <form
           className="mt-2 flex gap-2"
           onSubmit={(e) => {
             e.preventDefault()
             setApproval(role, 'hold', note.trim() || undefined)
             play('hold')
+            // Team rule: a Hold sends everyone back to the design to talk it through.
+            // In a device room the leader's sync does that (teamBridge); on one shared screen, we do.
+            if (flow.team && !flow.deviceRoom) {
+              const back = backStep('review')
+              if (back) flow.goTo(back)
+            }
             setHolding(false)
             setNote('')
           }}

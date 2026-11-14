@@ -9,8 +9,9 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { Box, Orbit as OrbitIcon, RadioTower, Wrench, X } from 'lucide-react'
-import { useState } from 'react'
+import { Box, Orbit as OrbitIcon, RadioTower, Scale, Wrench, X } from 'lucide-react'
+import { TradeStudy } from '@/components/TradeStudy'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { LaunchPicker } from '@/components/orbit/LaunchPicker'
 import { OrbitPicker } from '@/components/orbit/OrbitPicker'
@@ -18,17 +19,34 @@ import { StationPicker } from '@/components/orbit/StationPicker'
 import { ResourceGauge } from '@/components/ResourceGauge'
 import { Screen } from '@/components/Screen'
 import { CRAFT_ID, TRAY_ID, type DragData } from '@/components/workbench/dnd'
+import { useDroppable } from '@dnd-kit/core'
 import { PartIcon } from '@/components/workbench/PartIcon'
 import { PartInfo, PartsTray } from '@/components/workbench/PartsTray'
 import { Spacecraft } from '@/components/workbench/Spacecraft'
 import { findBus, findPart } from '@/engine/data'
-import { RESOURCES, type Availability, type Part } from '@/engine/types'
+import { CATEGORY_OWNER, RESOURCES, type Availability, type Part } from '@/engine/types'
+import { EditGate } from '@/components/LeadButton'
+import { useTeamFlow } from '@/game/teamFlow'
 import { GAUGE_WATCHER, gameData, n1, partsOnCraft, roleNames } from '@/game/ui'
 import { cn } from '@/lib/cn'
 import { play } from '@/lib/sound'
 import { useCanSee, useEvaluation, useGame, useScenario } from '@/store/game'
 
-type Tab = 'craft' | 'launch' | 'ground'
+type Tab = 'craft' | 'launch' | 'ground' | 'trade'
+
+// three.js is big: only download it when the 3D view opens.
+const Craft3D = lazy(() => import('@/three/Craft3D'))
+
+/** The 3D view is also where you drop parts from the tray. */
+function CraftDrop({ className, children }: { className?: string; children: ReactNode }) {
+  const { setNodeRef, isOver, active } = useDroppable({ id: CRAFT_ID })
+  const incoming = active && !(active.data.current as DragData | undefined)?.fromCraft
+  return (
+    <div ref={setNodeRef} className={cn('rounded-xl transition-shadow', className, incoming && 'ring-2 ring-accent/50', isOver && incoming && 'ring-accent')}>
+      {children}
+    </div>
+  )
+}
 
 /**
  * CML 4 Point design. Three tabs, one per segment the player builds:
@@ -47,6 +65,7 @@ export function Workbench() {
   const canSee = useCanSee()
   const [dragging, setDragging] = useState<DragData | null>(null)
   const [tab, setTab] = useState<Tab>('craft')
+  const [view, setView] = useState<'3d' | 'slots'>('3d')
 
   const bus = findBus(gameData, design.engineer.busId)
   const buses = gameData.buses.filter((b) => scenario.busIds.includes(b.id))
@@ -56,10 +75,19 @@ export function Workbench() {
   const availability: Record<string, Availability> = { ...ev.compat.parts }
   for (const [id, a] of Object.entries(ev.compat.instruments)) if (!a.ok) availability[id] = a
 
+  // Team flow: each role builds only its own part of the craft (engine/flow.ts canEditSection).
+  const flow = useTeamFlow()
+  const canEditPart = (p: Part) => flow.canEdit(CATEGORY_OWNER[p.category])
+  const canBus = flow.canEdit('engineer')
+  for (const p of gameData.parts) {
+    if (!canEditPart(p)) availability[p.id] = { ok: false, reason: `Only the ${roleNames[CATEGORY_OWNER[p.category]]} adds this.` }
+  }
+
   const tabs = [
     { id: 'craft' as const, label: 'Spacecraft', icon: Box, missing: !bus },
     { id: 'launch' as const, label: 'Orbit & launch', icon: OrbitIcon, missing: !design.flight.orbitId || !design.flight.launcherId },
     { id: 'ground' as const, label: 'Ground', icon: RadioTower, missing: design.flight.stationIds.length === 0 },
+    { id: 'trade' as const, label: 'Trade study', icon: Scale, missing: false },
   ]
 
   const sensors = useSensors(
@@ -71,6 +99,7 @@ export function Workbench() {
   /** Add a bus or one more of a part, unless the engine says it can't go on. */
   const add = (kind: 'part' | 'bus', id: string) => {
     if (kind === 'bus') {
+      if (!canBus) return toast.error(`Only the ${roleNames.engineer} picks the bus.`)
       setBus(id)
       return play('place')
     }
@@ -88,6 +117,8 @@ export function Workbench() {
   }
 
   const remove = (id: string) => {
+    const p = findPart(gameData, id)
+    if (p && !canEditPart(p)) return toast.error(`Only the ${roleNames[CATEGORY_OWNER[p.category]]} can take this off.`)
     removePart(id)
     play('remove')
   }
@@ -157,25 +188,62 @@ export function Workbench() {
       </div>
 
       {tab === 'launch' && (
-        <div className="flex flex-col gap-8">
+        <EditGate can={flow.canEdit('flight')} who={roleNames.flight} className="flex flex-col gap-8">
           <OrbitPicker />
           <LaunchPicker />
-        </div>
+        </EditGate>
       )}
-      {tab === 'ground' && <StationPicker />}
+      {tab === 'trade' && <TradeStudy />}
+      {tab === 'ground' && (
+        <EditGate can={flow.canEdit('flight')} who={roleNames.flight}>
+          <StationPicker />
+        </EditGate>
+      )}
 
       {tab === 'craft' && (
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="rounded-xl border border-space-700 bg-[radial-gradient(circle_at_50%_40%,var(--color-space-800),var(--color-space-900)_70%)] p-4">
-            <div className="flex items-baseline justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="font-semibold">Spacecraft</h2>
-              <span className="text-xs text-muted">{n1(ev.totals.massKg)} kg</span>
+              <span className="ml-auto text-xs text-muted">{n1(ev.totals.massKg)} kg</span>
+              <div className="flex rounded-lg bg-space-800 p-0.5 text-xs" role="radiogroup" aria-label="Spacecraft view">
+                {(['3d', 'slots'] as const).map((v) => (
+                  <button
+                    key={v}
+                    role="radio"
+                    aria-checked={view === v}
+                    onClick={() => setView(v)}
+                    className={cn('rounded-md px-2.5 py-1 transition-colors', view === v ? 'bg-accent text-space-950' : 'text-muted hover:text-ink')}
+                  >
+                    {v === '3d' ? '3D' : 'Slots'}
+                  </button>
+                ))}
+              </div>
             </div>
-            <Spacecraft bus={bus} parts={onCraft} problemIds={refly?.partIds} onRemove={remove} onRemoveBus={() => (setBus(null), play('remove'))} />
+            {view === '3d' ? (
+              <CraftDrop className="mt-3">
+                <Suspense fallback={<div className="flex h-[420px] items-center justify-center text-sm text-muted sm:h-[480px]">Loading 3D view…</div>}>
+                  <Craft3D
+                    bus={bus}
+                    parts={onCraft}
+                    problemIds={refly?.partIds}
+                    canRemove={canEditPart}
+                    onRemove={remove}
+                    empty={
+                      <span>
+                        Start with a bus. Drag it here, or tap + in the <b className="text-ink">Bus</b> tab of the parts tray.
+                      </span>
+                    }
+                  />
+                </Suspense>
+              </CraftDrop>
+            ) : (
+              <Spacecraft bus={bus} parts={onCraft} problemIds={refly?.partIds} onRemove={remove} onRemoveBus={() => (setBus(null), play('remove'))} canRemove={canEditPart} canRemoveBus={canBus} />
+            )}
           </div>
 
-          <PartsTray buses={buses} parts={gameData.parts} availability={availability} counts={counts} currentBusId={design.engineer.busId} onAdd={add} />
+          <PartsTray buses={buses} parts={gameData.parts} availability={availability} counts={counts} currentBusId={design.engineer.busId} onAdd={add} busLocked={canBus ? undefined : `Only the ${roleNames.engineer} picks the bus.`} />
         </div>
 
         <DragOverlay dropAnimation={null}>

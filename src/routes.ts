@@ -1,17 +1,8 @@
-/** Mission flow, in order. The stepper and Next buttons both read this list. */
-export const flow = [
-  { path: '/briefing', label: 'Idea', cml: 'CML 1' },
-  { path: '/feasibility', label: 'Feasibility', cml: 'CML 2' },
-  { path: '/workbench', label: 'Point design', cml: 'CML 4' },
-  { path: '/review', label: 'Review', cml: '' },
-  { path: '/launch', label: 'Launch', cml: '' },
-  { path: '/sim', label: 'Fly', cml: '' },
-  { path: '/report', label: 'Report', cml: '' },
-] as const
+import { STEPS } from '@/engine/flow'
 
-export type FlowPath = (typeof flow)[number]['path']
-
-export function nextPath(current: string): string | null {
-  const i = flow.findIndex((s) => s.path === current)
-  return i >= 0 && i < flow.length - 1 ? flow[i + 1].path : null
-}
+/**
+ * Mission flow, in order, for the stepper. Comes from Member 1's STEPS
+ * (engine/flow.ts) so screens and rules always agree. The lobby is not a step
+ * on the stepper.
+ */
+export const flow = STEPS.filter((s) => s.id !== 'lobby')
