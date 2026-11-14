@@ -25,7 +25,7 @@ Works fully offline (solo, and team mode across browser tabs).
 ## Deploy your own (setup)
 
 1. Fork or clone this repo.
-2. In the AWS console (region **ap-southeast-1**), open **Amplify → Create new app → GitHub**, pick the repo and the `main` branch, keep the defaults and **Save and deploy**. Amplify reads `amplify.yml`, creates the AppSync API and DynamoDB tables from `amplify/data/resource.ts`, then builds and hosts the game.
+2. In the AWS console (region **ap-southeast-2**, Sydney; the AWS Free plan is tied to one region), open **Amplify → Create new app → GitHub**, pick the repo and the `main` branch, keep the defaults and **Save and deploy**. Amplify reads `amplify.yml`, creates the AppSync API and DynamoDB tables from `amplify/data/resource.ts`, then builds and hosts the game.
 3. Every push to `main` redeploys. Nothing needs to be installed or configured on your computer.
 
 Local development against AWS (optional): configure AWS credentials, run `npx ampx sandbox` (writes `amplify_outputs.json`), then `npm run dev`. Delete it after with `npx ampx sandbox delete`.
