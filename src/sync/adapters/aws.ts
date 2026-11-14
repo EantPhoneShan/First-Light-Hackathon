@@ -71,6 +71,7 @@ function assemble(roomRow: Any, players: Any[], sections: Any[]): Room | null {
     phase: roomRow.phase,
     hostId: roomRow.hostId,
     seed: roomRow.seed,
+    choices: roomRow.choices,
     players: players.map(toPlayer),
     sections: secs,
     updatedAt: Date.now(),
@@ -104,6 +105,7 @@ export function awsAdapter(): SyncAdapter {
           phase: room.phase,
           hostId: room.hostId,
           seed: room.seed,
+          choices: JSON.stringify(room.choices ?? {}),
         }),
       );
       await Promise.all(room.players.map((p) => this.upsertPlayer(room.code, p)));
@@ -146,7 +148,10 @@ export function awsAdapter(): SyncAdapter {
     },
 
     async setRoomFields(code, fields) {
-      check(await getClient().models.Room.update({ code, ...fields }));
+      // choices is an AWSJSON field: send it as a JSON string like section data.
+      const row: Any = { code, ...fields };
+      if (fields.choices !== undefined) row.choices = JSON.stringify(fields.choices);
+      check(await getClient().models.Room.update(row));
     },
 
     subscribe(code, onRoom, onStatus: (s: SyncStatus) => void) {

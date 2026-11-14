@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">
-  <rect width="960" height="420" fill="#0b1d3a"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 500" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">
+  <rect width="960" height="500" fill="#0b1d3a"/>
   <defs>
     <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ff8c32"/></marker>
   </defs>
@@ -18,7 +18,7 @@
   </g>
 
   <!-- AWS box -->
-  <rect x="290" y="90" width="510" height="300" rx="14" fill="none" stroke="#ff8c32" stroke-dasharray="6 5"/>
+  <rect x="290" y="90" width="510" height="385" rx="14" fill="none" stroke="#ff8c32" stroke-dasharray="6 5"/>
   <text x="306" y="114" fill="#ff8c32" font-weight="700">AWS · ap-southeast-2 (Sydney) · Free plan</text>
 
   <g fill="#fff">
@@ -38,6 +38,10 @@
     <text x="675" y="225" text-anchor="middle" font-weight="700">CloudWatch</text>
     <text x="675" y="245" text-anchor="middle" fill="#cfe0ff" font-size="12">logs · $1 budget alert</text>
 
+    <rect x="320" y="390" width="190" height="66" rx="10" fill="#1d4277"/>
+    <text x="415" y="417" text-anchor="middle" font-weight="700">AWS Lambda</text>
+    <text x="415" y="438" text-anchor="middle" fill="#cfe0ff" font-size="12">submitScore: replays the flight</text>
+
     <rect x="825" y="135" width="110" height="70" rx="10" fill="#24292f" stroke="#8b949e"/>
     <text x="880" y="163" text-anchor="middle" font-weight="700">GitHub</text>
     <text x="880" y="185" text-anchor="middle" fill="#cfe0ff" font-size="12">push = deploy</text>
@@ -49,11 +53,15 @@
     <path d="M510,320 L578,320"/>
     <path d="M825,170 L512,170" stroke-dasharray="4 4"/>
     <path d="M415,207 L415,283" stroke-dasharray="4 4"/>
+    <path d="M415,357 L415,388"/>
+    <path d="M512,423 L675,423 L675,358"/>
   </g>
   <text x="236" y="160" fill="#ffd2ad" font-size="12">load game</text>
   <text x="236" y="292" fill="#ffd2ad" font-size="12">sync (WebSocket)</text>
   <text x="600" y="160" fill="#ffd2ad" font-size="12">push triggers build</text>
   <text x="425" y="250" fill="#ffd2ad" font-size="12">deploys backend</text>
+  <text x="425" y="378" fill="#ffd2ad" font-size="12">submit flight</text>
+  <text x="530" y="415" fill="#ffd2ad" font-size="12">saves the server's score</text>
   <text x="30" y="350" fill="#9fb3d1" font-size="12">Plan B: Firebase Realtime DB</text>
   <text x="30" y="368" fill="#9fb3d1" font-size="12">(one setting: VITE_SYNC=firebase)</text>
 </svg>

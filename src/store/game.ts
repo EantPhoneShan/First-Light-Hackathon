@@ -50,13 +50,6 @@ interface GameState {
   /** Design review sign-off per role (F12). Only counts if `version` matches designVersion. */
   approvals: Partial<Record<Role, Approval>>
   setApproval: (role: Role, state: Approval['state'] | null, note?: string) => void
-  /**
-   * Event choices, by eventKey() (flight number + event + its scheduled time).
-   * Team flow: only the event's owner role picks; every device applies the pick
-   * it finds here, so a relay of this field (Member 3) keeps all flights the same.
-   */
-  eventChoices: Record<string, string>
-  setEventChoice: (key: string, choiceId: string) => void
   /** Tutorial mode (F1): the guide card walks the player through fly, fail, fix, re-fly. */
   tutorial: boolean
   startTutorial: () => void
@@ -146,20 +139,14 @@ export const useGame = create<GameState>((set, get) => ({
       return { approvals }
     }),
 
-  eventChoices: {},
-  setEventChoice: (key, choiceId) => set((s) => ({ eventChoices: { ...s.eventChoices, [key]: choiceId } })),
-
   tutorial: false,
   startTutorial: () =>
     set(() => {
       const sc = gameData.scenarios.find((x) => x.tutorialDesign) ?? firstScenario
-      return { tutorial: true, scenarioId: sc.id, design: sc.tutorialDesign ?? emptyDesign(), designVersion: 1, flights: [], refly: null, approvals: {}, eventChoices: {} }
+      return { tutorial: true, scenarioId: sc.id, design: sc.tutorialDesign ?? emptyDesign(), designVersion: 1, flights: [], refly: null, approvals: {} }
     }),
-  endTutorial: () => set({ tutorial: false, design: emptyDesign(), designVersion: 0, flights: [], refly: null, approvals: {}, eventChoices: {} }),
+  endTutorial: () => set({ tutorial: false, design: emptyDesign(), designVersion: 0, flights: [], refly: null, approvals: {} }),
 }))
-
-/** Same on every device for the same flight and event (the schedule comes from the room's seed). */
-export const eventKey = (flightNo: number, ev: { eventId: string; tMin: number }) => `${flightNo}:${ev.eventId}@${ev.tMin}`
 
 /** The role that edits a part (matches CATEGORY_OWNER in engine/types.ts). */
 const roleForPart = (c: string): Role => (c === 'instrument' ? 'science' : c === 'antenna' ? 'flight' : 'engineer')

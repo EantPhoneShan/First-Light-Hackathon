@@ -81,9 +81,12 @@ Approvals: use `isApproved(room, role)` and `allApproved(room)`. Never read `app
 ## Leaderboard
 
 ```ts
-import { submitScore, topScores } from './sync/leaderboard';
-await submitScore({ scenario: 'wildfire-watch', score: 742, teamName: 'Orbiters', outcome: 'success' });
-const top = await topScores('wildfire-watch'); // [{ teamName, score, outcome, ... }] highest first
+import { makeSubmission } from './engine/verify';
+import { submitFlight, topScores, ScoreRejectedError } from './sync/leaderboard';
+// After a flight (Report screen): send what was built and chosen, not a score.
+const saved = await submitFlight(makeSubmission(scenario.id, design, sim, { allApproved }), { teamName: 'Orbiters', roomCode });
+// saved.score is the server's number; saved.online is false if it was only kept in this browser.
+const top = await topScores('wildfire-watch'); // [{ teamName, score, stars, outcome, ... }] highest first
 ```
 
-Saves to DynamoDB when AWS is live, otherwise to this browser. Scores are clamped to 0–1000.
+Online, `submitFlight` calls the `submitScore` mutation. That runs the `submit-score` Lambda (`amplify/functions/submit-score/`), which replays the flight with Member 1's `verifyScore` and saves the score it computes to the Score table. A faked score or a bad design is refused with `ScoreRejectedError` and nothing is saved. Players can read the Score table but can't write to it. Without AWS, the same check runs in the browser and the score is kept locally.

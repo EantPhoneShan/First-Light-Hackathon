@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
+import { submitScore } from '../functions/submit-score/resource';
 
 /**
  * Data model. Each model becomes a DynamoDB table plus GraphQL queries,
@@ -9,6 +10,9 @@ import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
  *  Section  one role's part of the design    key: roomCode + role
  *           (each role writes only its own row, so roles never overwrite each other)
  *  Score    leaderboard entries              index: scenario, sorted by score
+ *           (read-only for players; only the submitScore Lambda writes, after replaying the flight)
+ *
+ *  submitScore  mutation -> Lambda: verifyScore() replays the flight and saves the server's score
  */
 const schema = a.schema({
   Room: a
@@ -18,6 +22,8 @@ const schema = a.schema({
       phase: a.string(),
       hostId: a.string(),
       seed: a.integer(),
+      // Event answers for the current flight ({ eventId: choiceId }), so every device replays the same flight.
+      choices: a.json(),
     })
     .identifier(['code'])
     .authorization((allow) => [allow.publicApiKey()]),
@@ -54,10 +60,40 @@ const schema = a.schema({
       teamName: a.string(),
       roomCode: a.string(),
       outcome: a.string(),
+      stars: a.integer(),
     })
     .secondaryIndexes((index) => [index('scenario').sortKeys(['score']).queryField('topScores')])
+    // Players can read the leaderboard but not write to it. Scores come only from submitScore.
+    .authorization((allow) => [allow.publicApiKey().to(['read'])]),
+
+  SubmittedScore: a.customType({
+    id: a.id().required(),
+    scenarioId: a.string().required(),
+    score: a.integer().required(),
+    stars: a.integer().required(),
+    outcome: a.string().required(),
+    teamName: a.string().required(),
+  }),
+
+  // The game sends what it built and chose (makeSubmission in src/engine/verify.ts), never a trusted score.
+  submitScore: a
+    .mutation()
+    .arguments({
+      scenarioId: a.string().required(),
+      design: a.json().required(),
+      seed: a.float().required(),
+      choices: a.json(),
+      claimedScore: a.float(),
+      context: a.json(),
+      teamName: a.string(),
+      roomCode: a.string(),
+    })
+    .returns(a.ref('SubmittedScore'))
+    .handler(a.handler.function(submitScore))
     .authorization((allow) => [allow.publicApiKey()]),
-});
+})
+  // Lets the submitScore Lambda write Score rows with its own IAM role.
+  .authorization((allow) => [allow.resource(submitScore)]);
 
 export type Schema = ClientSchema<typeof schema>;
 

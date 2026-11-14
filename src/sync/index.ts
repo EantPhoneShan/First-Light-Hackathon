@@ -18,8 +18,10 @@
  * means AWS when amplify_outputs.json exists, otherwise local). If the
  * cloud backend fails, the game keeps running on this device and retries.
  */
+import { normalizeEngineer, normalizeFlight, normalizePlanner, normalizeScience } from '../engine/design';
+import { canEditSection, canLead, stepInfo } from '../engine/flow';
 import type { DesignSection, Phase, Player, Role, Room, SyncAdapter, SyncEvent, SyncStatus } from './types';
-import { ConflictError, ROLES } from './types';
+import { ConflictError, EditRefusedError, ROLES } from './types';
 import { localAdapter } from './adapters/local';
 import { emptySections, isValidCode, makeId, makeRoomCode, normaliseCode, sanitiseRoom, sleep } from './util';
 
@@ -52,6 +54,32 @@ export function allApproved(room: Room): boolean {
 /** Merge all four sections into one object for Member 1's rules engine. */
 export function mergedDesign(room: Room): Record<Role, Record<string, unknown>> {
   return Object.fromEntries(ROLES.map((r) => [r, room.sections[r].data])) as Record<Role, Record<string, unknown>>;
+}
+
+const ROLE_NAMES: Record<Role, string> = { planner: 'Mission Planner', science: 'Science Lead', engineer: 'Spacecraft Engineer', flight: 'Flight Dynamics' };
+
+/** Sorted-key JSON, so field order (which the cloud does not keep) never matters. */
+function canonical(v: unknown): string {
+  return JSON.stringify(v, (_k, x) =>
+    x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) : x,
+  );
+}
+
+/** What a part that nobody has filled in yet looks like once the game reads it (an empty room section). */
+function blankSection(role: Role, scenario: string): Record<string, unknown> {
+  const blank = { planner: normalizePlanner, science: normalizeScience, engineer: normalizeEngineer, flight: normalizeFlight }[role]({});
+  return role === 'planner' ? { ...blank, scenarioId: scenario } : { ...blank };
+}
+
+/**
+ * True when two section payloads differ only in their `approval` field.
+ * An empty section counts as the blank part, so a role that never changed its
+ * part can still press Approve or Hold.
+ */
+function sameExceptApproval(a: Record<string, unknown>, b: Record<string, unknown>, role: Role, scenario: string): boolean {
+  const strip = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o ?? {}).filter(([k]) => k !== 'approval'));
+  const before = Object.keys(a ?? {}).length ? a : blankSection(role, scenario);
+  return canonical(strip(before)) === canonical(strip(b));
 }
 
 export function isOnline(p: Player, now = Date.now()): boolean {
@@ -100,7 +128,6 @@ class Sync {
   private room: Room | null = null;
   private status: SyncStatus = 'solo';
   private myRoles: Role[] = [...ROLES];
-  private openEditing = false;
   /** True once this player has picked roles in the current room: from then on this device owns its own roles. */
   private rolesChosen = false;
   private me = loadPlayer();
@@ -133,17 +160,47 @@ class Sync {
   getMyRoles(): Role[] {
     return [...this.myRoles];
   }
-  canEdit(role: Role) {
-    return this.openEditing || this.myRoles.includes(role);
+  /**
+   * Roles this player may act for: their own, plus any role no online player
+   * holds (a team of 2 or 3 shares the empty roles, like the shared screen).
+   */
+  getActingRoles(): Role[] {
+    const room = this.room;
+    if (!room || this.status === 'solo') return [...ROLES];
+    const held = new Set(room.players.filter((p) => p.id !== this.me.id && isOnline(p)).flatMap((p) => p.roles));
+    return ROLES.filter((r) => this.myRoles.includes(r) || !held.has(r));
+  }
+
+  /** The step the whole room is on. */
+  getStep(): Phase {
+    return this.room?.phase ?? 'lobby';
   }
 
   /**
-   * Let this device write every role's section, not only its own roles.
-   * The game UI lets anyone place any part, so the team bridge turns this on;
-   * version checks still catch two devices editing the same section at once.
+   * Player id of whoever moves the room on (Next, Launch, Re-fly): the online
+   * player holding the step's leader role (Mission Planner). If nobody holds
+   * it, the host leads, or the first online player if the host has left.
    */
-  setOpenEditing(on: boolean) {
-    this.openEditing = on;
+  leaderId(): string | null {
+    const room = this.room;
+    if (!room) return null;
+    if (this.status === 'solo') return this.me.id;
+    const online = room.players.filter((p) => p.id === this.me.id || isOnline(p));
+    const leadRole = stepInfo(room.phase).leader;
+    const holder = online.find((p) => p.roles.includes(leadRole));
+    if (holder) return holder.id;
+    if (online.some((p) => p.id === room.hostId)) return room.hostId;
+    return [...online].sort((a, b) => a.id.localeCompare(b.id))[0]?.id ?? null;
+  }
+
+  isLeader(): boolean {
+    return this.leaderId() === this.me.id || (this.room !== null && canLead(this.getStep(), this.myRoles));
+  }
+
+  /** May this device change that role's part right now? Follows Member 1's flow rules. */
+  canEdit(role: Role): boolean {
+    if (!this.room || this.status === 'solo') return true;
+    return canEditSection(this.room.phase, this.getActingRoles(), role);
   }
 
   // ---------- subscribe ----------
@@ -281,6 +338,7 @@ class Sync {
     this.heartbeat = null;
     this.queue.clear();
     this.rolesChosen = false;
+    this.myRoles = [...ROLES];
     if (room && room.code !== 'SOLO' && this.status !== 'solo') {
       this.adapter.removePlayer(room.code, this.me.id).catch(() => {});
     }
@@ -294,11 +352,12 @@ class Sync {
    */
   async updateDesign(role: Role, data: Record<string, unknown>): Promise<void> {
     const room = this.requireRoom();
-    if (!this.canEdit(role)) {
-      this.emit({ type: 'error', message: `You are not the ${role} this mission` });
-      return;
-    }
     const cur = room.sections[role];
+    const refusal = this.refusalFor(room, role, cur, data);
+    if (refusal) {
+      this.emit({ type: 'edit-refused', role, step: room.phase, message: refusal });
+      throw new EditRefusedError(refusal, role, room.phase);
+    }
     const next: DesignSection = {
       ...cur,
       data: structuredClone(data),
@@ -314,7 +373,7 @@ class Sync {
   /** Press Approve (or Hold) for one of your roles. */
   async setApproved(role: Role, approved: boolean): Promise<void> {
     const room = this.requireRoom();
-    if (!this.canEdit(role)) return;
+    if (this.status !== 'solo' && !this.getActingRoles().includes(role)) return;
     const cur = room.sections[role];
     const next: DesignSection = {
       ...cur,
@@ -326,13 +385,52 @@ class Sync {
     await this.commit(next, cur.version);
   }
 
-  /** Move the whole team to a new phase (e.g. 'simulate' after everyone approves). */
-  async setPhase(phase: Phase): Promise<void> {
+  /**
+   * Move the whole room to another step. Only the leader may (see leaderId).
+   * Entering launch starts a new flight: a new seed and no event choices yet.
+   * Returns false if refused.
+   */
+  async setPhase(phase: Phase): Promise<boolean> {
     const room = this.requireRoom();
-    room.phase = phase;
+    if (this.status !== 'solo' && !this.isLeader()) {
+      this.emit({ type: 'error', message: `Only the ${stepInfo(room.phase).leader === 'planner' ? 'Mission Planner' : 'team leader'} moves the team on.` });
+      return false;
+    }
+    const fields: Partial<Pick<Room, 'phase' | 'seed' | 'choices'>> = { phase };
+    if (phase === 'launch' && room.phase !== 'launch') {
+      fields.seed = Math.floor(Math.random() * 1e9);
+      fields.choices = {};
+    }
+    Object.assign(room, fields);
     this.emitRoom();
-    if (this.status === 'solo') return this.saveAutosave();
-    await this.adapter.setRoomFields(room.code, { phase }).catch((e) => this.handleNetError(e));
+    if (this.status === 'solo') {
+      this.saveAutosave();
+      return true;
+    }
+    await this.adapter.setRoomFields(room.code, fields).catch((e) => this.handleNetError(e));
+    return true;
+  }
+
+  /**
+   * Record the answer to a flight event so every device applies the same one.
+   * Only a player acting for the event's owner role may answer.
+   */
+  async setChoice(eventId: string, choiceId: string, ownerRole: Role): Promise<boolean> {
+    const room = this.requireRoom();
+    if (this.status !== 'solo' && !this.getActingRoles().includes(ownerRole)) return false;
+    if (room.choices[eventId]) return room.choices[eventId] === choiceId;
+    room.choices = { ...room.choices, [eventId]: choiceId };
+    this.emitRoom();
+    if (this.status === 'solo') return true;
+    try {
+      // Merge with the server copy so two quick answers never overwrite each other.
+      const latest = await this.adapter.getRoom(room.code);
+      const choices = { ...(latest?.choices ?? {}), ...room.choices };
+      await this.adapter.setRoomFields(room.code, { choices });
+    } catch (e) {
+      this.handleNetError(e);
+    }
+    return true;
   }
 
   async setSeed(seed: number): Promise<void> {
@@ -343,6 +441,25 @@ class Sync {
   }
 
   // ---------- internals ----------
+  /** Why this write is not allowed now, or null if it is. */
+  private refusalFor(room: Room, role: Role, cur: DesignSection, data: Record<string, unknown>): string | null {
+    if (this.status === 'solo') return null;
+    const acting = this.getActingRoles();
+    if (!acting.includes(role)) return `Only the ${ROLE_NAMES[role]} can change that part.`;
+    // Approve/Hold travels inside the section (see teamBridge.ts); it is allowed outside the flight.
+    if (sameExceptApproval(cur.data, data, role, room.scenario)) {
+      return room.phase === 'launch' || room.phase === 'simulate' ? 'The design is locked during the flight.' : null;
+    }
+    // The host fills in the room's starting design right after creating it.
+    if (room.phase === 'lobby' && cur.version === 0 && room.hostId === this.me.id) return null;
+    if (canEditSection(room.phase, acting, role)) return null;
+    const step = stepInfo(room.phase);
+    if (room.phase === 'launch' || room.phase === 'simulate') return 'The design is locked during the flight.';
+    return step.editors.length
+      ? `In ${step.label} only the ${step.editors.map((r) => ROLE_NAMES[r]).join(', ')} can make changes.`
+      : `No design changes in ${step.label}. Wait for the Mission Planner to move the team on.`;
+  }
+
   private async commit(next: DesignSection, expectedVersion: number) {
     const room = this.requireRoom();
     room.sections[next.role] = next; // optimistic
@@ -486,7 +603,8 @@ class Sync {
     return {
       code,
       scenario,
-      phase: 'design',
+      phase: 'lobby',
+      choices: {},
       hostId: this.me.id,
       players,
       sections: emptySections(this.me.id),

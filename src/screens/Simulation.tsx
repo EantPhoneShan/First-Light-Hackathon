@@ -12,11 +12,12 @@ import type { GameEvent, MarkerKind, SimMarker, SimState, Status } from '@/engin
 import { gameData, partsOnCraft, roleNames } from '@/game/ui'
 import { cn } from '@/lib/cn'
 import { play } from '@/lib/sound'
-import { eventKey, useGame, useScenario } from '@/store/game'
+import { useGame, useScenario } from '@/store/game'
 import { LeadButton, WaitingFor } from '@/components/LeadButton'
 import { canChooseEvent } from '@/engine/flow'
 import { useTeamFlow } from '@/game/teamFlow'
 import { sync } from '@/sync'
+import { answerEvent, canAnswerEvent, useRoomChoices } from '@/sync/teamBridge'
 
 // three.js only downloads on this screen.
 const Orbit3D = lazy(() => import('@/three/Orbit3D'))
@@ -66,8 +67,6 @@ export function Simulation() {
   const tutorial = useGame((s) => s.tutorial)
   const approvals = useGame((s) => s.approvals)
   const players = useGame((s) => s.players)
-  const flightNo = useGame((s) => s.flights.length)
-  const setEventChoice = useGame((s) => s.setEventChoice)
   const flow = useTeamFlow()
   const orbit = findOrbit(gameData, design.flight.orbitId)
   const craftParts = useMemo(() => partsOnCraft(design), [design])
@@ -85,14 +84,16 @@ export function Simulation() {
   const [paused, setPaused] = useState(false)
   const [, setFrame] = useState(0) // re-render the dashboard a few times a second
   const savedRef = useRef(false)
+  // Team room: each event is answered once, by its owner role, and replayed on every device.
+  const choices = useRoomChoices()
+  const choicesRef = useRef(choices)
+  choicesRef.current = choices
   const speedRef = useRef(speed)
   const pausedRef = useRef(paused)
   speedRef.current = speed
   pausedRef.current = paused
 
   const restart = useCallback(() => {
-    // A restarted flight asks every event again.
-    useGame.setState({ eventChoices: {} })
     stateRef.current = initialState(setup)
     savedRef.current = false
     setSpeed('orbit')
@@ -112,11 +113,9 @@ export function Simulation() {
       const dtSec = Math.min(0.1, (now - last) / 1000)
       last = now
       const s = stateRef.current
-      // Team flow: the event's owner picked on another device (or in this store); apply the same pick here.
-      if (s.pendingEvent) {
-        const picked = useGame.getState().eventChoices[eventKey(flightNo, s.pendingEvent)]
-        if (picked && chooseEvent(s, setup, picked)) play('approve')
-      }
+      // Team room: the owner's answer arrives through sync and is replayed here on every device.
+      const answered = s.pendingEvent && choicesRef.current[s.pendingEvent.eventId]
+      if (answered && chooseEvent(s, setup, answered)) setFrame((f) => f + 1)
       if (!pausedRef.current && !s.done && !s.pendingEvent) {
         const sp = speeds.find((x) => x.id === speedRef.current)!
         const before = s.markers.length
@@ -160,7 +159,7 @@ export function Simulation() {
     }
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
-  }, [ready, setup, stars, design, saveFlight, altitudeKm, approvals, designVersion, players.length, scenario.id, flightNo])
+  }, [ready, setup, stars, design, saveFlight, altitudeKm, approvals, designVersion, players.length, scenario.id])
 
   if (!ready) {
     return (
@@ -225,10 +224,11 @@ export function Simulation() {
             <EventCard
               ev={card}
               who={players.find((p) => p.role === card.owner)?.name}
-              canChoose={canChooseEvent(flow.myRoles, card)}
+              canChoose={canChooseEvent(flow.myRoles, card) && canAnswerEvent(card.owner)}
               onChoose={(id) => {
-                if (s.pendingEvent) setEventChoice(eventKey(flightNo, s.pendingEvent), id)
-                chooseEvent(s, setup, id)
+                const eventId = s.pendingEvent?.eventId
+                if (!eventId || !chooseEvent(s, setup, id)) return
+                answerEvent(eventId, id, card.owner)
                 play('approve')
                 setFrame((f) => f + 1)
               }}
@@ -398,7 +398,11 @@ function EventCard({ ev, who, canChoose, onChoose }: { ev: GameEvent; who?: stri
         ) : (
         <div className="mt-3 flex flex-col gap-2">
           {ev.choices.map((c) => (
-            <button key={c.id} onClick={() => onChoose(c.id)} className="rounded-lg border border-space-600 p-2.5 text-left text-sm hover:border-accent hover:bg-accent/10">
+            <button
+              key={c.id}
+              onClick={() => onChoose(c.id)}
+              className="rounded-lg border border-space-600 p-2.5 text-left text-sm hover:border-accent hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-space-600 disabled:hover:bg-transparent"
+            >
               <span className="font-medium">{c.label}</span>
               <span className="mt-0.5 block text-xs text-muted">{c.text}</span>
             </button>

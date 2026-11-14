@@ -19,12 +19,16 @@
  * Each section also carries that role's Approve/Hold, tied to a hash of the
  * design it was given for, so a later change clears it on every device.
  */
-import { useEffect, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { findScenario, gameData } from '@/engine/data'
 import { normalizeEngineer, normalizeFlight, normalizePlanner, normalizeScience } from '@/engine/design'
+import { backStep, canAdvance, stepForPath, stepInfo, type Step } from '@/engine/flow'
+import { evaluate } from '@/engine/rules'
 import type { Design, Role as GameRole } from '@/engine/types'
 import { useGame, type Approval } from '@/store/game'
-import { ROLES, sync, type Role, type Room, type SyncStatus } from './index'
+import { EditRefusedError, ROLES, sync, type Role, type Room, type SyncStatus } from './index'
 
 type Payload = Record<string, unknown>
 
@@ -34,9 +38,16 @@ interface DeviceRoomState {
   status: SyncStatus
   busy: boolean
   error: string | null
+  /** The step the whole room is on (Member 1's flow). */
+  step: Step
+  /** This device may press Next / Launch / Re-fly for the team. */
+  leader: boolean
+  leaderName: string | null
+  /** Event answers for the current flight, by event id. */
+  choices: Record<string, string>
 }
 
-let state: DeviceRoomState = { active: false, code: null, status: 'solo', busy: false, error: null }
+let state: DeviceRoomState = { active: false, code: null, status: 'solo', busy: false, error: null, step: 'lobby', leader: true, leaderName: null, choices: {} }
 const listeners = new Set<() => void>()
 function setState(patch: Partial<DeviceRoomState>) {
   state = { ...state, ...patch }
@@ -181,17 +192,72 @@ function pushChanges(s: GameState) {
         if (now === lastSynced[r]) return
         lastSynced[r] = now
         const prev = writing.get(r) ?? Promise.resolve()
-        const next = prev.then(() => sync.updateDesign(r, JSON.parse(now))).catch(() => {})
+        const next = prev
+          .then(() => sync.updateDesign(r, JSON.parse(now)))
+          .catch((err) => {
+            if (err instanceof EditRefusedError) undoLocal(r, err.message)
+          })
         writing.set(r, next)
       }, 250),
     )
   }
 }
 
+const BLANK = { planner: () => normalizePlanner({}), science: () => normalizeScience({}), engineer: () => normalizeEngineer({}), flight: () => normalizeFlight({}) }
+
+/** What this device would send for a part nobody has filled in yet. */
+function blankText(r: Role): string {
+  const s = useGame.getState()
+  const approvals = { ...s.approvals }
+  delete approvals[r as GameRole]
+  return canon(payloads({ ...s, design: { ...s.design, [r]: BLANK[r]() }, approvals })[r])
+}
+
+/** The room's copy of a part, as this device compares it. An empty part equals a blank one, so it is not resent. */
+function roomText(room: Room, r: Role): string {
+  return isEmpty(room.sections[r].data) ? blankText(r) : canon(room.sections[r].data)
+}
+
+/** Put one role's part back to the room's copy after a refused edit. */
+function undoLocal(role: Role, why: string) {
+  const room = sync.getRoom()
+  if (!room || !state.active) return
+  lastSynced[role] = roomText(room, role)
+  const keep = new Set([...pending].filter((r) => r !== role))
+  applyingRemote = true
+  try {
+    applyRemote(room, keep)
+    // An empty section (nothing chosen yet) is not applied by applyRemote, so clear it here.
+    if (isEmpty(room.sections[role].data)) {
+      const d = useGame.getState().design
+      useGame.setState({ design: { ...d, [role]: BLANK[role]() } })
+    }
+  } finally {
+    applyingRemote = false
+  }
+  toast.warning('Change undone', { description: why })
+}
+
+/** Hold placed on the current design, as role + design version. */
+function holdOn(): { role: GameRole; key: string } | null {
+  const s = useGame.getState()
+  const role = Object.entries(s.approvals).find(([, a]) => a?.state === 'hold' && a.version === s.designVersion)?.[0] as GameRole | undefined
+  return role ? { role, key: `${role}:${s.designVersion}` } : null
+}
+/** The last Hold that already sent the team back, so the same Hold doesn't do it twice. */
+let handledHold: string | null = null
+
 function onRoom(room: Room) {
   if (!state.active) return
+  const leaderId = sync.leaderId()
+  setState({
+    step: room.phase,
+    leader: sync.isLeader(),
+    leaderName: room.players.find((p) => p.id === leaderId)?.name ?? null,
+    choices: room.choices,
+  })
   const keepLocal = new Set(pending)
-  for (const r of ROLES) if (!keepLocal.has(r) && !isEmpty(room.sections[r].data)) lastSynced[r] = canon(room.sections[r].data)
+  for (const r of ROLES) if (!keepLocal.has(r)) lastSynced[r] = roomText(room, r)
   applyingRemote = true
   try {
     applyRemote(room, keepLocal)
@@ -200,10 +266,106 @@ function onRoom(room: Room) {
   }
   // The store may have normalised something (for example dropped an approval); send that back.
   pushChanges(useGame.getState())
+
+  // A new Hold at review sends the team back to Point design (PRD user flow).
+  const held = room.phase === 'review' ? holdOn() : null
+  if (held && held.key !== handledHold && state.leader) {
+    handledHold = held.key
+    const who = useGame.getState().players.find((p) => p.role === held.role)?.name ?? stepRoleName(held.role)
+    toast.warning(`${who} pressed Hold`, { description: 'Back to Point design to sort it out.' })
+    void sync.setPhase(backStep('review') ?? 'design')
+  }
+}
+
+const stepRoleName = (r: Role) => ({ planner: 'Mission Planner', science: 'Science Lead', engineer: 'Spacecraft Engineer', flight: 'Flight Dynamics' })[r]
+
+/** Can the room move from `from` to `to` now? Uses Member 1's canAdvance / backStep. */
+function moveCheck(from: Step, to: Step): { ok: boolean; reason?: string } {
+  if (to === backStep(from)) return { ok: true }
+  // A launch that failed (rocket too weak) sends the team back to fix the design.
+  if (from === 'launch' && to === 'design') return { ok: true }
+  const s = useGame.getState()
+  const scenario = findScenario(gameData, s.scenarioId) ?? gameData.scenarios[0]
+  const current = Object.values(s.approvals).filter((a) => a && a.version === s.designVersion)
+  const check = canAdvance(from, {
+    design: s.design,
+    evaluation: from === 'review' ? evaluate(s.design, scenario, gameData) : undefined,
+    allApproved: ROLES.every((r) => s.approvals[r as GameRole]?.state === 'approved' && s.approvals[r as GameRole]?.version === s.designVersion),
+    anyHold: current.some((a) => a?.state === 'hold'),
+    players: s.players.length,
+  })
+  if (check.to !== to) return { ok: false, reason: `The team is on ${stepInfo(from).label}. The next step is ${check.to ? stepInfo(check.to).label : 'none'}.` }
+  return check.ok ? { ok: true } : { ok: false, reason: check.reason }
+}
+
+/** The flow step for a page. Amplify Hosting can add a trailing slash on a full page load (/sim/), so drop it. */
+const stepAt = (pathname: string) => stepForPath(pathname.replace(/(.)\/+$/, '$1'))
+
+/**
+ * Keeps this device on the room's step. When the leader opens the next step,
+ * the whole room moves; anyone else is brought back to the room's step.
+ * Pages outside the flow (Learn, the lobby panel) are always open.
+ */
+function useFollowRoomStep() {
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const room = useDeviceRoom()
+  const lastStep = useRef<Step | null>(null)
+
+  // The room moved: take this device there.
+  useEffect(() => {
+    if (!room.active) {
+      lastStep.current = null
+      return
+    }
+    if (lastStep.current === room.step) return
+    const first = lastStep.current === null
+    lastStep.current = room.step
+    const here = stepAt(pathname)
+    if (here === room.step) return
+    if (first && (here === null || here === 'lobby')) return // just joined: stay on the lobby panel
+    navigate(stepInfo(room.step).path)
+    if (!first) toast(`Team moved to ${stepInfo(room.step).label}`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.active, room.step])
+
+  // This device opened a step page: move the room (leader) or go back (everyone else).
+  useEffect(() => {
+    if (!room.active || lastStep.current === null) return
+    const want = stepAt(pathname)
+    if (!want || want === room.step || want === 'lobby') return
+    const move = room.leader ? moveCheck(room.step, want) : { ok: false, reason: `${room.leaderName ?? 'The Mission Planner'} moves the team on.` }
+    if (move.ok) {
+      void sync.setPhase(want)
+      return
+    }
+    navigate(stepInfo(room.step).path, { replace: true })
+    toast(`The team is on ${stepInfo(room.step).label}`, { description: move.reason })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+}
+
+// ---------- shared flight: event answers ----------
+
+/** Event answers chosen by their owner role, for the current flight (empty outside a device room). */
+export function useRoomChoices(): Record<string, string> {
+  return useDeviceRoom().choices
+}
+
+/** May this device answer an event owned by `owner`? Always true outside a device room. */
+export function canAnswerEvent(owner: GameRole): boolean {
+  return !state.active || sync.getActingRoles().includes(owner as Role)
+}
+
+/** Send an event answer to the room. Call after applying it locally. No-op outside a device room. */
+export function answerEvent(eventId: string, choiceId: string, owner: GameRole) {
+  if (!state.active) return
+  void sync.setChoice(eventId, choiceId, owner as Role)
 }
 
 /** Mount once, in the layout. Does nothing until a device room is joined. */
 export function useTeamSyncBridge() {
+  useFollowRoomStep()
   useEffect(() => {
     const offStore = useGame.subscribe((s, prev) => {
       if (s === prev) return
@@ -217,6 +379,7 @@ export function useTeamSyncBridge() {
       else if (e.type === 'player-joined') toast(`${e.player.name} joined the room`)
       else if (e.type === 'player-left') toast(`${e.player.name} left the room`)
       else if (e.type === 'error') toast.error(e.message)
+      // 'edit-refused' is shown by undoLocal(), with the undo.
     })
     resumeDeviceRoom()
     return () => {
@@ -259,7 +422,6 @@ async function enter(run: () => Promise<string>, role: Role, pushFirst: boolean,
     // Turn the bridge on before joining so the first room update reaches the store.
     setState({ active: true })
     const code = await run()
-    sync.setOpenEditing(true)
     const granted = await sync.chooseRoles([role])
     if (!granted.includes(role)) {
       sync.leaveRoom()
@@ -271,7 +433,6 @@ async function enter(run: () => Promise<string>, role: Role, pushFirst: boolean,
     remember({ code, name, role })
     return code
   } catch (err) {
-    sync.setOpenEditing(false)
     setState({ active: false, code: null, busy: false, error: err instanceof Error ? err.message : String(err) })
     throw err
   }
@@ -284,6 +445,8 @@ export function hostDeviceRoom(name: string, role: Role) {
 
 /** Join a teammate's room. The room's design replaces this device's design. */
 export function joinDeviceRoom(code: string, name: string, role: Role) {
+  // Start from the room's design, not whatever this device had before (done while the bridge is off, so nothing is sent).
+  if (!state.active) useGame.getState().resetDesign()
   return enter(async () => (await sync.joinRoom(code, name)).code, role, false, name)
 }
 
@@ -293,8 +456,8 @@ export function leaveDeviceRoom() {
   pending.clear()
   remember(null)
   sync.leaveRoom()
-  sync.setOpenEditing(false)
   lastSynced = {}
-  setState({ active: false, code: null, status: 'solo', error: null })
+  handledHold = null
+  setState({ active: false, code: null, status: 'solo', error: null, step: 'lobby', leader: true, leaderName: null, choices: {} })
   useGame.setState({ players: [], myRole: 'solo' })
 }

@@ -18,11 +18,12 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 /**
- * Game phase shared by the whole room: the team flow's step (engine/flow.ts Step).
- * The first five are the original phases, so older rooms still read correctly.
+ * The step the whole room is on (team decision, 14 Nov). Same values as
+ * Member 1's Step in src/engine/flow.ts. Stored as a plain string in every
+ * backend, so widening it needed no schema change.
  */
-export const PHASES = ['lobby', 'design', 'launch', 'simulate', 'report', 'briefing', 'feasibility', 'review'] as const;
-export type Phase = (typeof PHASES)[number];
+export type Phase = 'lobby' | 'briefing' | 'feasibility' | 'design' | 'review' | 'launch' | 'simulate' | 'report';
+export const PHASES: Phase[] = ['lobby', 'briefing', 'feasibility', 'design', 'review', 'launch', 'simulate', 'report'];
 
 export interface Player {
   id: string;
@@ -68,8 +69,10 @@ export interface Room {
   hostId: string;
   players: Player[];
   sections: Record<Role, DesignSection>;
-  /** Shared seed so every device runs the same random events. */
+  /** Shared seed so every device runs the same random events. A new one is picked for each launch. */
   seed: number;
+  /** Event choices made during the current flight, by event id (the owner role chooses for everyone). */
+  choices: Record<string, string>;
   updatedAt: number;
 }
 
@@ -83,6 +86,7 @@ export type SyncEvent =
   | { type: 'approvals-reset'; by: string; byName: string; role: Role }
   | { type: 'player-joined'; player: Player }
   | { type: 'player-left'; player: Player }
+  | { type: 'edit-refused'; role: Role; step: Phase; message: string }
   | { type: 'error'; message: string };
 
 /**
@@ -102,7 +106,7 @@ export interface SyncAdapter {
    * not `expectedVersion` (when the backend can check it).
    */
   writeSection(code: string, section: DesignSection, expectedVersion: number): Promise<void>;
-  setRoomFields(code: string, fields: Partial<Pick<Room, 'phase' | 'scenario' | 'seed'>>): Promise<void>;
+  setRoomFields(code: string, fields: Partial<Pick<Room, 'phase' | 'scenario' | 'seed' | 'choices'>>): Promise<void>;
   /** Subscribe to the full room. Returns an unsubscribe function. */
   subscribe(code: string, onRoom: (room: Room) => void, onStatus: (s: SyncStatus) => void): () => void;
 }
@@ -113,5 +117,17 @@ export class ConflictError extends Error {
     super(message);
     this.name = 'ConflictError';
     this.latest = latest;
+  }
+}
+
+/** A design write the current step does not allow (see canEditSection in src/engine/flow.ts). */
+export class EditRefusedError extends Error {
+  role: Role;
+  step: Phase;
+  constructor(message: string, role: Role, step: Phase) {
+    super(message);
+    this.name = 'EditRefusedError';
+    this.role = role;
+    this.step = step;
   }
 }
