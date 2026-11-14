@@ -14,6 +14,7 @@ import scenariosJson from '../data/scenarios.json';
 import sourcesJson from '../data/sources.json';
 import eventsJson from '../data/events.json';
 import { allPartIds, normalizeDesign } from './design';
+import { validateDataFiles } from './schema';
 import type { Bus, GameData, GameEvent, GroundStation, Launcher, Orbit, Part, Scenario, Source, SourceRef } from './types';
 import { ROLES } from '../sync/types';
 
@@ -118,4 +119,27 @@ export function checkReferences(d: GameData): string[] {
     if (d.decay[i].altitudeKm <= d.decay[i - 1].altitudeKm) errors.push('orbits.decay: altitudes must go up');
   }
   return errors;
+}
+
+// ---------------------------------------------------------------------------
+// Start-up check (task 1.3): schema problems and broken ids, logged once.
+// Never throws, so a data typo shows a clear message instead of a blank game.
+// ---------------------------------------------------------------------------
+
+/** The raw JSON of each data file, as loaded. */
+export const RAW_DATA_FILES = {
+  'parts.json': partsJson,
+  'launchers.json': launchersJson,
+  'orbits.json': orbitsJson,
+  'stations.json': stationsJson,
+  'scenarios.json': scenariosJson,
+  'events.json': eventsJson,
+  'sources.json': sourcesJson,
+};
+
+/** Every problem found in the data files. Empty = all good. */
+export const dataProblems: string[] = [...validateDataFiles(RAW_DATA_FILES), ...checkReferences(gameData)];
+
+if (dataProblems.length > 0) {
+  console.error(`First Light data files have ${dataProblems.length} problem(s):\n- ${dataProblems.join('\n- ')}`);
 }

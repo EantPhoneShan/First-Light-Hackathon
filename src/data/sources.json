@@ -6,10 +6,10 @@
       "title": "CubeSat 101: Basic Concepts and Processes for First-Time CubeSat Developers (NASA CubeSat Launch Initiative)",
       "url": "https://www.nasa.gov/wp-content/uploads/2017/03/nasa_csli_cubesat_101_508.pdf"
     },
-    { "id": "science-missions", "title": "NASA: Design and Develop Science Missions (launch, space, ground and user segments)" },
-    { "id": "cml", "title": "JPL: Concept Maturity Levels (CML 1 to 4)" },
-    { "id": "mdl", "title": "NASA Goddard: Mission Design Lab" },
-    { "id": "gmat", "title": "NASA General Mission Analysis Tool (GMAT)" },
+    { "id": "science-missions", "title": "NASA: Design and Develop Science Missions (launch, space, ground and user segments)", "url": "https://www.nasa.gov/wp-content/uploads/2025/04/250323-design-and-develop-science-mission.pdf" },
+    { "id": "cml", "title": "JPL: Concept Maturity Levels (CML 1 to 4)", "url": "https://dataverse.jpl.nasa.gov/dataset.xhtml?persistentId=hdl:2014/44299" },
+    { "id": "mdl", "title": "NASA Goddard: Mission Design Lab", "url": "https://etd.gsfc.nasa.gov/capabilities/integrated-design-center/mission-design-lab/" },
+    { "id": "gmat", "title": "NASA General Mission Analysis Tool (GMAT)", "url": "https://software.nasa.gov/software/GSC-19468-1" },
     { "id": "physics", "title": "Standard orbit and rocket formulas (orbit period, eclipse geometry, rocket equation)" },
     { "id": "estimate", "title": "Rounded game estimate (see the note on each item)" }
   ]
