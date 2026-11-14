@@ -200,7 +200,7 @@ export function Simulation() {
             <Fallback3D fallback={<canvas ref={canvasRef} className="block h-full w-full" aria-label="Spacecraft orbiting Earth" role="img" />}>
               <Suspense fallback={<canvas ref={canvasRef} className="block h-full w-full" aria-label="Spacecraft orbiting Earth" role="img" />}>
                 <Orbit3D
-                  getView={() => ({ angleDeg: stateRef.current.orbitAngleDeg, inEclipse: stateRef.current.inEclipse, downlinking: stateRef.current.downlinking, alive: stateRef.current.alive })}
+                  getView={() => ({ tMin: stateRef.current.tMin, angleDeg: stateRef.current.orbitAngleDeg, inEclipse: stateRef.current.inEclipse, downlinking: stateRef.current.downlinking, alive: stateRef.current.alive })}
                   altitudeKm={altitudeKm}
                   inclinationDeg={orbit?.inclinationDeg ?? 50}
                   bus={findBus(gameData, design.engineer.busId)}

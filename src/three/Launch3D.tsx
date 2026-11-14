@@ -131,7 +131,7 @@ function Scene({ getT, T, fails, launcher, bus, parts, profile }: Launch3DProps)
   const plume2 = useMemo(() => makePlumeMaterial('#eaf2ff', '#7fa8ff'), [])
   const earthMap = useMemo(() => earthTexture(), [])
   const puff = useMemo(() => puffTexture(), [])
-  const grass = useMemo(() => grassTexture(Math.max(4, H / 6)), [H])
+  const grass = useMemo(() => grassTexture(Math.max(8, (H * 6) / 8)), [H])
   const atmo = useMemo(() => new THREE.ShaderMaterial({ vertexShader: atmoVertex, fragmentShader: atmoFragment, transparent: true, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false }), [])
 
   // Refs to everything that moves.

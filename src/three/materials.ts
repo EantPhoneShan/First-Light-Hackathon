@@ -285,8 +285,7 @@ export function earthTexture(): THREE.Texture {
         let col: [number, number, number]
         // Ice caps with a ragged edge
         const ice = 0.83 + (noise(u, v, 7.1) - 0.5) * 0.12
-        if (lat > ice) col = [232, 238, 244]
-        else if (n > 0.545) {
+        if (n > 0.545) {
           const k = Math.min(1, (n - 0.545) * 7)
           // Deserts in the dry subtropics, forest near the equator, tundra up north
           if (lat > 0.12 && lat < 0.42 && dry > 0.58) col = [196 - k * 30, 168 - k * 30, 118 - k * 20]
@@ -298,6 +297,9 @@ export function earthTexture(): THREE.Texture {
           const d = Math.min(1, (0.545 - n) * 6)
           col = [12 + 40 * (1 - d) ** 3, 44 + 90 * (1 - d) ** 3, 92 + 70 * (1 - d) ** 2]
         }
+        // Ice caps blend in over a band of latitude (no hard, blocky edge)
+        const iceK = Math.min(1, Math.max(0, (lat - ice + 0.035) / 0.07))
+        if (iceK > 0) col = [col[0] + (232 - col[0]) * iceK, col[1] + (238 - col[1]) * iceK, col[2] + (244 - col[2]) * iceK]
         const cl = Math.min(1, Math.max(0, (cloud - 0.56) * 3.5))
         img.data[i] = col[0] + (248 - col[0]) * cl
         img.data[i + 1] = col[1] + (250 - col[1]) * cl
@@ -313,15 +315,79 @@ export function earthTexture(): THREE.Texture {
 }
 
 /**
- * Real grass (a crop of the team's grassland photo), mirrored so the tiles
- * join without seams. `tiles` = how many times it repeats across the ground.
+ * Grass, painted from the team's grassland photo: its own greens and straw
+ * yellows, as soft colour variation plus thousands of short blades. Everything
+ * wraps at the edges, so the tile repeats with no visible seam or grid.
+ * `tiles` = repeats across the ground.
  */
 export function grassTexture(tiles: number): THREE.Texture {
-  const t = new THREE.TextureLoader().load('/assets/bg/grass-tile.jpg')
-  t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping
-  t.repeat.set(tiles, tiles * 2)
-  t.colorSpace = THREE.SRGBColorSpace
+  const r = rng(31)
+  // Colours sampled from public/assets/bg/grassland.jpg
+  const base = ['#555a21', '#5c6820', '#5f6f1f', '#57641d', '#4b571b', '#525c1b']
+  const blades = ['#6b7a2a', '#76862c', '#4f5b1b', '#3a4216', '#8a9a3a', '#9aa64a', '#5f6f1f']
+  const c = canvas(512, 512, (g, w, h) => {
+    g.fillStyle = '#56611f'
+    g.fillRect(0, 0, w, h)
+    // Soft colour variation (drawn 3x3 so it wraps)
+    for (let i = 0; i < 120; i++) {
+      const x = r() * w
+      const y = r() * h
+      const rad = 20 + r() * 70
+      const col = base[Math.floor(r() * base.length)]
+      for (const ox of [-w, 0, w])
+        for (const oy of [-h, 0, h]) {
+          const grd = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, rad)
+          grd.addColorStop(0, col + 'aa')
+          grd.addColorStop(1, col + '00')
+          g.fillStyle = grd
+          g.fillRect(x + ox - rad, y + oy - rad, rad * 2, rad * 2)
+        }
+    }
+    // Blades: short strokes leaning a little, drawn wrapped at the edges
+    g.lineCap = 'round'
+    for (let i = 0; i < 9000; i++) {
+      const x = r() * w
+      const y = r() * h
+      const len = 4 + r() * 9
+      const lean = (r() - 0.5) * 0.9
+      g.strokeStyle = blades[Math.floor(r() * blades.length)]
+      g.globalAlpha = 0.35 + r() * 0.5
+      g.lineWidth = 0.8 + r() * 1.2
+      for (const ox of x < len ? [0, w] : x > w - len ? [0, -w] : [0])
+        for (const oy of y < len ? [0, h] : y > h - len ? [0, -h] : [0]) {
+          g.beginPath()
+          g.moveTo(x + ox, y + oy)
+          g.lineTo(x + ox + Math.sin(lean) * len, y + oy - Math.cos(lean) * len)
+          g.stroke()
+        }
+    }
+    g.globalAlpha = 1
+  })
+  const t = tex(c, { repeat: [tiles, tiles] })
   t.anisotropy = 8
+  return t
+}
+
+/** Big soft patches (lighter and darker ground), laid over the grass to hide any repeat. */
+export function meadowPatches(): THREE.Texture {
+  const r = rng(77)
+  const c = canvas(512, 512, (g, w, h) => {
+    g.fillStyle = '#000'
+    g.fillRect(0, 0, w, h)
+    for (let i = 0; i < 140; i++) {
+      const x = r() * w
+      const y = r() * h
+      const rad = 20 + r() * 90
+      const grd = g.createRadialGradient(x, y, 0, x, y, rad)
+      grd.addColorStop(0, `rgba(255,255,255,${0.15 + r() * 0.35})`)
+      grd.addColorStop(1, 'rgba(255,255,255,0)')
+      g.fillStyle = grd
+      g.fillRect(x - rad, y - rad, rad * 2, rad * 2)
+    }
+  })
+  const t = new THREE.CanvasTexture(c)
+  t.wrapS = t.wrapT = THREE.RepeatWrapping
+  t.repeat.set(12, 12)
   return t
 }
 

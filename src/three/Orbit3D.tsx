@@ -22,6 +22,8 @@ import { SpacecraftModel } from './SpacecraftModel'
 import { Earth, SpaceLights } from './Stage'
 
 export interface OrbitView {
+  /** Flight time in minutes (drives Earth's spin). */
+  tMin: number
   angleDeg: number
   inEclipse: boolean
   downlinking: boolean
@@ -55,7 +57,13 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
   const spinner = useRef<THREE.Group>(null)
   const link = useRef<THREE.Line>(null)
   const { camera } = useThree()
+  const controls = useThree((st) => st.controls)
+  const placed = useRef(false)
   const camTarget = useRef(new THREE.Vector3())
+  // Smooth, forward-only motion: the simulation's angle wraps 0-360 and, at fast
+  // speeds, jumps most of a lap per frame (which looks like going backwards).
+  // We unwrap it and let the drawn craft chase it at a watchable pace.
+  const track = useRef({ lastRaw: NaN, lastT: -1, sim: 0, vis: 0, earthVis: 0 })
   const puff = useMemo(() => puffTexture(), [])
   const scale = bus ? CRAFT_SIZE / Math.max(...busGeom(bus).size) : 1
 
@@ -73,13 +81,38 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
 
   useFrame((state, delta) => {
     const v = getView()
-    const a = (v.angleDeg * Math.PI) / 180
+    const tr = track.current
+    if (Number.isNaN(tr.lastRaw) || v.tMin < tr.lastT) {
+      // First frame, or the flight restarted: jump straight there.
+      tr.sim = tr.vis = v.angleDeg
+      tr.earthVis = 0
+    } else {
+      tr.sim += (((v.angleDeg - tr.lastRaw) % 360) + 360) % 360 // always forward
+    }
+    tr.lastRaw = v.angleDeg
+    tr.lastT = v.tMin
+    let gap = tr.sim - tr.vis
+    if (gap >= 360) {
+      // Fast-forward: skip whole laps, keep the phase, so it never runs backwards.
+      tr.vis += Math.floor(gap / 360) * 360
+      gap = tr.sim - tr.vis
+    }
+    tr.vis += Math.min(gap, 140 * delta) // at most ~a lap every 2.5 s
+    const a = (tr.vis * Math.PI) / 180
     const pos = new THREE.Vector3(Math.cos(a) * R, 0, -Math.sin(a) * R).applyQuaternion(tilt)
     const vel = new THREE.Vector3(-Math.sin(a), 0, -Math.cos(a)).applyQuaternion(tilt)
     const down = pos.clone().negate().normalize()
 
-    // Earth turns once a "day" while the craft flies (sped up to match the flight).
-    if (earth.current) earth.current.rotation.y = (v.angleDeg / 360) * (Math.PI / 8)
+    // Earth turns once a sidereal day (1,436 min of flight time), always the same
+    // way; on fast speeds it turns at a steady watchable rate instead of strobing.
+    if (earth.current) {
+      const target = (v.tMin / 1436) * Math.PI * 2
+      let eg = target - tr.earthVis
+      if (eg > Math.PI * 2) tr.earthVis += Math.floor(eg / (Math.PI * 2)) * Math.PI * 2
+      eg = target - tr.earthVis
+      tr.earthVis += Math.max(0, Math.min(eg, 0.5 * delta))
+      earth.current.rotation.y = tr.earthVis
+    }
 
     // Craft: bottom (instruments) faces Earth, nose along its path. A dead craft tumbles.
     if (craft.current) {
@@ -120,30 +153,64 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
       }
     }
 
-    // Camera: chase the craft from behind and above, or show the whole orbit.
-    const want = new THREE.Vector3()
-    const look = new THREE.Vector3()
+    // Camera. Follow: chase the craft from behind and above. Whole orbit: place
+    // the camera once (Earth, Sun and sunlight in shot), then the mouse is in charge.
     if (mode === 'follow') {
-      look.copy(pos)
-      want.copy(pos).addScaledVector(vel, -0.22).addScaledVector(down, -0.07).add(new THREE.Vector3(0, 0.03, 0))
-    } else {
-      look.set(0, 0, 0)
-      want.set(1.6, 2.2, 3.4)
+      const want = pos.clone().addScaledVector(vel, -0.22).addScaledVector(down, -0.07).add(new THREE.Vector3(0, 0.03, 0))
+      const jump = camera.position.distanceTo(want) > 2
+      camera.position.lerp(want, jump ? 1 : 1 - Math.exp(-delta * 3))
+      camTarget.current.lerp(pos, jump ? 1 : 1 - Math.exp(-delta * 5))
+      camera.lookAt(camTarget.current)
+      placed.current = false
+    } else if (!placed.current) {
+      placed.current = true
+      camera.position.set(-2.5, 1.2, 3.2)
+      const c = controls as unknown as { target: THREE.Vector3; update: () => void } | null
+      c?.target.set(2.5, 0, 0)
+      c?.update()
+      camera.lookAt(2.5, 0, 0)
     }
-    const jump = camera.position.distanceTo(want) > 2
-    camera.position.lerp(want, jump ? 1 : 1 - Math.exp(-delta * 3))
-    camTarget.current.lerp(look, jump ? 1 : 1 - Math.exp(-delta * 5))
-    camera.lookAt(camTarget.current)
   })
 
   return (
     <>
       <SpaceLights photoBackdrop sunOnly />
-      {/* The Sun: strong light from +x, and its glow far away */}
+      {/* The Sun, along +x: its light, a bright disc with a wide glow, and (whole-orbit view) a sunlight arrow */}
       <directionalLight position={[10, 0, 0]} intensity={3.2} color="#fff4e0" />
-      <sprite position={[40, 0, 0]} scale={[14, 14, 1]}>
-        <spriteMaterial map={puff} color="#ffe2a0" transparent depthWrite={false} blending={THREE.AdditiveBlending} />
-      </sprite>
+      <group position={[12, 0, 0]}>
+        <sprite scale={[7, 7, 1]}>
+          <spriteMaterial map={puff} color="#ffb547" transparent opacity={0.55} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+        </sprite>
+        <sprite scale={[2.2, 2.2, 1]}>
+          <spriteMaterial map={puff} color="#fff6d8" transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+        </sprite>
+        <mesh>
+          <sphereGeometry args={[0.5, 32, 16]} />
+          <meshBasicMaterial color="#fffbe8" toneMapped={false} />
+        </mesh>
+        <Html center style={{ pointerEvents: 'none' }} zIndexRange={[10, 0]}>
+          <span className="translate-y-8 rounded bg-space-950/80 px-1.5 py-0.5 text-[11px] whitespace-nowrap text-warn">☀ Sun</span>
+        </Html>
+      </group>
+      {mode === 'whole' && (
+        <group>
+          {[-0.5, 0, 0.5].map((y) => (
+            <group key={y} position={[2.6, y, 0]}>
+              <mesh rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.006, 0.006, 1.2, 6]} />
+                <meshBasicMaterial color="#ffc94a" transparent opacity={0.7} />
+              </mesh>
+              <mesh position={[-0.65, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+                <coneGeometry args={[0.03, 0.1, 12]} />
+                <meshBasicMaterial color="#ffc94a" />
+              </mesh>
+            </group>
+          ))}
+          <Html position={[2.6, 0.75, 0]} center style={{ pointerEvents: 'none' }} zIndexRange={[10, 0]}>
+            <span className="rounded bg-space-950/80 px-1.5 py-0.5 text-[10px] whitespace-nowrap text-warn">Sunlight</span>
+          </Html>
+        </group>
+      )}
 
       <group ref={earth}>
         <Earth radius={1} atmosphere={1.02} spin={[0, 0, 0]} segments={128} />
@@ -170,7 +237,7 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
 
       {/* Orbit path */}
       <lineLoop geometry={ring}>
-        <lineBasicMaterial color="#ff8a3d" transparent opacity={0.45} />
+        <lineBasicMaterial color="#ff8a3d" transparent opacity={mode === 'whole' ? 0.85 : 0.45} />
       </lineLoop>
 
       {/* Downlink beam */}
@@ -180,6 +247,17 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
       </line>
 
       <group ref={craft}>
+        {/* From far away the craft is tiny: a glowing marker and a label show where it is */}
+        {mode === 'whole' && (
+          <>
+            <sprite scale={[0.14, 0.14, 1]}>
+              <spriteMaterial map={puff} color="#ff8a3d" transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+            </sprite>
+            <Html center style={{ pointerEvents: 'none' }} zIndexRange={[10, 0]}>
+              <span className="-translate-y-4 rounded bg-space-950/80 px-1.5 py-0.5 text-[10px] whitespace-nowrap text-accent">Your craft</span>
+            </Html>
+          </>
+        )}
         <group ref={spinner} scale={scale}>
           {bus ? (
             <SpacecraftModel bus={bus} parts={parts} cutaway={false} deploy={1} />
@@ -199,9 +277,9 @@ export default function Orbit3D(props: Orbit3DProps) {
   const [mode, setMode] = useState<'follow' | 'whole'>('follow')
   return (
     <div className="relative h-full w-full bg-[url('/assets/bg/stars.webp')] bg-cover bg-center">
-      <Canvas dpr={[1, 2]} gl={{ alpha: true, antialias: true }} camera={{ fov: 45, near: 0.001, far: 200, position: [1.6, 2.2, 3.4] }} aria-label="3D view of your spacecraft in orbit">
+      <Canvas dpr={[1, 2]} gl={{ alpha: true, antialias: true }} camera={{ fov: 45, near: 0.001, far: 200, position: [-2.5, 1.2, 3.2] }} aria-label="3D view of your spacecraft in orbit">
         <Scene {...props} mode={mode} />
-        {mode === 'whole' && <OrbitControls makeDefault enablePan={false} minDistance={1.4} maxDistance={8} />}
+        {mode === 'whole' && <OrbitControls makeDefault enablePan={false} minDistance={1.4} maxDistance={14} />}
       </Canvas>
       <div className="absolute bottom-2 left-2 flex gap-1.5">
         {(

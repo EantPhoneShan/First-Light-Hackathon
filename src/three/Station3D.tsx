@@ -2,18 +2,17 @@
  * Ground station in 3D (Ground tab). Each station type gets real hardware:
  *   amateur  – crossed Yagi UHF antennas on a rotator mast, next to a shed
  *   campus   – a 3 m dish and a Yagi on the roof of a university building
- *   polar    – radomes and a big open dish on Arctic snow
+ *   polar    – radomes and a big open dish
  *   network  – a commercial antenna farm with several dishes
  * Dishes slew to track a pass, and a faint beam shows the downlink when the
- * station is part of your plan. The mountain photo is the backdrop.
+ * station is part of your plan. The mountain photo is the backdrop at every site.
  */
 import { OrbitControls } from '@react-three/drei'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { cn } from '@/lib/cn'
 import type { GroundStation as Station } from '@/engine/types'
-import { grassTexture, mats } from './materials'
+import { grassTexture, mats, meadowPatches } from './materials'
 import { SpaceLights } from './Stage'
 
 type Kind = 'amateur' | 'campus' | 'polar' | 'network'
@@ -181,34 +180,85 @@ function Building({ w, h, d, roof = false }: { w: number; h: number; d: number; 
   )
 }
 
-/** Radial fade: solid in the middle, clear at the edge. */
-function useEdgeFade() {
-  return useMemo(() => {
+/**
+ * The photo backdrop, wrapped round the station on a giant cylinder (a film-set
+ * cyclorama) instead of sitting flat behind the canvas. It's part of the 3D
+ * world, so zooming and turning move it with the ground and the two always fit.
+ * The photo's horizon row sits exactly at ground level; its top fades into the sky.
+ */
+interface Backdrop {
+  url: string
+  /** Width / height of the photo. */
+  aspect: number
+  /** How far down the photo the horizon (ground line) is, 0..1. */
+  horizon: number
+  /** Sky colour at the top of the photo, and the ground colour at its horizon (for the haze). */
+  sky: string
+  haze: string
+}
+
+const BACKDROPS: Record<'grass' | 'mountains', Backdrop> = {
+  grass: { url: '/assets/bg/grassland.jpg', aspect: 468 / 312, horizon: 0.47, sky: '#556590', haze: '#5a6125' },
+  mountains: { url: '/assets/bg/mountains.webp', aspect: 1510 / 1080, horizon: 0.88, sky: '#2f6fab', haze: '#555126' },
+}
+
+const RING = 600 // backdrop radius, metres
+const REPEATS = 4 // photo copies round the circle (mirrored, so the joins match)
+
+function Cyclorama({ b }: { b: Backdrop }) {
+  const map = useMemo(() => {
+    const t = new THREE.TextureLoader().load(b.url)
+    t.wrapS = THREE.MirroredRepeatWrapping
+    t.repeat.set(REPEATS, 1)
+    t.colorSpace = THREE.SRGBColorSpace
+    return t
+  }, [b.url])
+  // Top of the photo fades out into the plain sky colour.
+  const fade = useMemo(() => {
     const c = document.createElement('canvas')
-    c.width = c.height = 256
+    c.width = 4
+    c.height = 256
     const g = c.getContext('2d')!
-    const grd = g.createRadialGradient(128, 128, 40, 128, 128, 128)
-    grd.addColorStop(0, '#fff')
-    grd.addColorStop(0.55, '#fff')
-    grd.addColorStop(1, '#000')
+    const grd = g.createLinearGradient(0, 0, 0, 256)
+    grd.addColorStop(0, '#000')
+    grd.addColorStop(0.18, '#fff')
+    grd.addColorStop(1, '#fff')
     g.fillStyle = grd
-    g.fillRect(0, 0, 256, 256)
+    g.fillRect(0, 0, 4, 256)
     return new THREE.CanvasTexture(c)
   }, [])
+  const width = (2 * Math.PI * RING) / REPEATS
+  const height = width / b.aspect
+  const top = b.horizon * height
+  return (
+    <mesh position={[0, top - height / 2, 0]}>
+      <cylinderGeometry args={[RING, RING, height, 128, 1, true]} />
+      <meshBasicMaterial map={map} alphaMap={fade} transparent side={THREE.BackSide} fog={false} toneMapped={false} depthWrite={false} />
+    </mesh>
+  )
 }
 
 function Scene({ kind, active }: { kind: Kind; active: boolean }) {
-  const fade = useEdgeFade()
-  const grass = useMemo(() => grassTexture(9), [])
-  // Real grass on the grassland sites; snow at the polar station.
-  const ground = kind === 'polar' ? '#e9eef5' : '#ffffff'
+  // The mountain backdrop behind every station (the team's favourite).
+  const b = BACKDROPS.mountains
+  const grass = useMemo(() => grassTexture(160), [])
+  const patches = useMemo(() => meadowPatches(), [])
   return (
     <>
       <SpaceLights photoBackdrop />
-      {/* Ground that fades out at the edge, so it blends into the mountain photo */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <circleGeometry args={[45, 64]} />
-        <meshStandardMaterial color={ground} map={kind === 'polar' ? null : grass} roughness={1} alphaMap={fade} transparent depthWrite={false} />
+      <color attach="background" args={[b.sky]} />
+      {/* Haze: the ground fades into the photo's own horizon colour where they meet */}
+      <fog attach="fog" args={[b.haze, RING * 0.18, RING * 0.97]} />
+      <Cyclorama b={b} />
+      {/* Real grass out to the backdrop; frosty at the polar site */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[RING, 96]} />
+        <meshStandardMaterial map={grass} roughness={1} />
+      </mesh>
+      {/* Darker patches across the meadow, like real fields (and they hide the tile repeat) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+        <circleGeometry args={[RING, 96]} />
+        <meshBasicMaterial color="#26300d" alphaMap={patches} transparent opacity={0.45} depthWrite={false} />
       </mesh>
       {kind === 'amateur' && (
         <>
@@ -270,19 +320,14 @@ function Scene({ kind, active }: { kind: Kind; active: boolean }) {
 
 export default function Station3D({ station, active }: { station: Station; active: boolean }) {
   const kind = kindOf(station)
-  const cam: Record<Kind, [number, number, number]> = { amateur: [9, 5, 14], campus: [13, 12, 19], polar: [24, 12, 32], network: [28, 16, 34] }
-  const target: Record<Kind, [number, number, number]> = { amateur: [0, 3.5, 0], campus: [0, 7.5, 0], polar: [0, 5, 0], network: [0, 4, 0] }
+  // Low cameras looking almost level, so the mountains fill the background.
+  const cam: Record<Kind, [number, number, number]> = { amateur: [10, 3, 15], campus: [16, 9, 22], polar: [26, 6, 32], network: [30, 7, 36] }
+  const target: Record<Kind, [number, number, number]> = { amateur: [0, 4.5, 0], campus: [0, 9, 0], polar: [0, 7, 0], network: [0, 6, 0] }
   return (
-    <div
-      className={cn(
-        'relative h-[300px] w-full overflow-hidden rounded-xl border border-space-700 bg-cover sm:h-[360px]',
-        kind === 'polar' ? "bg-[url('/assets/bg/mountains.webp')] bg-center" : "bg-[url('/assets/bg/grassland.jpg')] bg-[center_35%]",
-      )}
-    >
-      {kind === 'polar' && <div className="pointer-events-none absolute inset-0 bg-sky-100/30 mix-blend-screen" aria-hidden />}
-      <Canvas key={kind} dpr={[1, 2]} gl={{ alpha: true }} camera={{ fov: 38, position: cam[kind] }} aria-label={`3D model of the ${station.name}`}>
+    <div className="relative h-[300px] w-full overflow-hidden rounded-xl border border-space-700 sm:h-[360px]">
+      <Canvas key={kind} dpr={[1, 2]} camera={{ fov: 38, position: cam[kind], near: 0.1, far: RING * 3 }} aria-label={`3D model of the ${station.name}`}>
         <Scene kind={kind} active={active} />
-        <OrbitControls makeDefault target={target[kind]} enablePan={false} minDistance={6} maxDistance={70} maxPolarAngle={Math.PI / 2 - 0.05} autoRotate autoRotateSpeed={0.4} />
+        <OrbitControls makeDefault target={target[kind]} enablePan={false} minDistance={6} maxDistance={60} minPolarAngle={1.33} maxPolarAngle={Math.PI / 2 - 0.04} autoRotate autoRotateSpeed={0.4} />
       </Canvas>
       <p className="pointer-events-none absolute bottom-2 left-2 rounded bg-space-950/70 px-2 py-1 text-[11px] text-muted">
         {station.name} · {station.lat}°, {station.lon}° {active ? '· tracking your craft' : ''}
