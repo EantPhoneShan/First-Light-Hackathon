@@ -1,5 +1,5 @@
-import type { DesignSection, Role, Room } from './types';
-import { ROLES } from './types';
+import type { DesignSection, Phase, Role, Room } from './types';
+import { PHASES, ROLES } from './types';
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I
 
@@ -62,15 +62,28 @@ export function sanitiseRoom(raw: unknown): Room | null {
   return {
     code: r.code,
     scenario: typeof r.scenario === 'string' ? r.scenario : 'wildfire-watch',
-    phase: (['lobby', 'design', 'launch', 'simulate', 'report'] as const).includes(r.phase as never)
-      ? (r.phase as Room['phase'])
-      : 'lobby',
+    phase: PHASES.includes(r.phase as Phase) ? (r.phase as Phase) : 'lobby',
     hostId: String(r.hostId ?? ''),
     players,
     sections,
     seed: Number(r.seed) || 1,
+    choices: sanitiseChoices(r.choices),
     updatedAt: Number(r.updatedAt) || 0,
   };
 }
 
 export const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+/** Event id -> choice id, strings only. AppSync hands JSON fields back as text. */
+function sanitiseChoices(raw: unknown): Record<string, string> {
+  let v = raw;
+  if (typeof v === 'string') {
+    try {
+      v = JSON.parse(v);
+    } catch {
+      return {};
+    }
+  }
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return {};
+  return Object.fromEntries(Object.entries(v).filter((e): e is [string, string] => typeof e[1] === 'string'));
+}

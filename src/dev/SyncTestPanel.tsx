@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react';
 import {
   sync,
   ROLES,
+  PHASES,
+  type Phase,
   ROLE_LABELS,
   allApproved,
   isApproved,
@@ -79,7 +81,13 @@ export default function SyncTestPanel() {
       {room && (
         <>
           <section style={box}>
-            <b>Room {room.code}</b> · phase {room.phase} · {allApproved(room) ? '✅ all approved, ready to launch' : 'waiting for approvals'}
+            <b>Room {room.code}</b> · step{' '}
+            <select value={room.phase} onChange={(e) => run(() => sync.setPhase(e.target.value as Phase))} aria-label="Room step">
+              {PHASES.map((p) => (
+                <option key={p}>{p}</option>
+              ))}
+            </select>{' '}
+            · {allApproved(room) ? '✅ all approved, ready to launch' : 'waiting for approvals'}
             <div style={{ marginTop: 6 }}>
               Players:{' '}
               {room.players.map((p) => (
@@ -167,6 +175,8 @@ function describe(e: SyncEvent): string {
       return `${e.player.name} joined`;
     case 'player-left':
       return `${e.player.name} left`;
+    case 'edit-refused':
+      return `Refused (${e.step}): ${e.message}`;
     case 'error':
       return e.message;
   }

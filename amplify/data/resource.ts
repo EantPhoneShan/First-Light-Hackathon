@@ -18,6 +18,8 @@ const schema = a.schema({
       phase: a.string(),
       hostId: a.string(),
       seed: a.integer(),
+      // Event answers for the current flight ({ eventId: choiceId }), so every device replays the same flight.
+      choices: a.json(),
     })
     .identifier(['code'])
     .authorization((allow) => [allow.publicApiKey()]),
