@@ -1,0 +1,59 @@
+{
+  "missions": [
+    {
+      "id": "landsat-9",
+      "name": "Landsat 9",
+      "agency": "NASA and USGS",
+      "orbitKind": "sso",
+      "busSize": "large",
+      "instrumentIds": ["multispectral-imager", "thermal-imager"],
+      "summary": "Launched in 2021 into a sun-synchronous orbit about 705 km up. Its two imagers see 11 wavelengths of light, including heat, and with Landsat 8 it images the whole planet every 8 days.",
+      "url": "https://science.nasa.gov/mission/landsat-9/",
+      "checked": "NASA Science Landsat 9 pages: launch 27 Sep 2021, 705 km, 98.2 degree sun-synchronous orbit, OLI-2 and TIRS-2, 11 wavelengths, 8-day repeat with Landsat 8."
+    },
+    {
+      "id": "terra-modis",
+      "name": "Terra (MODIS)",
+      "agency": "NASA",
+      "orbitKind": "sso",
+      "busSize": "large",
+      "instrumentIds": ["thermal-imager", "multispectral-imager"],
+      "summary": "Terra's MODIS instrument spots active fires by their heat in infrared light, from a near-polar sun-synchronous orbit. Its fire data reaches firefighters through NASA's FIRMS service.",
+      "url": "https://www.earthdata.nasa.gov/news/feature-articles/wildfires-cant-hide-from-earth-observing-satellites",
+      "checked": "NASA Earthdata and FIRMS pages: near-polar sun-synchronous orbit, about 10:30 local crossing, active fires found in thermal infrared (4 and 11 micrometre bands), 1 km pixels, fire data since November 2000."
+    },
+    {
+      "id": "nisar",
+      "name": "NISAR",
+      "agency": "NASA and ISRO",
+      "orbitKind": "sso",
+      "busSize": "large",
+      "instrumentIds": ["radar"],
+      "summary": "Launched in July 2025 into a sun-synchronous orbit about 747 km up. Its radar sees through clouds, day or night, and can track floods, even under trees.",
+      "url": "https://science.nasa.gov/mission/nisar/mission-overview/",
+      "checked": "NASA NISAR mission overview and water pages: launch 30 Jul 2025, 747 km, 98.4 degree sun-synchronous orbit, 12-day repeat, L-band radar works through clouds day or night, tracks floods under vegetation."
+    },
+    {
+      "id": "tropics",
+      "name": "TROPICS",
+      "agency": "NASA",
+      "orbitKind": "leo",
+      "busSize": "cubesat",
+      "instrumentIds": [],
+      "summary": "A team of small CubeSats, each about the size of a loaf of bread, that watch storms. Four were launched in May 2023, and together they can look at a storm about once an hour.",
+      "url": "https://www.nasa.gov/news-release/nasa-rocket-lab-complete-launch-of-tropics-cubesat-constellation/",
+      "checked": "NASA news release and small-satellite blog: 3U CubeSats, four launched on two Rocket Lab launches in May 2023, microwave radiometer, median revisit about 60 minutes."
+    },
+    {
+      "id": "goes-r",
+      "name": "GOES-R series",
+      "agency": "NOAA, built with NASA",
+      "orbitKind": "geo",
+      "busSize": "large",
+      "instrumentIds": ["multispectral-imager"],
+      "summary": "Weather satellites that hover over one spot from geostationary orbit. The first launched in 2016; their main imager sees 16 bands of light to watch weather all the time.",
+      "url": "https://www.nasa.gov/news-release/nasa-successfully-launches-noaa-advanced-geostationary-weather-satellite/",
+      "checked": "NASA pages on GOES-R: four satellites (R, S, T, U), first launched November 2016, Advanced Baseline Imager with 16 spectral bands, run by an integrated NOAA-NASA office."
+    }
+  ]
+}
