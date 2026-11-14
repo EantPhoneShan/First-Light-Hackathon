@@ -3,9 +3,11 @@ import { ArrowRight, FastForward, RotateCcw, Wrench } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Screen } from '@/components/Screen'
-import { launchCheck, launcherById, orbitById } from '@/engine/mock'
+import { findLauncher, findOrbit } from '@/engine/data'
+import { clampAltitude } from '@/engine/rules'
+import { gameData } from '@/game/ui'
 import { cn } from '@/lib/cn'
-import { useGame } from '@/store/game'
+import { useEvaluation, useGame } from '@/store/game'
 import { play, type Sfx } from '@/lib/sound'
 
 /** Timeline in seconds. Everything in the scene is a pure function of `t`. */
@@ -19,10 +21,14 @@ const ease = (k: number) => k * k * (3 - 2 * k)
 /** PRD F13: ascent, stage separation and orbit insertion. Fails with the reason if the rocket can't do the job. */
 export function Launch() {
   const design = useGame((s) => s.design)
-  const orbit = orbitById(design.orbitId)
-  const launcher = launcherById(design.launcherId)
-  const check = launcher ? launchCheck(design, launcher) : null
-  const fails = !!check && !check.ok
+  const ev = useEvaluation()
+  const orbit = findOrbit(gameData, design.flight.orbitId)
+  const launcher = findLauncher(gameData, design.flight.launcherId)
+  const hasBus = !!design.engineer.busId
+  // The launch fails when Member 1's engine says the rocket can't get this craft to this orbit.
+  const failure = ev.problems.find((p) => p.id === 'mass.rocket' || p.id.startsWith('compat.launcher'))
+  const check = failure ? { ok: false, reason: failure.why } : { ok: true, reason: '' }
+  const fails = !!failure
   const reduce = useReducedMotion()
   const end = fails ? T.fail + 2 : T.done
 
@@ -43,7 +49,7 @@ export function Launch() {
   }, [t, fails])
 
   useEffect(() => {
-    if (!orbit || !launcher || !design.partsBySlot.bus) return
+    if (!orbit || !launcher || !hasBus) return
     // Dev only: ?t=8.5 freezes the scene at that second (for testing and video stills).
     const frozen = import.meta.env.DEV ? new URLSearchParams(location.search).get('t') : null
     if (reduce || frozen) {
@@ -62,7 +68,7 @@ export function Launch() {
     }
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
-  }, [run, end, reduce, orbit, launcher, design.partsBySlot.bus])
+  }, [run, end, reduce, orbit, launcher, hasBus])
 
   const skip = () => {
     cueRef.current = end
@@ -70,7 +76,7 @@ export function Launch() {
     setT(end)
   }
 
-  if (!orbit || !launcher || !design.partsBySlot.bus) {
+  if (!orbit || !launcher || !hasBus) {
     return (
       <Screen title="Launch" reqs="F13" hideNext>
         <div className="rounded-xl border border-space-700 bg-space-900 p-6">
@@ -83,12 +89,12 @@ export function Launch() {
     )
   }
 
-  const deep = orbit.altitudeKm === null
-  const caption = captionAt(t, fails, launcher.name, orbit.short, deep)
+  const deep = false // every orbit in the data is an Earth orbit for now
+  const caption = captionAt(t, fails, launcher.name, orbit.kind.toUpperCase(), deep)
   const finished = t >= end
 
   return (
-    <Screen title="Launch" subtitle={`${launcher.name} to ${orbit.name}${orbit.altitudeKm ? `, ${design.altitudeKm.toLocaleString()} km` : ''}`} reqs="F13" hideNext>
+    <Screen title="Launch" subtitle={`${launcher.name} to ${orbit.name}, ${clampAltitude(orbit, design.flight.altitudeKm).toLocaleString()} km`} reqs="F13" hideNext>
       <div className="relative overflow-hidden rounded-xl border border-space-700 bg-space-950">
         <Scene t={t} fails={fails} deep={deep} />
         <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col items-center gap-1 p-4 text-center">

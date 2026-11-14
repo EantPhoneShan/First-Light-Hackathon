@@ -1,4 +1,4 @@
-import type { Orbit } from '@/engine/placeholderTypes'
+import type { Orbit } from '@/engine/types'
 
 interface OrbitPreviewProps {
   orbit: Orbit
@@ -12,7 +12,7 @@ const R_EARTH = 38
 
 /** Side view: Earth, its shadow (Sun on the left), and the craft circling at the chosen altitude. */
 export function OrbitPreview({ orbit, altitudeKm, periodMin }: OrbitPreviewProps) {
-  const deep = !orbit.altitudeKm
+  const deep = false // every orbit in the data is an Earth orbit for now
   // sqrt scale so LEO sits just off the surface and GEO still fits in the frame.
   const r = deep ? 100 : R_EARTH + 8 + 66 * Math.sqrt(altitudeKm / 35786)
   // One orbit takes a few seconds on screen, slower for higher orbits (PRD: 1 orbit in a few seconds).
@@ -56,7 +56,7 @@ export function OrbitPreview({ orbit, altitudeKm, periodMin }: OrbitPreviewProps
       {/* Earth (or the Moon/Mars target for deep space) */}
       <circle cx={CX} cy={CY} r={R_EARTH} fill="url(#earth)" />
       <circle cx={CX} cy={CY} r={R_EARTH} fill="url(#night)" />
-      {deep && <text x={CX} y={CY + 4} textAnchor="middle" className="fill-ink text-[10px]">{orbit.short}</text>}
+      {deep && <text x={CX} y={CY + 4} textAnchor="middle" className="fill-ink text-[10px]">{orbit.kind.toUpperCase()}</text>}
 
       {/* Spacecraft */}
       <g>

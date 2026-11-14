@@ -38,7 +38,7 @@ export function Title() {
                 if (mode === 'tutorial') startTutorial()
                 else if (tutorial) endTutorial()
                 // Campaign is solo: drop any team from an earlier lobby.
-                if (mode === 'campaign') useGame.setState((s) => ({ room: { ...s.room, players: [] }, myRole: 'solo' }))
+                if (mode === 'campaign') useGame.setState({ players: [], myRole: "solo" })
               }}
               className={cn(
                 'flex items-start gap-3 rounded-xl border p-4 transition-colors',

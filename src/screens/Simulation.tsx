@@ -4,10 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Link } from 'react-router-dom'
 import { drawScene, makeStars } from '@/components/sim/drawScene'
 import { Screen } from '@/components/Screen'
-import { createSim, initialState, stepSim } from '@/engine/mockSim'
-import type { SimState } from '@/engine/placeholderTypes'
+import { clampAltitude } from '@/engine/rules'
+import { findOrbit } from '@/engine/data'
+import { gameData } from '@/game/ui'
+import { createSim, initialState, stepSim } from '@/sim/standInSim'
+import type { SimState } from '@/sim/types'
 import { cn } from '@/lib/cn'
-import { useGame, useScenario } from '@/store/game'
+import { useEvaluation, useGame, useScenario } from '@/store/game'
 import { Term } from '@/components/Term'
 import { play } from '@/lib/sound'
 
@@ -29,6 +32,8 @@ function eventSound(text: string, kind: string) {
   else if (kind === 'bad') play('dead')
 }
 
+const fmtMB = (mb: number) => (mb >= 1000 ? `${(mb / 1000).toFixed(1)} GB` : `${mb.toFixed(mb < 10 ? 1 : 0)} MB`)
+
 const kindStyle = { info: 'text-muted', good: 'text-ok', warn: 'text-warn', bad: 'text-bad' } as const
 
 function fmtElapsed(m: number) {
@@ -45,7 +50,11 @@ export function Simulation() {
   const scenario = useScenario()
   const design = useGame((s) => s.design)
   const saveFlight = useGame((s) => s.saveFlight)
-  const ctx = useMemo(() => createSim(design, scenario), [design, scenario])
+  const ev = useEvaluation()
+  const designVersion = useGame((s) => s.designVersion)
+  const orbit = findOrbit(gameData, design.flight.orbitId)
+  const altitudeKm = orbit ? clampAltitude(orbit, design.flight.altitudeKm) : 500
+  const ctx = useMemo(() => createSim(design, scenario, ev), [design, scenario, ev])
 
   const stateRef = useRef<SimState>(initialState(ctx))
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -97,7 +106,7 @@ export function Simulation() {
         }
         const g = c.getContext('2d')!
         g.setTransform(dpr, 0, 0, dpr, 0, 0)
-        drawScene(g, w, h, s, ctx, stars, design.altitudeKm)
+        drawScene(g, w, h, s, ctx, stars, altitudeKm)
       }
 
       if (s.status !== 'flying' && !savedRef.current) {
@@ -106,12 +115,12 @@ export function Simulation() {
           status: s.status,
           endMin: s.tMin,
           lifetimeMin: ctx.lifetimeMin,
-          madeGb: s.madeGb,
-          deliveredGb: s.deliveredGb,
-          lostGb: s.lostGb,
+          madeMB: s.madeMB,
+          deliveredMB: s.deliveredMB,
+          lostMB: s.lostMB,
           events: [...s.events],
           samples: [...s.samples],
-          designVersion: design.version,
+          designVersion,
           design,
         })
       }
@@ -129,7 +138,12 @@ export function Simulation() {
     return (
       <Screen title="Mission simulation" hideNext>
         <div className="rounded-xl border border-space-700 bg-space-900 p-6">
-          <p>Your spacecraft isn't ready to fly yet. It still needs {ctx.missing.join(' and ')}.</p>
+          <p>Your spacecraft can't fly yet:</p>
+          <ul className="mt-2 list-disc pl-5 text-sm text-muted">
+            {(ctx.missing.length ? ctx.missing : ['Pick an orbit on the workbench.']).map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
           <Link to="/workbench" className="mt-4 inline-block rounded-lg bg-accent px-5 py-2.5 font-medium text-space-950 hover:bg-accent-strong">
             Back to the workbench
           </Link>
@@ -140,8 +154,8 @@ export function Simulation() {
 
   const s = stateRef.current
   const batteryPct = ctx.batteryCapWh ? (s.batteryWh / ctx.batteryCapWh) * 100 : 0
-  const bufferPct = (s.bufferGb / ctx.bufferCapGb) * 100
-  const reachedPct = s.madeGb > 0 ? (s.deliveredGb / s.madeGb) * 100 : 0
+  const bufferPct = (s.bufferMB / ctx.bufferCapMB) * 100
+  const reachedPct = s.madeMB > 0 ? (s.deliveredMB / s.madeMB) * 100 : 0
   const missionPct = Math.min(100, (s.tMin / ctx.lifetimeMin) * 100)
   const ended = s.status !== 'flying'
 
@@ -226,12 +240,12 @@ export function Simulation() {
           </div>
 
           <div className="flex flex-col gap-3 rounded-xl border border-space-700 bg-space-900 p-3">
-            <Bar icon={BatteryMedium} label="Battery" value={batteryPct} text={`${s.batteryWh.toFixed(1)} / ${ctx.batteryCapWh} Wh`} tone={batteryPct < 20 ? 'bad' : batteryPct < 50 ? 'warn' : 'ok'} />
-            <Bar icon={Database} label="Data storage" value={bufferPct} text={`${s.bufferGb.toFixed(1)} / ${ctx.bufferCapGb} GB`} tone={bufferPct > 95 ? 'bad' : bufferPct > 75 ? 'warn' : 'ok'} />
-            <Bar icon={Send} label="Images reached Earth" value={reachedPct} text={`${s.deliveredGb.toFixed(1)} of ${s.madeGb.toFixed(1)} GB`} tone={s.madeGb === 0 ? 'ok' : reachedPct < 50 ? 'bad' : reachedPct < 85 ? 'warn' : 'ok'} />
+            <Bar icon={BatteryMedium} label="Battery" value={batteryPct} text={`${s.batteryWh.toFixed(1)} / ${ctx.batteryCapWh.toFixed(1)} Wh usable`} tone={batteryPct < 20 ? 'bad' : batteryPct < 50 ? 'warn' : 'ok'} />
+            <Bar icon={Database} label="Data storage" value={bufferPct} text={`${fmtMB(s.bufferMB)} / ${fmtMB(ctx.bufferCapMB)}`} tone={bufferPct > 95 ? 'bad' : bufferPct > 75 ? 'warn' : 'ok'} />
+            <Bar icon={Send} label="Images reached Earth" value={reachedPct} text={`${fmtMB(s.deliveredMB)} of ${fmtMB(s.madeMB)}`} tone={s.madeMB === 0 ? 'ok' : reachedPct < 50 ? 'bad' : reachedPct < 85 ? 'warn' : 'ok'} />
             <p className="flex items-center gap-1.5 text-xs text-muted">
               <Satellite className="size-3.5" aria-hidden />
-              Power: makes {ctx.genW} W in sunlight, uses {ctx.drawW} W
+              Power: makes {ctx.genW.toFixed(1)} W in sunlight, uses {ctx.drawW.toFixed(1)} W
             </p>
           </div>
 

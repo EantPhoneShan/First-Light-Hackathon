@@ -3,8 +3,8 @@ import { AlertTriangle, CheckCircle2, RotateCcw, Sparkles, Star, Wrench, XCircle
 import { useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Screen } from '@/components/Screen'
-import { buildReport, fmtDuration, type Report as ReportData } from '@/engine/mockReport'
-import type { FlightResult, SimEvent } from '@/engine/placeholderTypes'
+import { buildReport, fmtDuration, type Report as ReportData } from '@/sim/standInReport'
+import type { FlightResult, SimEvent } from '@/sim/types'
 import { cn } from '@/lib/cn'
 import { useGame, useScenario } from '@/store/game'
 import { play } from '@/lib/sound'
@@ -19,8 +19,8 @@ export function Report() {
 
   const flight = flights[flights.length - 1]
   const ghost = flights.length > 1 ? flights[flights.length - 2] : undefined
-  const report = useMemo(() => flight && buildReport(flight, flight.design, scenario), [flight, scenario])
-  const ghostReport = useMemo(() => ghost && buildReport(ghost, ghost.design, scenario), [ghost, scenario])
+  const report = useMemo(() => flight && buildReport(flight, scenario), [flight, scenario])
+  const ghostReport = useMemo(() => ghost && buildReport(ghost, scenario), [ghost, scenario])
 
   if (!flight || !report) {
     return (
@@ -37,9 +37,9 @@ export function Report() {
 
   const refly = () => {
     setRefly({
-      slots: [...new Set(report.findings.flatMap((f) => f.slots))],
+      partIds: [...new Set(report.findings.flatMap((f) => f.partIds))],
       tabs: [...new Set(report.findings.flatMap((f) => f.tabs))],
-      fixes: report.findings.map((f) => f.fix),
+      fixes: report.findings.map((f) => f.fix).filter((x): x is string => !!x),
     })
     navigate('/workbench')
   }
@@ -57,8 +57,8 @@ export function Report() {
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <ScoreCard report={report} ghost={ghostReport} />
         <div className="flex flex-col gap-4">
-          <DataCard report={report} flight={flight} customer={scenario.customer} />
-          <DeliveredChart flight={flight} ghost={ghost} expectedGb={report.expectedGb} />
+          <DataCard report={report} flight={flight} customer={scenario.customer.name} />
+          <DeliveredChart flight={flight} ghost={ghost} expectedMB={report.expectedMB} />
         </div>
       </div>
 
@@ -152,7 +152,6 @@ function ScoreCard({ report, ghost }: { report: ReportData; ghost?: ReportData }
 /* ---------------- Data delivered ---------------- */
 
 function DataCard({ report, flight, customer }: { report: ReportData; flight: FlightResult; customer: string }) {
-  const fmt = (n: number) => (n >= 100 ? Math.round(n).toLocaleString() : n.toFixed(1))
   return (
     <div className="rounded-xl border border-space-700 bg-space-900 p-4">
       <h2 className="font-semibold">What the {customer.toLowerCase()} got</h2>
@@ -161,7 +160,7 @@ function DataCard({ report, flight, customer }: { report: ReportData; flight: Fl
           <dt className="text-xs text-muted">Images delivered</dt>
           <dd className="font-display text-2xl tabular-nums">{Math.round(report.deliveredPct)}%</dd>
           <dd className="text-xs text-muted">
-            {fmt(flight.deliveredGb)} of {fmt(report.expectedGb)} GB
+            {fmtMB(flight.deliveredMB)} of {fmtMB(report.expectedMB)}
           </dd>
         </div>
         <div>
@@ -171,8 +170,8 @@ function DataCard({ report, flight, customer }: { report: ReportData; flight: Fl
         </div>
         <div>
           <dt className="text-xs text-muted">Lost</dt>
-          <dd className={cn('font-display text-2xl tabular-nums', flight.lostGb > 0 && 'text-warn')}>{fmt(flight.lostGb)} GB</dd>
-          <dd className="text-xs text-muted">{flight.lostGb > 0 ? 'storage was full' : 'nothing lost'}</dd>
+          <dd className={cn('font-display text-2xl tabular-nums', flight.lostMB > 0 && 'text-warn')}>{fmtMB(flight.lostMB)}</dd>
+          <dd className="text-xs text-muted">{flight.lostMB > 0 ? 'storage was full' : 'nothing lost'}</dd>
         </div>
       </dl>
     </div>
@@ -181,17 +180,19 @@ function DataCard({ report, flight, customer }: { report: ReportData; flight: Fl
 
 /* ---------------- Delivered over time, with the last flight as a ghost ---------------- */
 
-function DeliveredChart({ flight, ghost, expectedGb }: { flight: FlightResult; ghost?: FlightResult; expectedGb: number }) {
+const fmtMB = (mb: number) => (mb >= 1000 ? `${(mb / 1000).toFixed(mb >= 10000 ? 0 : 1)} GB` : `${Math.round(mb)} MB`)
+
+function DeliveredChart({ flight, ghost, expectedMB }: { flight: FlightResult; ghost?: FlightResult; expectedMB: number }) {
   const W = 320
   const H = 120
   const life = flight.lifetimeMin
-  const yMax = Math.max(expectedGb, flight.deliveredGb, ghost?.deliveredGb ?? 0, 1)
+  const yMax = Math.max(expectedMB, flight.deliveredMB, ghost?.deliveredMB ?? 0, 1)
   const path = (f: FlightResult) => {
-    const pts = [{ tMin: 0, deliveredGb: 0 }, ...f.samples, { tMin: f.endMin, deliveredGb: f.deliveredGb }]
-    return pts.map((p, i) => `${i ? 'L' : 'M'}${((p.tMin / life) * W).toFixed(1)},${(H - (p.deliveredGb / yMax) * H).toFixed(1)}`).join(' ')
+    const pts = [{ tMin: 0, deliveredMB: 0 }, ...f.samples, { tMin: f.endMin, deliveredMB: f.deliveredMB }]
+    return pts.map((p, i) => `${i ? 'L' : 'M'}${((p.tMin / life) * W).toFixed(1)},${(H - (p.deliveredMB / yMax) * H).toFixed(1)}`).join(' ')
   }
   const endX = (flight.endMin / life) * W
-  const endY = H - (flight.deliveredGb / yMax) * H
+  const endY = H - (flight.deliveredMB / yMax) * H
 
   return (
     <div className="rounded-xl border border-space-700 bg-space-900 p-4">
@@ -311,10 +312,10 @@ function Findings({ report }: { report: ReportData }) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 + i * 0.1 }}
-          className={cn('rounded-xl border p-4', f.kind === 'bad' ? 'border-bad/50 bg-bad/10' : 'border-warn/50 bg-warn/10')}
+          className={cn('rounded-xl border p-4', f.kind === 'fail' ? 'border-bad/50 bg-bad/10' : 'border-warn/50 bg-warn/10')}
         >
           <div className="flex items-center gap-2">
-            {f.kind === 'bad' ? <XCircle className="size-5 shrink-0 text-bad" aria-hidden /> : <AlertTriangle className="size-5 shrink-0 text-warn" aria-hidden />}
+            {f.kind === 'fail' ? <XCircle className="size-5 shrink-0 text-bad" aria-hidden /> : <AlertTriangle className="size-5 shrink-0 text-warn" aria-hidden />}
             <h3 className="font-medium">{f.title}</h3>
             {f.tMin !== null && <span className="ml-auto text-xs text-muted">{fmtDuration(f.tMin)} after launch</span>}
           </div>

@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
-import type { Orbit, Station } from '@/engine/placeholderTypes'
+import type { GroundStation, Orbit } from '@/engine/types'
 
 interface GroundTrackProps {
   orbit: Orbit
   altitudeKm: number
   periodMin: number
-  stations: Station[]
+  stations: GroundStation[]
   selectedStationIds: string[]
 }
 
@@ -21,10 +21,11 @@ const rad = Math.PI / 180
  * circle each one can "see". Display only: Member 1's simulate.ts owns the real passes.
  */
 export function GroundTrack({ orbit, altitudeKm, periodMin, stations, selectedStationIds }: GroundTrackProps) {
-  const inc = orbit.inclinationDeg
+  const inc: number | null = orbit.inclinationDeg
+  const geo = orbit.kind === 'geo'
 
   const paths = useMemo(() => {
-    if (inc === null || orbit.id === 'geo' || periodMin <= 0) return []
+    if (inc === null || geo || periodMin <= 0) return []
     const orbitsInDay = Math.min(16, Math.floor(1440 / periodMin))
     const steps = 120
     const lines: string[] = []
@@ -46,10 +47,10 @@ export function GroundTrack({ orbit, altitudeKm, periodMin, stations, selectedSt
       lines.push(d)
     }
     return lines
-  }, [inc, orbit.id, periodMin])
+  }, [inc, geo, periodMin])
 
   // Ground footprint: how far from a station the craft can be and still talk to it.
-  const footprintDeg = orbit.altitudeKm ? Math.min(80, (Math.acos(RE / (RE + altitudeKm)) / rad) * 0.8) : 0
+  const footprintDeg = altitudeKm ? Math.min(80, (Math.acos(RE / (RE + altitudeKm)) / rad) * 0.8) : 0
 
   return (
     <div className="w-full max-w-xl">
@@ -80,7 +81,7 @@ export function GroundTrack({ orbit, altitudeKm, periodMin, stations, selectedSt
         {paths.map((d, i) => (
           <path key={i} d={d} fill="none" stroke="var(--color-accent)" strokeWidth={i === 0 ? 1.6 : 0.7} strokeOpacity={i === 0 ? 1 : 0.45} />
         ))}
-        {orbit.id === 'geo' && (
+        {geo && (
           <g>
             <circle cx={x(100)} cy={y(0)} r={4} fill="var(--color-accent)" />
             <circle cx={x(100)} cy={y(0)} r={60} fill="var(--color-accent)" fillOpacity={0.08} stroke="var(--color-accent)" strokeOpacity={0.4} />
@@ -93,7 +94,7 @@ export function GroundTrack({ orbit, altitudeKm, periodMin, stations, selectedSt
         )}
       </svg>
       <p className="mt-1 text-[11px] text-muted">
-        {orbit.id === 'geo'
+        {geo
           ? 'Stays over one spot and sees the same hemisphere all the time.'
           : inc !== null
             ? 'One day of passes. The bold line is the first orbit; Earth turns underneath, so each pass shifts west.'

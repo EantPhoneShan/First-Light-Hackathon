@@ -2,8 +2,8 @@ import { ArrowRight, Box, ClipboardList, FlaskConical, RadioTower, type LucideIc
 import { useNavigate } from 'react-router-dom'
 import { Art } from '@/components/Art'
 import { Screen } from '@/components/Screen'
-import { roleNames } from '@/engine/mockReview'
-import type { Role } from '@/engine/placeholderTypes'
+import { ROLE_ORDER, roleNames } from '@/game/ui'
+import type { Role } from '@/engine/types'
 import { cn } from '@/lib/cn'
 import { useGame } from '@/store/game'
 
@@ -16,11 +16,11 @@ const roleInfo: Record<Role, { icon: LucideIcon; owns: string; does: string }> =
 
 /** Team mode MVP: one shared screen, four role panels. Room codes for separate devices are P2 (Member 3). */
 export function Lobby() {
-  const players = useGame((s) => s.room.players)
+  const players = useGame((s) => s.players)
   const setPlayer = useGame((s) => s.setPlayer)
   const setMyRole = useGame((s) => s.setMyRole)
   const navigate = useNavigate()
-  const roles = Object.keys(roleNames) as Role[]
+  const roles = ROLE_ORDER
   const nameOf = (r: Role) => players.find((p) => p.role === r)?.name ?? ''
   const filled = players.length
 

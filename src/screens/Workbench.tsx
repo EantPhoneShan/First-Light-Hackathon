@@ -17,42 +17,49 @@ import { OrbitPicker } from '@/components/orbit/OrbitPicker'
 import { StationPicker } from '@/components/orbit/StationPicker'
 import { ResourceGauge } from '@/components/ResourceGauge'
 import { Screen } from '@/components/Screen'
-import { TRAY_ID, type DragData } from '@/components/workbench/dnd'
-import { categoryLabel, PartIcon } from '@/components/workbench/PartIcon'
+import { CRAFT_ID, TRAY_ID, type DragData } from '@/components/workbench/dnd'
+import { PartIcon } from '@/components/workbench/PartIcon'
 import { PartInfo, PartsTray } from '@/components/workbench/PartsTray'
 import { Spacecraft } from '@/components/workbench/Spacecraft'
-import { mockGauges, partById, parts, slotsFor } from '@/engine/mock'
-import { scienceFor } from '@/engine/mockScience'
-import type { Part, SlotDef } from '@/engine/placeholderTypes'
+import { findBus, findPart } from '@/engine/data'
+import { RESOURCES, type Availability, type Part } from '@/engine/types'
+import { GAUGE_WATCHER, gameData, n1, partsOnCraft, roleNames } from '@/game/ui'
 import { cn } from '@/lib/cn'
-import { useCanSee, useGame, useScenario } from '@/store/game'
-import { resourceOwner, roleNames } from '@/engine/mockReview'
 import { play } from '@/lib/sound'
+import { useCanSee, useEvaluation, useGame, useScenario } from '@/store/game'
 
 type Tab = 'craft' | 'launch' | 'ground'
 
 /**
  * CML 4 Point design. Three tabs, one per segment the player builds:
  * Space (spacecraft), Launch (orbit + rocket), Ground (stations). Gauges stay on top.
+ * Every number comes from Member 1's evaluate().
  */
 export function Workbench() {
   const scenario = useScenario()
   const design = useGame((s) => s.design)
-  const placePart = useGame((s) => s.placePart)
+  const setBus = useGame((s) => s.setBus)
+  const addPart = useGame((s) => s.addPart)
+  const removePart = useGame((s) => s.removePart)
   const refly = useGame((s) => s.refly)
   const setRefly = useGame((s) => s.setRefly)
-  const gauges = mockGauges(design, scenario)
+  const ev = useEvaluation()
   const canSee = useCanSee()
-  const slots = slotsFor(design)
-  // F3: instruments that can't serve this mission's science goal are locked, with the reason.
-  const locks = scienceFor(scenario.id)?.locked ?? {}
-  const [dragging, setDragging] = useState<Part | null>(null)
+  const [dragging, setDragging] = useState<DragData | null>(null)
   const [tab, setTab] = useState<Tab>('craft')
 
+  const bus = findBus(gameData, design.engineer.busId)
+  const buses = gameData.buses.filter((b) => scenario.busIds.includes(b.id))
+  const onCraft = partsOnCraft(design)
+  const counts = onCraft.reduce<Record<string, number>>((m, p) => ((m[p.id] = (m[p.id] ?? 0) + 1), m), {})
+  // A part can be added when the engine allows one more, and (instruments) when it serves the science goal (F3).
+  const availability: Record<string, Availability> = { ...ev.compat.parts }
+  for (const [id, a] of Object.entries(ev.compat.instruments)) if (!a.ok) availability[id] = a
+
   const tabs = [
-    { id: 'craft' as const, label: 'Spacecraft', icon: Box, missing: !design.partsBySlot.bus },
-    { id: 'launch' as const, label: 'Orbit & launch', icon: OrbitIcon, missing: !design.orbitId || !design.launcherId },
-    { id: 'ground' as const, label: 'Ground', icon: RadioTower, missing: design.stationIds.length === 0 },
+    { id: 'craft' as const, label: 'Spacecraft', icon: Box, missing: !bus },
+    { id: 'launch' as const, label: 'Orbit & launch', icon: OrbitIcon, missing: !design.flight.orbitId || !design.flight.launcherId },
+    { id: 'ground' as const, label: 'Ground', icon: RadioTower, missing: design.flight.stationIds.length === 0 },
   ]
 
   const sensors = useSensors(
@@ -61,62 +68,49 @@ export function Workbench() {
     useSensor(KeyboardSensor),
   )
 
-  const wrongSlot = (part: Part) => {
-    const hasSlot = slots.some((s) => s.accepts === part.category)
-    play('error')
-    toast.error(
-      part.category !== 'bus' && !design.partsBySlot.bus
-        ? 'Add a bus first. It decides which slots you have.'
-        : hasSlot
-          ? `${part.name} goes in a ${categoryLabel[part.category]} slot.`
-          : `This bus has no ${categoryLabel[part.category]} slot. Try a bigger bus.`,
-    )
-  }
-
-  /** Tap + in the tray: fill the first empty matching slot, else replace the first matching one. */
-  const addPart = (part: Part) => {
-    if (locks[part.id]) return play('error'), toast.error(locks[part.id])
-    const matching = slots.filter((s) => s.accepts === part.category)
-    const target = matching.find((s) => !design.partsBySlot[s.id]) ?? matching[0]
-    if (!target) return wrongSlot(part)
-    placePart(target.id, part.id)
+  /** Add a bus or one more of a part, unless the engine says it can't go on. */
+  const add = (kind: 'part' | 'bus', id: string) => {
+    if (kind === 'bus') {
+      setBus(id)
+      return play('place')
+    }
+    if (!bus) {
+      play('error')
+      return toast.error('Add a bus first. It decides how many slots you have.')
+    }
+    const a = availability[id]
+    if (a && !a.ok) {
+      play('error')
+      return toast.error(a.reason ?? "That part can't go on this craft.")
+    }
+    addPart(id)
     play('place')
   }
 
-  const onDragStart = (e: DragStartEvent) => {
-    setDragging(partById((e.active.data.current as DragData).partId) ?? null)
+  const remove = (id: string) => {
+    removePart(id)
+    play('remove')
   }
+
+  const onDragStart = (e: DragStartEvent) => setDragging(e.active.data.current as DragData)
 
   const onDragEnd = (e: DragEndEvent) => {
     setDragging(null)
-    const { partId, fromSlot } = e.active.data.current as DragData
-    const part = partById(partId)
-    if (!part || !e.over) return
-    if (!fromSlot && locks[part.id]) return play('error'), toast.error(locks[part.id])
-    const overId = String(e.over.id)
-
-    if (overId === TRAY_ID) {
-      if (fromSlot) placePart(fromSlot, null), play('remove')
-      return
-    }
-    if (overId === fromSlot) return
-
-    const target = slots.find((s: SlotDef) => s.id === overId)
-    if (!target || target.accepts !== part.category) return wrongSlot(part)
-
-    const displaced = design.partsBySlot[target.id] ?? null
-    placePart(target.id, part.id)
-    play('place')
-    // Moving between two slots of the same kind swaps them.
-    if (fromSlot) placePart(fromSlot, displaced)
+    const d = e.active.data.current as DragData
+    const over = e.over ? String(e.over.id) : null
+    if (d.fromCraft && over === TRAY_ID) return remove(d.id)
+    if (!d.fromCraft && over === CRAFT_ID) add(d.kind, d.id)
   }
+
+  const draggedItem: Part | undefined = dragging?.kind === 'part' ? findPart(gameData, dragging.id) : undefined
+  const draggedBus = dragging?.kind === 'bus' ? findBus(gameData, dragging.id) : undefined
 
   return (
     <Screen title="Workbench" subtitle="CML 4 · Point design: build the spacecraft." reqs="F7, F8, F9, F21" nextLabel="Design review">
       <div className="sticky top-[var(--header-h,104px)] z-[5] -mx-4 bg-space-950/90 px-4 py-2 backdrop-blur">
-        <div className="grid grid-cols-6 gap-1 sm:gap-2">
-          {gauges.map((g) => (
-            <ResourceGauge key={g.key} g={g} hiddenBy={canSee(g.key) ? undefined : roleNames[resourceOwner[g.key]]} />
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
+          {RESOURCES.map((r) => (
+            <ResourceGauge key={r} g={ev.gauges[r]} hiddenBy={canSee(r) ? undefined : roleNames[GAUGE_WATCHER[r]]} />
           ))}
         </div>
       </div>
@@ -131,7 +125,7 @@ export function Workbench() {
                 <li key={f}>{f}</li>
               ))}
             </ul>
-            {refly.slots.length > 0 && <p className="mt-1 text-xs text-muted">Parts to change are outlined in red.</p>}
+            {refly.partIds.length > 0 && <p className="mt-1 text-xs text-muted">Parts to change are outlined in red.</p>}
           </div>
           <button onClick={() => setRefly(null)} className="rounded p-1 text-muted hover:bg-space-800 hover:text-ink" aria-label="Dismiss fixes">
             <X className="size-4" />
@@ -176,19 +170,19 @@ export function Workbench() {
           <div className="rounded-xl border border-space-700 bg-[radial-gradient(circle_at_50%_40%,var(--color-space-800),var(--color-space-900)_70%)] p-4">
             <div className="flex items-baseline justify-between">
               <h2 className="font-semibold">Spacecraft</h2>
-              <span className="text-xs text-muted">{scenario.craft}</span>
+              <span className="text-xs text-muted">{n1(ev.totals.massKg)} kg</span>
             </div>
-            <Spacecraft slots={slots} partsBySlot={design.partsBySlot} problemSlots={refly?.slots} onRemove={(id) => (placePart(id, null), play('remove'))} />
+            <Spacecraft bus={bus} parts={onCraft} problemIds={refly?.partIds} onRemove={remove} onRemoveBus={() => (setBus(null), play('remove'))} />
           </div>
 
-          <PartsTray parts={parts} onAdd={addPart} locks={locks} />
+          <PartsTray buses={buses} parts={gameData.parts} availability={availability} counts={counts} currentBusId={design.engineer.busId} onAdd={add} />
         </div>
 
         <DragOverlay dropAnimation={null}>
-          {dragging && (
+          {(draggedItem || draggedBus) && (
             <div className="flex w-64 items-center gap-2.5 rounded-lg border border-accent bg-space-800 p-2 shadow-xl shadow-black/50">
-              <PartIcon part={dragging} className="size-10 shrink-0" />
-              <PartInfo part={dragging} />
+              <PartIcon item={draggedItem ?? draggedBus!} className="size-10 shrink-0" />
+              {draggedItem ? <PartInfo part={draggedItem} /> : <span className="text-sm font-medium">{draggedBus!.name}</span>}
             </div>
           )}
         </DragOverlay>

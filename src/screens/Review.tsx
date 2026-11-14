@@ -2,47 +2,44 @@ import { AlertTriangle, CheckCircle2, Hand, Rocket, ThumbsUp, Wrench, XCircle } 
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Screen } from '@/components/Screen'
-import { reviewChecks, roleNames, type Check } from '@/engine/mockReview'
-import type { Role, Status } from '@/engine/placeholderTypes'
+import type { Role, Status } from '@/engine/types'
+import { checkTerm, reviewChecks, type Check } from '@/game/checks'
+import { ROLE_ORDER, roleNames } from '@/game/ui'
 import { cn } from '@/lib/cn'
-import { useGame, useScenario } from '@/store/game'
+import { useEvaluation, useGame } from '@/store/game'
 import { Term } from '@/components/Term'
 import { play } from '@/lib/sound'
 
-const roles = Object.keys(roleNames) as Role[]
-
-/** Checks whose name is a space term with a glossary entry. */
-const checkTerm: Record<string, string> = { bus: 'bus', battery: 'eclipse', comms: 'downlink', deltaV: 'deorbit', instrument: 'payload' }
+const roles = ROLE_ORDER
 
 const statusStyle: Record<Status, { icon: typeof CheckCircle2; text: string; box: string; word: string }> = {
   ok: { icon: CheckCircle2, text: 'text-ok', box: 'border-space-700 bg-space-900', word: 'Go' },
   warn: { icon: AlertTriangle, text: 'text-warn', box: 'border-warn/40 bg-warn/5', word: 'Watch' },
-  bad: { icon: XCircle, text: 'text-bad', box: 'border-bad/50 bg-bad/10', word: 'Problem' },
+  fail: { icon: XCircle, text: 'text-bad', box: 'border-bad/50 bg-bad/10', word: 'Problem' },
 }
 
 /** PRD F12: every check with its reason, sign-off per role. Launch is allowed with warnings. */
 export function Review() {
-  const scenario = useScenario()
-  const design = useGame((s) => s.design)
+  const version = useGame((s) => s.designVersion)
   const navigate = useNavigate()
-  const reqs = useGame((s) => s.requirements)
-  const checks = reviewChecks(design, scenario, reqs)
+  const ev = useEvaluation()
+  const checks = reviewChecks(ev)
   const approvals = useGame((s) => s.approvals)
 
   const count = (st: Status) => checks.filter((c) => c.status === st).length
   const blockers = checks.filter((c) => c.blocker)
-  const holds = roles.filter((r) => approvals[r]?.state === 'hold' && approvals[r]?.version === design.version)
+  const holds = roles.filter((r) => approvals[r]?.state === 'hold' && approvals[r]?.version === version)
   const canLaunch = blockers.length === 0 && holds.length === 0
-  const problems = count('bad')
+  const problems = count('fail')
 
   // Problems first, then warnings, then the green ones.
-  const order = { bad: 0, warn: 1, ok: 2 }
+  const order = { fail: 0, warn: 1, ok: 2 }
   const sorted = [...checks].sort((a, b) => order[a.status] - order[b.status])
 
   return (
     <Screen title="Design review" subtitle="Every check, with the reason. Each role signs off before launch." reqs="F12" hideNext>
       <div className="grid grid-cols-3 gap-2 sm:gap-3" aria-label="Checklist summary">
-        {(['ok', 'warn', 'bad'] as const).map((st) => {
+        {(['ok', 'warn', 'fail'] as const).map((st) => {
           const { icon: Icon, text, word } = statusStyle[st]
           return (
             <div key={st} className="flex flex-col items-center gap-1 rounded-xl border border-space-700 bg-space-900 p-3 sm:flex-row sm:justify-center sm:gap-3">
@@ -110,7 +107,7 @@ function CheckRow({ c }: { c: Check }) {
       <Icon className={cn('mt-0.5 size-5 shrink-0', text)} aria-label={word} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline justify-between gap-x-2">
-          <span className="font-medium">{checkTerm[c.id] ? <Term id={checkTerm[c.id]}>{c.label}</Term> : c.label}</span>
+          <span className="font-medium">{checkTerm[c.kind] ? <Term id={checkTerm[c.kind]!}>{c.label}</Term> : c.label}</span>
           <span className="text-xs text-muted">{roleNames[c.owner]}</span>
         </div>
         <p className="mt-0.5 text-sm text-muted">{c.why}</p>
@@ -126,16 +123,16 @@ function CheckRow({ c }: { c: Check }) {
 }
 
 function RoleCard({ role, checks }: { role: Role; checks: Check[] }) {
-  const version = useGame((s) => s.design.version)
+  const version = useGame((s) => s.designVersion)
   const approval = useGame((s) => s.approvals[role])
   const setApproval = useGame((s) => s.setApproval)
-  const player = useGame((s) => s.room.players.find((p) => p.role === role)?.name)
+  const player = useGame((s) => s.players.find((p) => p.role === role)?.name)
   const [holding, setHolding] = useState(false)
   const [note, setNote] = useState('')
 
   const current = approval && approval.version === version ? approval : undefined
   const stale = approval && !current
-  const bad = checks.filter((c) => c.status === 'bad').length
+  const bad = checks.filter((c) => c.status === 'fail').length
   const warn = checks.filter((c) => c.status === 'warn').length
 
   return (

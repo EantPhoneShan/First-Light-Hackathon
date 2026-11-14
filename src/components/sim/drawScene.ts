@@ -1,5 +1,5 @@
-import { craftAngle, type SimContext } from '@/engine/mockSim'
-import type { SimState } from '@/engine/placeholderTypes'
+import { craftAngle, type SimContext } from '@/sim/standInSim'
+import type { SimState } from '@/sim/types'
 
 export interface Star {
   x: number

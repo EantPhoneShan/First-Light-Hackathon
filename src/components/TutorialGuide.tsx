@@ -3,8 +3,7 @@ import { ArrowRight, ChevronDown, Compass, X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Term } from '@/components/Term'
-import { partById } from '@/engine/mock'
-import { useGame } from '@/store/game'
+import { useEvaluation, useGame } from '@/store/game'
 
 interface Step {
   id: string
@@ -32,14 +31,15 @@ export function TutorialGuide() {
   const [collapsed, setCollapsed] = useState(false)
 
   const last = flights[flights.length - 1]
-  const batteryWh = partById(design.partsBySlot['battery-1'])?.batteryWh ?? 0
-  const fixed = batteryWh >= 19
+  // Fixed = Member 1's engine no longer finds the battery problem.
+  const ev = useEvaluation()
+  const fixed = !!design.engineer.busId && !ev.problems.some((p) => p.id === 'power.battery')
   const won = last?.status === 'complete'
   const step = tutorial ? pickStep(pathname, !!last, last?.status === 'dead', fixed, won) : null
 
   // On the fix step, outline the battery slot even if the player skipped the report.
   useEffect(() => {
-    if (step?.id === 'fix' && !refly) setRefly({ slots: ['battery-1'], tabs: [], fixes: [] })
+    if (step?.id === 'fix' && !refly) setRefly({ partIds: ['battery-small'], tabs: [], fixes: [] })
   }, [step?.id, refly, setRefly])
 
   // Open the card again whenever the step changes.
@@ -136,8 +136,7 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
           title: 'Meet your CubeSat',
           body: (
             <>
-              This <Term id="cubesat">CubeSat</Term> is built to spot wildfires from <Term id="sso">sun-synchronous orbit</Term>. None of the gauges at the top is red, so it
-              looks ready. Let's launch it and see.
+              This <Term id="cubesat">CubeSat</Term> is built to spot wildfires from <Term id="sso">sun-synchronous orbit</Term>. The Power gauge at the top is red, but lots of teams launch anyway. Let's launch it and see what that means.
             </>
           ),
           action: { label: 'Launch it', to: '/launch' },
@@ -149,8 +148,8 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
           title: 'Fit a bigger battery',
           body: (
             <>
-              The red outline is the small battery. Open the Battery tab in the parts tray and drag the <b className="text-ink">Large battery</b> onto that slot, or
-              tap its + button.
+              The red outline is the small battery. The bus is full, so remove it with its × first. Then open the Battery tab in the parts tray and drag the{' '}
+              <b className="text-ink">Large battery</b> onto the craft, or tap its + button.
             </>
           ),
         }
@@ -158,7 +157,7 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
         id: 'ready',
         n: 6,
         title: 'Fly it again',
-        body: <>40 Wh is plenty to get through the shadow. Launch again and watch the battery bar this time.</>,
+        body: <>The large battery easily covers the shadow, and the Power gauge has turned green. Launch again and watch the battery bar this time.</>,
         action: { label: 'Launch again', to: '/launch' },
       }
 
