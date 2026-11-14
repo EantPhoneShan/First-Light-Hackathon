@@ -31,6 +31,7 @@ runs the engine tests: the tutorial CubeSat dies 29 minutes into its first eclip
 
 - Sync API for game code: [docs/SYNC.md](docs/SYNC.md)
 - Backend: AWS Amplify Gen 2 in `amplify/`: AppSync (GraphQL + real-time subscriptions) on DynamoDB, API-key auth so players join without accounts.
+- Leaderboard: the `submitScore` mutation runs an AWS Lambda (`amplify/functions/submit-score/`) that replays the flight with the game engine and saves the score it computes, so scores can't be faked. Players can read the Score table but not write to it.
 - Hosting: AWS Amplify Hosting builds and deploys backend + frontend on every push to `main` (`amplify.yml`).
 - Fallback: set `VITE_SYNC=firebase` and the `VITE_FIREBASE_*` vars (see `.env.example`) to use Firebase Realtime Database instead. If no cloud is reachable the game plays solo.
 
