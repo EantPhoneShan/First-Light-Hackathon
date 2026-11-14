@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14">
+  <rect width="960" height="420" fill="#0b1d3a"/>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ff8c32"/></marker>
+  </defs>
+  <text x="30" y="40" fill="#fff" font-size="22" font-weight="700">First Light: cloud architecture</text>
+  <text x="30" y="64" fill="#9fb3d1">Game engine runs on every device. Only the Room and Design sync. Works solo if the cloud is down.</text>
+
+  <!-- players -->
+  <g fill="#fff">
+    <rect x="30" y="110" width="200" height="200" rx="12" fill="#13305c" stroke="#3d6bb3"/>
+    <text x="130" y="138" text-anchor="middle" font-weight="700">Players (1–4 devices)</text>
+    <text x="130" y="166" text-anchor="middle" fill="#cfe0ff">React + TypeScript</text>
+    <text x="130" y="188" text-anchor="middle" fill="#cfe0ff">Game engine (local)</text>
+    <text x="130" y="210" text-anchor="middle" fill="#cfe0ff">src/sync module</text>
+    <text x="130" y="232" text-anchor="middle" fill="#cfe0ff">offline queue + retry</text>
+    <text x="130" y="254" text-anchor="middle" fill="#cfe0ff">localStorage autosave</text>
+  </g>
+
+  <!-- AWS box -->
+  <rect x="290" y="90" width="510" height="300" rx="14" fill="none" stroke="#ff8c32" stroke-dasharray="6 5"/>
+  <text x="306" y="114" fill="#ff8c32" font-weight="700">AWS · ap-southeast-1 (Singapore) · Free plan</text>
+
+  <g fill="#fff">
+    <rect x="320" y="135" width="190" height="70" rx="10" fill="#1d4277"/>
+    <text x="415" y="163" text-anchor="middle" font-weight="700">Amplify Hosting</text>
+    <text x="415" y="185" text-anchor="middle" fill="#cfe0ff" font-size="12">CDN + CI/CD from GitHub</text>
+
+    <rect x="320" y="285" width="190" height="70" rx="10" fill="#1d4277"/>
+    <text x="415" y="313" text-anchor="middle" font-weight="700">AWS AppSync</text>
+    <text x="415" y="335" text-anchor="middle" fill="#cfe0ff" font-size="12">GraphQL + live subscriptions</text>
+
+    <rect x="580" y="285" width="190" height="70" rx="10" fill="#1d4277"/>
+    <text x="675" y="313" text-anchor="middle" font-weight="700">Amazon DynamoDB</text>
+    <text x="675" y="335" text-anchor="middle" fill="#cfe0ff" font-size="12">Room · Player · Section · Score</text>
+
+    <rect x="580" y="200" width="190" height="60" rx="10" fill="#1d4277"/>
+    <text x="675" y="225" text-anchor="middle" font-weight="700">CloudWatch</text>
+    <text x="675" y="245" text-anchor="middle" fill="#cfe0ff" font-size="12">logs · $1 budget alert</text>
+
+    <rect x="825" y="135" width="110" height="70" rx="10" fill="#24292f" stroke="#8b949e"/>
+    <text x="880" y="163" text-anchor="middle" font-weight="700">GitHub</text>
+    <text x="880" y="185" text-anchor="middle" fill="#cfe0ff" font-size="12">push = deploy</text>
+  </g>
+
+  <g stroke="#ff8c32" stroke-width="2" fill="none" marker-end="url(#a)">
+    <path d="M230,170 L318,170"/>
+    <path d="M230,300 L318,315"/>
+    <path d="M510,320 L578,320"/>
+    <path d="M825,170 L512,170" stroke-dasharray="4 4"/>
+    <path d="M415,207 L415,283" stroke-dasharray="4 4"/>
+  </g>
+  <text x="236" y="160" fill="#ffd2ad" font-size="12">load game</text>
+  <text x="236" y="292" fill="#ffd2ad" font-size="12">sync (WebSocket)</text>
+  <text x="600" y="160" fill="#ffd2ad" font-size="12">push triggers build</text>
+  <text x="425" y="250" fill="#ffd2ad" font-size="12">deploys backend</text>
+  <text x="30" y="350" fill="#9fb3d1" font-size="12">Plan B: Firebase Realtime DB</text>
+  <text x="30" y="368" fill="#9fb3d1" font-size="12">(one setting: VITE_SYNC=firebase)</text>
+</svg>

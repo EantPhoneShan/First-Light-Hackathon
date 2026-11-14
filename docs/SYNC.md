@@ -77,3 +77,13 @@ Approvals: use `isApproved(room, role)` and `allApproved(room)`. Never read `app
 ## Testing without the cloud
 
 `npm run dev`, open two tabs, create a room in one and join with the code in the other. Each tab counts as its own player (local backend). With AWS deployed, use two phones.
+
+## Leaderboard
+
+```ts
+import { submitScore, topScores } from './sync/leaderboard';
+await submitScore({ scenario: 'wildfire-watch', score: 742, teamName: 'Orbiters', outcome: 'success' });
+const top = await topScores('wildfire-watch'); // [{ teamName, score, outcome, ... }] highest first
+```
+
+Saves to DynamoDB when AWS is live, otherwise to this browser. Scores are clamped to 0–1000.
