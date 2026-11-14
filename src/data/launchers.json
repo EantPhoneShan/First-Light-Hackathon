@@ -8,7 +8,7 @@
       "capacityKg": { "iss": 12 },
       "maxBus": "cubesat",
       "reliability": 0.98,
-      "icon": "assets/rocket-small.webp",
+      "icon": "rocket-rideshare",
       "tooltip": "Your CubeSat rides up on a cargo flight to the Space Station, then is pushed out into orbit. Cheap, but you get the Station's low orbit.",
       "source": "cubesat101",
       "sourceNote": "CubeSat 101 section 3.5: ISS deployment mission model. Price is a rounded estimate."
@@ -21,7 +21,7 @@
       "capacityKg": { "iss": 12, "sso": 12 },
       "maxBus": "cubesat",
       "reliability": 0.97,
-      "icon": "assets/rocket-small.webp",
+      "icon": "rocket-rideshare",
       "tooltip": "Your CubeSat shares a rocket with a bigger satellite and is released from a dispenser. You go where the main satellite goes.",
       "source": "cubesat101",
       "sourceNote": "CubeSat 101 chapter 3: CubeSats ride as secondary payloads in dispensers. Price is a rounded estimate."
@@ -34,7 +34,7 @@
       "capacityKg": { "iss": 300, "sso": 200 },
       "maxBus": "smallsat",
       "reliability": 0.95,
-      "icon": "assets/rocket-small.webp",
+      "icon": "rocket-small",
       "tooltip": "A rocket of your own for small satellites. You choose the orbit and the date, but it costs much more than sharing.",
       "source": "estimate",
       "sourceNote": "Generic small launcher class; capacity and price rounded from public figures."
@@ -47,7 +47,7 @@
       "capacityKg": { "iss": 15000, "sso": 10000, "geo": 1500 },
       "maxBus": "large",
       "reliability": 0.98,
-      "icon": "assets/rocket-medium.webp",
+      "icon": "rocket-medium",
       "tooltip": "A workhorse rocket that can lift large satellites to low orbit, and small ones all the way to GEO.",
       "source": "estimate",
       "sourceNote": "Generic medium launcher class; capacity and price rounded from public figures."
@@ -60,7 +60,7 @@
       "capacityKg": { "iss": 50000, "sso": 35000, "geo": 8000 },
       "maxBus": "large",
       "reliability": 0.97,
-      "icon": "assets/rocket-heavy.webp",
+      "icon": "rocket-heavy",
       "tooltip": "A big rocket for heavy satellites and high orbits like GEO.",
       "source": "estimate",
       "sourceNote": "Generic heavy launcher class; capacity and price rounded from public figures."
@@ -73,7 +73,7 @@
       "capacityKg": { "iss": 100000, "sso": 80000, "geo": 20000 },
       "maxBus": "large",
       "reliability": 0.95,
-      "icon": "assets/rocket-super-heavy.webp",
+      "icon": "rocket-super",
       "tooltip": "The biggest class of rocket. Far more than a satellite usually needs.",
       "source": "estimate",
       "sourceNote": "Generic super-heavy launcher class; capacity and price rounded from public figures."

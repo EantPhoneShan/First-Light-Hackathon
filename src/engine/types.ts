@@ -121,7 +121,11 @@ export interface Part extends Described {
   buildMonths: number;
   /** Chance it works for the whole mission, 0 to 1 (used for risk, P1). */
   reliability: number;
-  /** Art file in public/assets/, named by part id. */
+  /**
+   * Art name for Member 2's <Art name={icon} /> (e.g. "part-radio-s" shows
+   * public/assets/svg/radio-s.svg, or the ChatGPT WebP once processed).
+   * The same field on buses, launchers and stations works the same way.
+   */
   icon: string;
 
   /** solar: watts made while in sunlight (already allows for pointing). */
@@ -244,6 +248,77 @@ export interface Scenario extends Described {
   tutorialDesign?: Design;
 }
 
+// ---------------------------------------------------------------------------
+// Random events (task 1.9, PRD F15), src/data/events.json
+// ---------------------------------------------------------------------------
+
+/** What a choice does to the flight. All fields optional. */
+export interface EventEffects {
+  /** Probability (0 to 1) that the harmful effects happen. Missing = always. */
+  chance?: number;
+  /** Instruments off: no data, and their power is saved. */
+  instrumentsOffHours?: number;
+  /** No ground station can receive. */
+  stationOutageHours?: number;
+  /** Radio off for a while. */
+  radioOffHours?: number;
+  /** Radio gone for good (if the chance hits). */
+  radioLost?: boolean;
+  /** Instruments make this share of their usual data for dataFactorHours. */
+  dataFactor?: number;
+  dataFactorHours?: number;
+  /** Health change, e.g. -30. Health 0 = craft lost. */
+  healthDelta?: number;
+  /** Solar panels permanently lose this % of their power. */
+  solarLossPct?: number;
+}
+
+/** true / false, or judged when chosen (e.g. only good if storage can hold 3 days). */
+export type ChoiceQuality = boolean | 'if-storage-holds';
+
+export interface EventChoice {
+  id: string;
+  label: string;
+  text: string;
+  good: ChoiceQuality;
+  effects: EventEffects;
+  /** What happened, when the harmful effect hits (or always, with no chance). */
+  outcome: string;
+  /** What happened when the chance missed. */
+  outcomeIfLucky?: string;
+  /** For storage choices: what happened if storage overflowed. */
+  outcomeIfFull?: string;
+}
+
+export interface GameEvent {
+  id: string;
+  name: string;
+  /** The role whose panel shows the event card. */
+  owner: Role;
+  icon: string;
+  text: string;
+  choices: EventChoice[];
+  source: SourceId;
+  sourceNote?: string;
+}
+
+/** An event planned for this flight (same seed = same events on every device). */
+export interface ScheduledEvent {
+  eventId: string;
+  tMin: number;
+}
+
+/** An event that happened, and what the team chose. */
+export interface EventRecord {
+  eventId: string;
+  choiceId: string;
+  tMin: number;
+  good: boolean;
+  /** True when a chance roll made the harmful effect happen. */
+  hit: boolean;
+  outcome: string;
+}
+
 /** A resource we credit (src/data/sources.json). */
 export interface Source {
   id: SourceId;
@@ -270,6 +345,7 @@ export interface GameData {
   disposalSource: SourceRef;
   stations: GroundStation[];
   scenarios: Scenario[];
+  events: GameEvent[];
   sources: Source[];
 }
 
@@ -433,7 +509,11 @@ export interface Evaluation {
 // Member 2 can build the simulation view and report with mock data.
 // ---------------------------------------------------------------------------
 
-/** One sample of the mission, taken at a fixed time step (F14). */
+/**
+ * One sample of the mission (F14). The first day has one frame per minute, so
+ * eclipses and passes can be animated; after that there is one frame per orbit,
+ * and batteryWh/batteryPct hold that orbit's lowest point (so dips still show).
+ */
 export interface SimFrame {
   /** Mission time in minutes since orbit insertion. */
   tMin: number;
@@ -475,6 +555,33 @@ export interface SimMarker {
 
 export type Outcome = 'success' | 'partial' | 'failure' | 'launch-failure';
 
+/** End-of-flight numbers for the report and the score. */
+export interface SimSummary {
+  madeMB: number;
+  deliveredMB: number;
+  lostMB: number;
+  /** Delivered within the customer's deadline (e.g. firefighters: 12 hours). */
+  onTimeMB: number;
+  /** delivered / made, 0 to 100. */
+  deliveredPct: number;
+  /** onTime / made, 0 to 100. */
+  onTimePct: number;
+  /** Average age of data when it reached the ground. */
+  avgDelayHours: number;
+  /** "First light": when the first data reached the ground, or null if it never did. */
+  firstLightMin: number | null;
+  orbits: number;
+  eclipses: number;
+  /** When the craft died, or null. */
+  diedAtMin: number | null;
+  /** When drag brought it down before the end, or null. */
+  reenteredAtMin: number | null;
+  /** End of mission: did the craft leave orbit within the debris rule? */
+  disposal: 'ok' | 'debris' | 'not-reached';
+  /** Solar power left at the end, as % of new (panels wear out). */
+  solarHealthPct: number;
+}
+
 export interface SimResult {
   frames: SimFrame[];
   markers: SimMarker[];
@@ -482,6 +589,69 @@ export interface SimResult {
   /** Minutes the craft survived (equals the mission length on success). */
   survivedMin: number;
   missionMin: number;
+  /** Frames are one per minute up to here, then one per orbit. */
+  detailUntilMin: number;
+  summary: SimSummary;
+  /** Random events that happened and the choices made (replay them to fly the same mission). */
+  events: EventRecord[];
+  seed: number;
+}
+
+/**
+ * Live simulation state for the playback view (stepSim mutates it).
+ * frames and markers grow as the mission plays.
+ */
+export interface SimState {
+  tMin: number;
+  orbitAngleDeg: number;
+  inEclipse: boolean;
+  downlinking: boolean;
+  stationId: string | null;
+  batteryWh: number;
+  bufferMB: number;
+  madeMB: number;
+  deliveredMB: number;
+  lostMB: number;
+  onTimeMB: number;
+  /** Sum of (MB sent x its age in minutes), for the average delay. */
+  delayMBMin: number;
+  propellantKg: number;
+  health: number;
+  scienceScore: number;
+  alive: boolean;
+  /** True once the mission is over (complete, dead or re-entered). */
+  done: boolean;
+  orbits: number;
+  eclipses: number;
+  diedAtMin: number | null;
+  reenteredAtMin: number | null;
+  firstLightMin: number | null;
+  frames: SimFrame[];
+  markers: SimMarker[];
+  /** Lowest battery seen in the current orbit (for per-orbit frames). */
+  orbitMinBatteryWh: number;
+  /** Markers already shown once, by key. */
+  seen: Record<string, true>;
+  /**
+   * Time asked for but not simulated yet. The engine only takes whole steps,
+   * so live playback at any speed gives exactly the same flight as simulate().
+   */
+  carryMin: number;
+  /**
+   * An event waiting for a choice. While set, stepSim does nothing: show the
+   * event card to its owner role, then call chooseEvent().
+   */
+  pendingEvent: ScheduledEvent | null;
+  /** Index of the next event in the setup's schedule. */
+  nextEventIndex: number;
+  /** Events handled so far. */
+  eventLog: EventRecord[];
+  /** Temporary effects from event choices, active until their end time. */
+  effects: { kind: 'instrumentsOff' | 'stationOutage' | 'radioOff' | 'dataFactor'; untilMin: number; factor?: number }[];
+  /** Radio gone for good. */
+  radioLost: boolean;
+  /** Solar power left after event damage, 0 to 1 (wear over time is separate). */
+  solarFactor: number;
 }
 
 export type ScoreCategory = 'objective' | 'customer' | 'efficiency' | 'lifetime' | 'decisions' | 'collaboration';
@@ -496,8 +666,97 @@ export const SCORE_MAX: Record<ScoreCategory, number> = {
   collaboration: 50,
 };
 
+/** One role's private goal (PRD roles table), e.g. "Keep a 15% power margin". */
+export interface RoleGoal {
+  role: Role;
+  label: string;
+  met: boolean;
+  /** What actually happened, e.g. "17% power margin". */
+  detail: string;
+}
+
+// ---------------------------------------------------------------------------
+// Mission report (task 1.8, PRD F16 and F18)
+// ---------------------------------------------------------------------------
+
+/** Workbench area that holds the fix, so the UI can open the right tab. */
+export type FixArea = 'spacecraft' | 'science' | 'launch' | 'ground' | 'mission';
+
+/** One thing that went wrong (or could be better), with why and how to fix it. */
+export interface Finding {
+  id: string;
+  /** When it happened in the flight, or null for a design-level issue. */
+  tMin: number | null;
+  /** bad = broke the mission, warn = cost points, tip = a way to score more. */
+  kind: 'bad' | 'warn' | 'tip';
+  title: string;
+  why: string;
+  fix: string;
+  owner: Role;
+  /** Parts to highlight on the workbench when re-flying (F18). */
+  partIds: string[];
+  area: FixArea;
+  /** Rough points this costs; findings are sorted by it. */
+  impact: number;
+  /** One of the 3 biggest problems, shown first. */
+  top: boolean;
+}
+
+export interface ScoreLine {
+  id: ScoreCategory;
+  label: string;
+  points: number;
+  max: number;
+  /** Why points were lost, if any. */
+  note?: string;
+}
+
+/** Change since the previous flight (the ghost), for "+120 points" style feedback. */
+export interface ReportCompare {
+  totalDelta: number;
+  starsDelta: number;
+  byCategory: Record<ScoreCategory, number>;
+  survivedDeltaMin: number;
+  deliveredPctDelta: number;
+  /** Findings from last time that are now gone. */
+  fixedTitles: string[];
+}
+
+export interface MissionReport {
+  outcome: Outcome;
+  total: number;
+  stars: 0 | 1 | 2 | 3;
+  /** One plain sentence: what happened. */
+  headline: string;
+  lines: ScoreLine[];
+  /** Every finding, biggest first; the first 3 have top = true. */
+  findings: Finding[];
+  /** Flight timeline markers, in time order (F16). */
+  markers: SimMarker[];
+  roleGoals: RoleGoal[];
+  customer: {
+    name: string;
+    needsDataWithinHours: number;
+    /** Data a full mission would have made. */
+    expectedMB: number;
+    deliveredMB: number;
+    deliveredPct: number;
+    onTimePct: number;
+    avgDelayHours: number;
+  };
+  firstLightMin: number | null;
+  survivedMin: number;
+  missionMin: number;
+  /** Every part to highlight on re-fly: the union of all findings' parts. */
+  highlightPartIds: string[];
+  compare: ReportCompare | null;
+}
+
 export interface ScoreResult {
   total: number;
   stars: 0 | 1 | 2 | 3;
   byCategory: Record<ScoreCategory, number>;
+  /** Short reason for each category that lost points (for the report). */
+  notes: Partial<Record<ScoreCategory, string>>;
+  roleGoals: RoleGoal[];
 }

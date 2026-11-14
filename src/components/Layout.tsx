@@ -8,11 +8,14 @@ import { flow } from '@/routes'
 import { TutorialGuide } from '@/components/TutorialGuide'
 import { ROLE_ORDER, roleNames } from '@/game/ui'
 import type { Role } from '@/engine/types'
+import { SyncStatusDot } from '@/components/SyncStatusDot'
+import { useTeamSyncBridge } from '@/sync/teamBridge'
 import { useGame, useScenario } from '@/store/game'
 
 export function Layout() {
   const { pathname } = useLocation()
   useConflictAlerts()
+  useTeamSyncBridge()
   // Expose the header's height so sticky bars (like the gauges) sit right under it on any screen.
   const headerRef = useRef<HTMLElement>(null)
   useEffect(() => {
@@ -62,6 +65,7 @@ export function Layout() {
               </select>
             </label>
           )}
+          <SyncStatusDot showLabel />
           <Link to="/learn" className={cn('-m-2 flex items-center gap-1.5 rounded-lg p-2 text-sm text-muted hover:text-ink', players.length === 0 && 'ml-auto')}>
             <BookOpen className="size-4" aria-hidden />
             <span className="hidden sm:inline">Space words</span>

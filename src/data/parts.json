@@ -11,7 +11,7 @@
       "costM": 0.3,
       "buildMonths": 9,
       "reliability": 0.98,
-      "icon": "assets/bus-cubesat-6u.webp",
+      "icon": "part-bus-6u",
       "tooltip": "A small satellite made of six 10 cm cubes, about the size of a cereal box. Six slots for parts inside.",
       "learnMoreUrl": "https://www.nasa.gov/wp-content/uploads/2017/03/nasa_csli_cubesat_101_508.pdf",
       "source": "cubesat101",
@@ -28,7 +28,7 @@
       "costM": 5,
       "buildMonths": 18,
       "reliability": 0.97,
-      "icon": "assets/bus-smallsat.webp",
+      "icon": "part-bus-smallsat",
       "tooltip": "A fridge-sized satellite. Room for big instruments like radar, but it needs a bigger rocket.",
       "source": "cubesat101",
       "sourceNote": "CubeSat 101: a small satellite is under 300 kg. Cost and build time are rounded estimates."
@@ -44,7 +44,7 @@
       "costM": 60,
       "buildMonths": 30,
       "reliability": 0.98,
-      "icon": "assets/bus-large.webp",
+      "icon": "part-bus-large",
       "tooltip": "A bus-sized satellite for big missions such as watching weather from far away.",
       "source": "estimate",
       "sourceNote": "Rounded from typical large Earth-observation and weather satellites."
@@ -65,7 +65,7 @@
       "costM": 0.05,
       "buildMonths": 3,
       "reliability": 0.99,
-      "icon": "assets/part-solar-body.webp",
+      "icon": "part-solar-body",
       "tooltip": "Solar cells glued to the outside of the craft. Light and cheap, but small.",
       "source": "estimate",
       "sourceNote": "Rounded for cells covering a 6U CubeSat's sides, averaged over how the craft faces the Sun."
@@ -84,7 +84,7 @@
       "costM": 0.1,
       "buildMonths": 5,
       "reliability": 0.96,
-      "icon": "assets/part-solar-wings.webp",
+      "icon": "part-solar-wings",
       "tooltip": "Panels that fold out after launch, like wings. They nearly double your power.",
       "source": "cubesat101",
       "sourceNote": "CubeSat 101 (ChargerSat-1): deployable solar panels nearly double the power input."
@@ -103,7 +103,7 @@
       "costM": 0.6,
       "buildMonths": 8,
       "reliability": 0.97,
-      "icon": "assets/part-solar-wings.webp",
+      "icon": "part-solar-wings",
       "tooltip": "A big folding solar panel for larger satellites.",
       "source": "estimate",
       "sourceNote": "Rounded for small-satellite solar arrays."
@@ -120,7 +120,7 @@
       "costM": 0.03,
       "buildMonths": 2,
       "reliability": 0.98,
-      "icon": "assets/part-battery-small.webp",
+      "icon": "part-battery-small",
       "tooltip": "Stores solar power for when the craft is in Earth's shadow (eclipse). Light, but holds little.",
       "source": "cubesat101",
       "sourceNote": "CubeSat 101: CubeSats use common lithium-ion batteries with protection circuits. Capacity is a rounded estimate."
@@ -137,7 +137,7 @@
       "costM": 0.08,
       "buildMonths": 3,
       "reliability": 0.98,
-      "icon": "assets/part-battery-large.webp",
+      "icon": "part-battery-large",
       "tooltip": "A bigger lithium-ion battery pack. Heavier, but it carries the craft through long eclipses.",
       "source": "cubesat101",
       "sourceNote": "CubeSat 101: lithium-ion batteries. Capacity is a rounded estimate."
@@ -155,7 +155,7 @@
       "costM": 0.3,
       "buildMonths": 6,
       "reliability": 0.98,
-      "icon": "assets/part-battery-large.webp",
+      "icon": "part-battery-large",
       "tooltip": "A large battery pack for bigger satellites.",
       "source": "estimate",
       "sourceNote": "Rounded for small-satellite battery packs."
@@ -173,7 +173,7 @@
       "costM": 0.05,
       "buildMonths": 4,
       "reliability": 0.97,
-      "icon": "assets/part-computer.webp",
+      "icon": "part-computer-std",
       "tooltip": "The craft's brain. Runs the parts and stores data until it can be sent to Earth.",
       "source": "estimate",
       "sourceNote": "Rounded for a CubeSat onboard computer with flash storage."
@@ -190,7 +190,7 @@
       "costM": 0.04,
       "buildMonths": 3,
       "reliability": 0.99,
-      "icon": "assets/part-magnetorquer.webp",
+      "icon": "part-magnetorquer",
       "tooltip": "Electromagnets that push against Earth's magnetic field to turn the craft. Simple, but slow and rough pointing.",
       "source": "estimate",
       "sourceNote": "Rounded for a CubeSat magnetorquer board."
@@ -207,7 +207,7 @@
       "costM": 0.25,
       "buildMonths": 6,
       "reliability": 0.95,
-      "icon": "assets/part-reaction-wheel.webp",
+      "icon": "part-reaction-wheel",
       "tooltip": "A spinning wheel that turns the craft precisely, so cameras can point exactly where you want.",
       "source": "estimate",
       "sourceNote": "Rounded for a CubeSat reaction wheel unit."
@@ -226,7 +226,7 @@
       "costM": 0.2,
       "buildMonths": 8,
       "reliability": 0.95,
-      "icon": "assets/part-cold-gas-thruster.webp",
+      "icon": "part-cold-gas",
       "tooltip": "Puffs of gas that change the orbit a little, for example to bring the craft down at the end of the mission.",
       "source": "estimate",
       "sourceNote": "Rounded for a CubeSat cold-gas system; 0.4 kg of the mass is propellant. Delta-v uses the rocket equation."
@@ -245,7 +245,7 @@
       "costM": 0.02,
       "buildMonths": 2,
       "reliability": 0.97,
-      "icon": "assets/part-antenna-uhf.webp",
+      "icon": "part-radio-uhf",
       "tooltip": "A simple radio on the 437 MHz amateur band. Cheap and easy to hear, but very slow: fine for health data, too slow for images.",
       "source": "cubesat101",
       "sourceNote": "CubeSat 101: many CubeSats use amateur radio bands such as 437 MHz (70 cm). 9.6 kbps is a common CubeSat UHF speed."
@@ -264,7 +264,7 @@
       "costM": 0.1,
       "buildMonths": 4,
       "reliability": 0.96,
-      "icon": "assets/part-antenna-s.webp",
+      "icon": "part-radio-s",
       "tooltip": "A faster radio, about 100 times quicker than UHF. Enough for a few images per pass.",
       "source": "estimate",
       "sourceNote": "Rounded for a CubeSat S-band transmitter."
@@ -283,7 +283,7 @@
       "costM": 0.35,
       "buildMonths": 9,
       "reliability": 0.94,
-      "icon": "assets/part-antenna-x.webp",
+      "icon": "part-radio-x",
       "tooltip": "A high-speed radio that can send lots of images, but it uses more power, costs more and takes longer to get.",
       "source": "estimate",
       "sourceNote": "Rounded for a CubeSat X-band transmitter."
@@ -302,7 +302,7 @@
       "costM": 0.1,
       "buildMonths": 3,
       "reliability": 0.97,
-      "icon": "assets/inst-camera.webp",
+      "icon": "part-camera",
       "tooltip": "Takes colour photos, like a phone camera pointed at Earth. Sees smoke, but not the heat of a fire.",
       "source": "estimate",
       "sourceNote": "Rounded for a CubeSat visible-light camera."
@@ -314,14 +314,14 @@
       "tier": "simple",
       "slots": 2,
       "massKg": 1.2,
-      "powerW": 5,
+      "powerW": 4,
       "dataMBPerOrbit": 50,
       "measures": ["smoke", "burn-scars", "vegetation"],
       "scienceValue": 75,
       "costM": 0.4,
       "buildMonths": 9,
       "reliability": 0.95,
-      "icon": "assets/inst-multispectral-imager.webp",
+      "icon": "part-multispectral-imager",
       "tooltip": "Sees several colours of light, including some we can't. Shows dry plants, smoke and burned land.",
       "source": "estimate",
       "sourceNote": "Rounded for a CubeSat multispectral imager."
@@ -340,7 +340,7 @@
       "costM": 0.45,
       "buildMonths": 12,
       "reliability": 0.94,
-      "icon": "assets/inst-thermal-imager.webp",
+      "icon": "part-thermal-imager",
       "tooltip": "Sees heat (infrared). Fires glow brightly to it, even through thin smoke. Slow to build.",
       "source": "estimate",
       "sourceNote": "Rounded for a CubeSat thermal infrared imager; long lead time."
@@ -360,7 +360,7 @@
       "costM": 8,
       "buildMonths": 18,
       "reliability": 0.93,
-      "icon": "assets/inst-radar.webp",
+      "icon": "part-radar",
       "tooltip": "Sends out radio waves and listens for echoes, so it sees through clouds and at night. Heavy and power-hungry.",
       "source": "estimate",
       "sourceNote": "Rounded for a small-satellite synthetic aperture radar."
@@ -379,7 +379,7 @@
       "costM": 0.8,
       "buildMonths": 14,
       "reliability": 0.94,
-      "icon": "assets/inst-spectrometer.webp",
+      "icon": "part-spectrometer",
       "tooltip": "Splits light into a rainbow to find out what things are made of, such as gases in the air.",
       "source": "estimate",
       "sourceNote": "Rounded for a CubeSat spectrometer."
@@ -398,7 +398,7 @@
       "costM": 0.1,
       "buildMonths": 6,
       "reliability": 0.98,
-      "icon": "assets/inst-magnetometer.webp",
+      "icon": "part-magnetometer",
       "tooltip": "Measures magnetic fields, like a very sensitive compass.",
       "source": "estimate",
       "sourceNote": "Rounded for a CubeSat magnetometer."

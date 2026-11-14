@@ -1,0 +1,88 @@
+{
+  "events": [
+    {
+      "id": "solar-storm",
+      "name": "Solar storm",
+      "owner": "engineer",
+      "icon": "event-solar-storm",
+      "text": "The Sun has thrown out a burst of charged particles. It will reach the craft in a few hours.",
+      "choices": [
+        {
+          "id": "safe-mode",
+          "label": "Switch to safe mode",
+          "text": "Turn the instruments off for a day until the storm passes.",
+          "good": true,
+          "effects": { "instrumentsOffHours": 24 },
+          "outcome": "The craft slept through the storm. One day of images was missed, but nothing was damaged."
+        },
+        {
+          "id": "keep-working",
+          "label": "Keep working",
+          "text": "Keep taking images and hope the storm is weak.",
+          "good": false,
+          "effects": { "chance": 0.5, "healthDelta": -30, "solarLossPct": 10 },
+          "outcome": "Charged particles damaged the solar cells. They now make 10% less power for the rest of the mission.",
+          "outcomeIfLucky": "Lucky this time: the storm passed without damage. Next time it might not."
+        }
+      ],
+      "source": "estimate",
+      "sourceNote": "Space weather can damage solar cells and electronics; spacecraft often go into safe mode during storms. Chance and damage are game estimates."
+    },
+    {
+      "id": "station-outage",
+      "name": "Ground station outage",
+      "owner": "flight",
+      "icon": "event-station-outage",
+      "text": "Bad weather has knocked out the ground stations for 3 days. Nothing can be sent down.",
+      "choices": [
+        {
+          "id": "store",
+          "label": "Store data on board",
+          "text": "Keep imaging and send everything when the stations come back.",
+          "good": "if-storage-holds",
+          "effects": { "stationOutageHours": 72 },
+          "outcome": "The craft stored its images and sent them down after the outage.",
+          "outcomeIfFull": "Storage filled up during the outage, so some images were thrown away."
+        },
+        {
+          "id": "slow-down",
+          "label": "Take fewer images",
+          "text": "Image only half as often for 3 days, so storage doesn't overflow.",
+          "good": true,
+          "effects": { "stationOutageHours": 72, "dataFactor": 0.5, "dataFactorHours": 72 },
+          "outcome": "Fewer images were taken, but none were lost."
+        }
+      ],
+      "source": "cubesat101",
+      "sourceNote": "CubeSat 101 section 2.10: the ground station is critical, so plan for it being unavailable. Outage length is a game estimate."
+    },
+    {
+      "id": "part-failure",
+      "name": "Radio not responding",
+      "owner": "flight",
+      "icon": "event-part-failure",
+      "text": "The craft's radio has stopped answering. The flight computer can still try things.",
+      "choices": [
+        {
+          "id": "reboot",
+          "label": "Reboot the radio",
+          "text": "Power-cycle it. Usually works, but there is a small chance it won't come back.",
+          "good": true,
+          "effects": { "radioOffHours": 6, "chance": 0.15, "radioLost": true },
+          "outcome": "The reboot failed and the radio never came back. No more data can be sent.",
+          "outcomeIfLucky": "The reboot worked. The radio was back after 6 hours."
+        },
+        {
+          "id": "wait",
+          "label": "Wait and watch",
+          "text": "Leave it alone for 3 days in case it recovers by itself.",
+          "good": false,
+          "effects": { "radioOffHours": 72 },
+          "outcome": "The radio woke up again after 3 days, but no data could be sent while it was down."
+        }
+      ],
+      "source": "estimate",
+      "sourceNote": "Rebooting a stuck part is a common first fix in spacecraft operations. Chances are game estimates."
+    }
+  ]
+}

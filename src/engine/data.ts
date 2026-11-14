@@ -12,8 +12,10 @@ import orbitsJson from '../data/orbits.json';
 import stationsJson from '../data/stations.json';
 import scenariosJson from '../data/scenarios.json';
 import sourcesJson from '../data/sources.json';
+import eventsJson from '../data/events.json';
 import { allPartIds, normalizeDesign } from './design';
-import type { Bus, GameData, GroundStation, Launcher, Orbit, Part, Scenario, Source, SourceRef } from './types';
+import type { Bus, GameData, GameEvent, GroundStation, Launcher, Orbit, Part, Scenario, Source, SourceRef } from './types';
+import { ROLES } from '../sync/types';
 
 export const gameData: GameData = {
   parts: partsJson.parts as Part[],
@@ -29,6 +31,7 @@ export const gameData: GameData = {
     ...s,
     tutorialDesign: s.tutorialDesign ? normalizeDesign(s.tutorialDesign as never) : undefined,
   })),
+  events: eventsJson.events as GameEvent[],
   sources: sourcesJson.sources as Source[],
 };
 
@@ -41,6 +44,7 @@ export const findBus = (d: GameData, id: string | null | undefined) => d.buses.f
 export const findLauncher = (d: GameData, id: string | null | undefined) => d.launchers.find((l) => l.id === id);
 export const findOrbit = (d: GameData, id: string | null | undefined) => d.orbits.find((o) => o.id === id);
 export const findStation = (d: GameData, id: string | null | undefined) => d.stations.find((s) => s.id === id);
+export const findEvent = (d: GameData, id: string | null | undefined) => d.events.find((e) => e.id === id);
 export const findScenario = (d: GameData, id: string | null | undefined) => d.scenarios.find((s) => s.id === id);
 
 /**
@@ -100,6 +104,15 @@ export function checkReferences(d: GameData): string[] {
       if (!findLauncher(d, t.flight.launcherId)) errors.push(`scenarios/${sc.id}: tutorial uses unknown launcher`);
       for (const st of t.flight.stationIds) if (!findStation(d, st)) errors.push(`scenarios/${sc.id}: tutorial uses unknown station "${st}"`);
     }
+  }
+  for (const e of d.events) {
+    if (allIds.has(e.id)) errors.push(`events: id "${e.id}" is also used in ${allIds.get(e.id)}`);
+    if (!sourceIds.has(e.source)) errors.push(`events/${e.id}: unknown source "${e.source}"`);
+    if (!ROLES.includes(e.owner)) errors.push(`events/${e.id}: unknown owner role "${e.owner}"`);
+    if (e.choices.length < 2 || e.choices.length > 3) errors.push(`events/${e.id}: needs 2 or 3 choices`);
+  }
+  for (const sc of d.scenarios) {
+    for (const id of sc.eventsAllowed) if (!findEvent(d, id)) errors.push(`scenarios/${sc.id}: unknown event "${id}"`);
   }
   for (let i = 1; i < d.decay.length; i++) {
     if (d.decay[i].altitudeKm <= d.decay[i - 1].altitudeKm) errors.push('orbits.decay: altitudes must go up');

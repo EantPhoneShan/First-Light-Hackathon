@@ -231,6 +231,63 @@ export const why = {
 };
 
 // ---------------------------------------------------------------------------
+// In flight (simulation markers)
+// ---------------------------------------------------------------------------
+
+/** "on orbit 1" / "on day 3" / "in year 2" */
+export function when(tMin: number, periodMin: number): string {
+  const days = tMin / 1440;
+  if (days < 1) return `on orbit ${Math.floor(tMin / periodMin) + 1}`;
+  if (days < 365) return `on day ${Math.floor(days) + 1}`;
+  return `in year ${Math.floor(days / 365.25) + 1}`;
+}
+
+export const flight = {
+  firstEclipse: (eclipseMin: number): Why => ({
+    why: `The craft enters Earth’s shadow for the first time. For the next ${Math.round(eclipseMin)} minutes it runs on battery only.`,
+  }),
+  diedInEclipse: (whenText: string, minutesIn: number, eclipseMin: number): Why => ({
+    why: `The battery ran out ${Math.max(1, Math.round(minutesIn))} minutes into the ${Math.round(eclipseMin)}-minute eclipse ${whenText}, and the craft died.`,
+    hint: 'Use a bigger battery, add a second one, or use less power.',
+  }),
+  diedDrain: (whenText: string): Why => ({
+    why: `Every orbit the parts used a little more power than the solar panels made, so the battery slowly emptied and the craft died ${whenText}.`,
+    hint: 'Add solar panels or remove power-hungry parts, so the average power is positive.',
+  }),
+  diedWorn: (whenText: string, wornPct: number): Why => ({
+    why: `The solar panels had worn down by ${Math.round(wornPct)}%, and ${whenText} they could no longer refill the battery. The craft died.`,
+    hint: 'Leave more spare power (at least 10%), because panels lose power every year.',
+  }),
+  storageFull: (whenText: string): Why => ({
+    why: `Storage is full ${whenText}: new data is being thrown away because it can’t be sent down fast enough.`,
+    hint: 'Try a faster radio or a second ground station.',
+  }),
+  reentered: (yearsUp: number, needYears: number): Why => ({
+    why: `After ${years(yearsUp)}, air drag pulled the craft down and it burned up, before the ${fmt(needYears)}-year mission was over.`,
+    hint: 'Fly higher, where the air is thinner.',
+  }),
+  complete: (yrs: number, deliveredPct: number): Why => ({
+    why: `${years(yrs)} in orbit, and ${pct(deliveredPct)} of the data reached Earth.`.replace(/^./, (c) => c.toUpperCase()),
+  }),
+  disposalBurn: (): Why => ({
+    why: 'The thruster lowers the orbit, so the craft will burn up in the atmosphere within the debris rule.',
+  }),
+  disposalDecay: (decayYears: number): Why => ({
+    why: `Air drag will bring the craft down in about ${years(decayYears)}, inside the debris rule.`,
+  }),
+  disposalDebris: (decayYears: number, rule: number): Why => ({
+    why: `Nothing brings the craft down: it stays in orbit as debris for about ${years(decayYears)} (the rule is ${rule} years).`,
+    hint: 'Plan the end of the mission: fly lower, or carry a thruster for a de-orbit burn.',
+  }),
+  disposalGraveyard: (): Why => ({
+    why: 'The craft moves up to a graveyard orbit, out of the way of working GEO satellites.',
+  }),
+  launchFailed: (reasonText: string): Why => ({
+    why: `Launch failed. ${reasonText}`,
+  }),
+};
+
+// ---------------------------------------------------------------------------
 // Greyed-out reasons for pickers (short, one line)
 // ---------------------------------------------------------------------------
 

@@ -9,7 +9,7 @@
       "passesPerDay": { "iss": 6, "sso": 6 },
       "passMinutes": 8,
       "costPerYearM": 0.01,
-      "icon": "assets/scene-ground-station.webp",
+      "icon": "scene-ground-dish",
       "tooltip": "Radio hobbyists around the world who help listen to CubeSats. Almost free, but they only hear UHF.",
       "source": "cubesat101",
       "sourceNote": "CubeSat 101 sections 2.10 and 2.16: the amateur radio community often helps contact CubeSats. Pass counts are rounded estimates."
@@ -23,7 +23,7 @@
       "passesPerDay": { "iss": 5, "sso": 4 },
       "passMinutes": 10,
       "costPerYearM": 0.05,
-      "icon": "assets/scene-ground-station.webp",
+      "icon": "scene-ground-dish",
       "tooltip": "A dish you build and run yourself at a mid-latitude site. Cheap to run, but the craft only flies over a few times a day.",
       "source": "cubesat101",
       "sourceNote": "CubeSat 101 section 2.10: teams build their own ground station; launching with an inadequate one is a mission killer. Pass counts are rounded estimates."
@@ -37,7 +37,7 @@
       "passesPerDay": { "sso": 12 },
       "passMinutes": 10,
       "costPerYearM": 0.15,
-      "icon": "assets/scene-ground-station.webp",
+      "icon": "scene-ground-dish",
       "tooltip": "A rented dish far in the north. Polar orbits fly over it on almost every lap, but the Space Station orbit never comes this far north.",
       "source": "estimate",
       "sourceNote": "High-latitude stations see polar orbits on most orbits; a 51.6 degree orbit never rises above the horizon there. Rounded rental price."
@@ -51,7 +51,7 @@
       "passesPerDay": { "iss": 10, "sso": 14, "geo": 24 },
       "passMinutes": 10,
       "costPerYearM": 0.4,
-      "icon": "assets/scene-ground-station.webp",
+      "icon": "scene-ground-dish",
       "tooltip": "Rent time on dishes all around the world. Lots of passes and fast data, but the most expensive choice.",
       "source": "estimate",
       "sourceNote": "Rounded estimate for renting a worldwide ground network. For GEO the link is always on."
