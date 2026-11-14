@@ -14,6 +14,7 @@ import { cn } from '@/lib/cn'
 import { play } from '@/lib/sound'
 import { useGame, useScenario } from '@/store/game'
 import { sync } from '@/sync'
+import { answerEvent, canAnswerEvent, useRoomChoices } from '@/sync/teamBridge'
 
 /** Playback speeds in simulated minutes per real second (PRD: 1 orbit in a few s, 1 year in ~30 s). */
 const speeds = [
@@ -75,6 +76,10 @@ export function Simulation() {
   const [paused, setPaused] = useState(false)
   const [, setFrame] = useState(0) // re-render the dashboard a few times a second
   const savedRef = useRef(false)
+  // Team room: each event is answered once, by its owner role, and replayed on every device.
+  const choices = useRoomChoices()
+  const choicesRef = useRef(choices)
+  choicesRef.current = choices
   const speedRef = useRef(speed)
   const pausedRef = useRef(paused)
   speedRef.current = speed
@@ -100,6 +105,8 @@ export function Simulation() {
       const dtSec = Math.min(0.1, (now - last) / 1000)
       last = now
       const s = stateRef.current
+      const answered = s.pendingEvent && choicesRef.current[s.pendingEvent.eventId]
+      if (answered && chooseEvent(s, setup, answered)) setFrame((f) => f + 1)
       if (!pausedRef.current && !s.done && !s.pendingEvent) {
         const sp = speeds.find((x) => x.id === speedRef.current)!
         const before = s.markers.length
@@ -193,8 +200,11 @@ export function Simulation() {
             <EventCard
               ev={card}
               who={players.find((p) => p.role === card.owner)?.name}
+              locked={!canAnswerEvent(card.owner)}
               onChoose={(id) => {
-                chooseEvent(s, setup, id)
+                const eventId = s.pendingEvent?.eventId
+                if (!eventId || !chooseEvent(s, setup, id)) return
+                answerEvent(eventId, id, card.owner)
                 play('approve')
                 setFrame((f) => f + 1)
               }}
@@ -332,7 +342,7 @@ function Chip({ on, icon: Icon, tone, children }: { on: boolean; icon: typeof Su
 }
 
 /** PRD F15: a random event pauses the flight until the team picks what to do. */
-function EventCard({ ev, who, onChoose }: { ev: GameEvent; who?: string; onChoose: (choiceId: string) => void }) {
+function EventCard({ ev, who, locked, onChoose }: { ev: GameEvent; who?: string; locked?: boolean; onChoose: (choiceId: string) => void }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-space-950/75 p-3 backdrop-blur-[2px]" role="dialog" aria-labelledby="event-h">
       <motion.div initial={{ scale: 0.9, y: 10 }} animate={{ scale: 1, y: 0 }} className="max-h-full w-full max-w-md overflow-y-auto rounded-xl border border-warn/60 bg-space-900 p-4 shadow-2xl">
@@ -346,12 +356,22 @@ function EventCard({ ev, who, onChoose }: { ev: GameEvent; who?: string; onChoos
         <p className="mt-1 text-sm text-muted">{ev.text}</p>
         <div className="mt-3 flex flex-col gap-2">
           {ev.choices.map((c) => (
-            <button key={c.id} onClick={() => onChoose(c.id)} className="rounded-lg border border-space-600 p-2.5 text-left text-sm hover:border-accent hover:bg-accent/10">
+            <button
+              key={c.id}
+              onClick={() => onChoose(c.id)}
+              disabled={locked}
+              className="rounded-lg border border-space-600 p-2.5 text-left text-sm hover:border-accent hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-space-600 disabled:hover:bg-transparent"
+            >
               <span className="font-medium">{c.label}</span>
               <span className="mt-0.5 block text-xs text-muted">{c.text}</span>
             </button>
           ))}
         </div>
+        {locked && (
+          <p className="mt-3 text-sm text-muted" role="status">
+            Waiting for {who ?? `the ${roleNames[ev.owner]}`} to choose.
+          </p>
+        )}
       </motion.div>
     </div>
   )
