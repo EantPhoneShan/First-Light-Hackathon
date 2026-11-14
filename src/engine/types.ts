@@ -356,6 +356,12 @@ export interface Problem {
   owner: Role;
   /** Parts to highlight on the workbench (F18). */
   partIds: string[];
+  /**
+   * True only for builds that cannot exist (nothing picked, slots full, no radio,
+   * rocket can't reach the orbit). Every other fail may still launch and fail in
+   * the simulation, so players learn by failing.
+   */
+  blocking: boolean;
 }
 
 /** Whether a choice can be picked, and why not (greyed out with a reason). */
@@ -416,8 +422,10 @@ export interface Evaluation {
   compat: Compatibility;
   orbit: OrbitInfo | null;
   totals: Totals;
-  /** False while any problem is a fail. Players may still launch with warnings (F12). */
+  /** True when nothing is red: the design should work (green review). */
   ready: boolean;
+  /** True when nothing is blocking: the Launch button can be pressed, even with reds (F12). */
+  canLaunch: boolean;
 }
 
 // ---------------------------------------------------------------------------

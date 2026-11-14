@@ -9,7 +9,7 @@
       "massKg": 1.2,
       "powerW": 1,
       "costM": 0.3,
-      "buildMonths": 10,
+      "buildMonths": 9,
       "reliability": 0.98,
       "icon": "assets/bus-cubesat-6u.webp",
       "tooltip": "A small satellite made of six 10 cm cubes, about the size of a cereal box. Six slots for parts inside.",
