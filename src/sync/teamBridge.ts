@@ -298,6 +298,9 @@ function moveCheck(from: Step, to: Step): { ok: boolean; reason?: string } {
   return check.ok ? { ok: true } : { ok: false, reason: check.reason }
 }
 
+/** The flow step for a page. Amplify Hosting can add a trailing slash on a full page load (/sim/), so drop it. */
+const stepAt = (pathname: string) => stepForPath(pathname.replace(/(.)\/+$/, '$1'))
+
 /**
  * Keeps this device on the room's step. When the leader opens the next step,
  * the whole room moves; anyone else is brought back to the room's step.
@@ -318,7 +321,7 @@ function useFollowRoomStep() {
     if (lastStep.current === room.step) return
     const first = lastStep.current === null
     lastStep.current = room.step
-    const here = stepForPath(pathname)
+    const here = stepAt(pathname)
     if (here === room.step) return
     if (first && (here === null || here === 'lobby')) return // just joined: stay on the lobby panel
     navigate(stepInfo(room.step).path)
@@ -329,7 +332,7 @@ function useFollowRoomStep() {
   // This device opened a step page: move the room (leader) or go back (everyone else).
   useEffect(() => {
     if (!room.active || lastStep.current === null) return
-    const want = stepForPath(pathname)
+    const want = stepAt(pathname)
     if (!want || want === room.step || want === 'lobby') return
     const move = room.leader ? moveCheck(room.step, want) : { ok: false, reason: `${room.leaderName ?? 'The Mission Planner'} moves the team on.` }
     if (move.ok) {
