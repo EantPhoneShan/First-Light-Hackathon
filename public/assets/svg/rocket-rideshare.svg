@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-16.60 -4 33.20 58.40">
+  <path d="M-4.00,11.20 Q-4.00,3.36 0,0 Q4.00,3.36 4.00,11.20Z" fill="#eef2fa" stroke="#0b1328" stroke-width="0.8"/>
+  <path d="M0,0 Q4.00,3.36 4.00,11.20 L0,11.20Z" fill="#c9d1e3"/>
+  <rect x="-4.00" y="11.20" width="8.00" height="23.04" fill="#eef2fa" stroke="#0b1328" stroke-width="0.8"/>
+  <rect x="0.00" y="11.20" width="4.00" height="23.04" fill="#c9d1e3"/>
+  <rect x="-4.00" y="31.84" width="8.00" height="1.60" fill="#ff8a3d"/>
+  <rect x="-4.00" y="34.24" width="8.00" height="12.96" fill="#eef2fa" stroke="#0b1328" stroke-width="0.8"/>
+  <rect x="0.00" y="34.24" width="4.00" height="12.96" fill="#c9d1e3"/>
+  <rect x="-4.00" y="44.80" width="8.00" height="1.60" fill="#2a3b6b"/>
+  <path d="M-4.00,39.20 L-8.80,48.80 L-4.00,47.20Z" fill="#1c2a50" stroke="#0b1328" stroke-width="0.8"/>
+  <path d="M4.00,39.20 L8.80,48.80 L4.00,47.20Z" fill="#1c2a50" stroke="#0b1328" stroke-width="0.8"/>
+  <path d="M-2.40,47.20 L2.40,47.20 L3.20,50.40 L-3.20,50.40Z" fill="#121d3a" stroke="#0b1328" stroke-width="0.8"/>
+  <circle cx="0" cy="16.00" r="1.44" fill="#2a5bd7" stroke="#0b1328" stroke-width="0.6"/>
+</svg>
