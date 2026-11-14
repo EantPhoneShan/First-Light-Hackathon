@@ -6,10 +6,10 @@ import { cn } from '@/lib/cn'
 import { setMuted, useMuted } from '@/lib/sound'
 import { flow } from '@/routes'
 import { TutorialGuide } from '@/components/TutorialGuide'
+import { ROLE_ORDER, roleNames } from '@/game/ui'
+import type { Role } from '@/engine/types'
 import { SyncStatusDot } from '@/components/SyncStatusDot'
 import { useTeamSyncBridge } from '@/sync/teamBridge'
-import { roleNames } from '@/engine/mockReview'
-import type { Role } from '@/engine/placeholderTypes'
 import { useGame, useScenario } from '@/store/game'
 
 export function Layout() {
@@ -28,7 +28,7 @@ export function Layout() {
   const scenario = useScenario()
   const tutorial = useGame((s) => s.tutorial)
   const muted = useMuted()
-  const players = useGame((s) => s.room.players)
+  const players = useGame((s) => s.players)
   const myRole = useGame((s) => s.myRole)
   const setMyRole = useGame((s) => s.setMyRole)
   const current = flow.findIndex((s) => s.path === pathname)
@@ -54,7 +54,7 @@ export function Layout() {
                 aria-label="Acting as"
                 className="max-w-40 rounded-lg border border-space-600 bg-space-950 px-2 py-2 text-ink sm:py-1"
               >
-                {(Object.keys(roleNames) as Role[]).map((r) => {
+                {ROLE_ORDER.map((r) => {
                   const p = players.find((pl) => pl.role === r)
                   return (
                     <option key={r} value={r}>

@@ -1,22 +1,20 @@
 import { Check, RadioTower } from 'lucide-react'
 import { Art } from '@/components/Art'
-import { orbitById, stationPasses, stations } from '@/engine/mock'
+import { findOrbit } from '@/engine/data'
+import { gameData } from '@/game/ui'
 import { cn } from '@/lib/cn'
-import { useGame, useScenario } from '@/store/game'
+import { useEvaluation, useGame, useScenario } from '@/store/game'
 
 /** Ground segment: pick stations. More stations = more passes but higher yearly cost (PRD F9). */
 export function StationPicker() {
   const scenario = useScenario()
-  const design = useGame((s) => s.design)
-  const updateDesign = useGame((s) => s.updateDesign)
-  const orbit = orbitById(design.orbitId)
+  const flight = useGame((s) => s.design.flight)
+  const toggle = useGame((s) => s.toggleStation)
+  const ev = useEvaluation()
+  const orbit = findOrbit(gameData, flight.orbitId)
+  const stations = gameData.stations
 
-  const toggle = (id: string) =>
-    updateDesign({
-      stationIds: design.stationIds.includes(id) ? design.stationIds.filter((s) => s !== id) : [...design.stationIds, id],
-    })
-
-  const yearly = stations.filter((s) => design.stationIds.includes(s.id)).reduce((n, s) => n + s.opsCostMPerYear, 0)
+  const yearly = scenario.baseOpsCostPerYearM + stations.filter((s) => flight.stationIds.includes(s.id)).reduce((n, s) => n + s.costPerYearM, 0)
 
   return (
     <div className="flex flex-col gap-3">
@@ -26,15 +24,16 @@ export function StationPicker() {
           Ground stations
         </h2>
         <span className="text-xs text-muted tabular-nums">
-          ${yearly.toFixed(2)}M a year × {scenario.lifetimeYears} years = ${(yearly * scenario.lifetimeYears).toFixed(2)}M
+          Operations ${yearly.toFixed(2)}M a year × {scenario.lifetimeYears} years = ${(yearly * scenario.lifetimeYears).toFixed(2)}M
         </span>
       </div>
       {!orbit && <p className="text-sm text-muted">Pick an orbit to see how many passes each station gets.</p>}
 
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {stations.map((st) => {
-          const on = design.stationIds.includes(st.id)
-          const passes = orbit ? stationPasses(orbit, st) : null
+          const on = flight.stationIds.includes(st.id)
+          const passes = orbit ? (st.passesPerDay[orbit.id] ?? 0) : null
+          const lock = ev.compat.stations[st.id]
           return (
             <li key={st.id}>
               <button
@@ -54,14 +53,16 @@ export function StationPicker() {
                     <RadioTower className="size-3.5 text-muted" aria-hidden />
                     {st.name}
                   </span>
-                  <span className="mt-0.5 block text-xs leading-snug text-muted">{st.note}</span>
+                  <span className="mt-0.5 block text-xs leading-snug text-muted">{st.tooltip}</span>
+                  <span className="mt-0.5 block text-[11px] text-muted">Hears {st.bands.map((b) => (b === 'uhf' ? 'UHF' : `${b.toUpperCase()}-band`)).join(', ')}</span>
                   <span className="mt-1.5 block text-xs tabular-nums">
                     {passes !== null && (
                       <span className={passes === 0 ? 'text-bad' : 'text-ok'}>
-                        {passes === 0 ? 'Never sees this orbit' : orbit?.id === 'geo' ? 'Always in view' : `${passes} passes a day`}
+                        {passes === 0 ? 'Never sees this orbit' : orbit?.kind === 'geo' ? 'Always in view' : `${passes} passes a day`}
                       </span>
                     )}
-                    <span className="text-muted">{passes !== null ? ' · ' : ''}${st.opsCostMPerYear}M a year</span>
+                    <span className="text-muted">{passes !== null ? ' · ' : ''}${st.costPerYearM}M a year</span>
+                    {lock && !lock.ok && passes !== 0 && <span className="mt-1 block text-bad">{lock.reason}</span>}
                   </span>
                 </span>
               </button>

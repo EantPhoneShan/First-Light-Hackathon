@@ -1,124 +1,114 @@
 import { useDndContext, useDraggable, useDroppable } from '@dnd-kit/core'
 import { X } from 'lucide-react'
-import { partById } from '@/engine/mock'
-import type { Part, SlotDef, SlotZone } from '@/engine/placeholderTypes'
+import type { Bus, Part } from '@/engine/types'
+import { isExternal } from '@/game/ui'
 import { cn } from '@/lib/cn'
-import type { DragData } from './dnd'
-import { categoryIcon, PartIcon } from './PartIcon'
+import { CRAFT_ID, type DragData } from './dnd'
+import { PartIcon } from './PartIcon'
 
 interface SpacecraftProps {
-  slots: SlotDef[]
-  partsBySlot: Record<string, string | null>
-  problemSlots?: string[] // highlighted after a failed flight (F18)
-  onRemove: (slotId: string) => void
+  bus?: Bus
+  parts: Part[]
+  /** Parts to outline in red (after a failed flight, F18). */
+  problemIds?: string[]
+  onRemove: (partId: string) => void
+  onRemoveBus: () => void
 }
 
-/** 2D spacecraft: antennas on top, solar panels on the sides, core inside, instruments below. */
-export function Spacecraft({ slots, partsBySlot, problemSlots = [], onRemove }: SpacecraftProps) {
-  const zone = (z: SlotZone) => slots.filter((s) => s.zone === z && s.id !== 'bus')
-  const hasBus = !!partsBySlot.bus
-
-  const render = (s: SlotDef, variant: 'wing' | 'cell') => (
-    <Slot key={s.id} slot={s} part={partById(partsBySlot[s.id])} variant={variant} problem={problemSlots.includes(s.id)} onRemove={onRemove} />
-  )
-
-  return (
-    <div className="flex flex-col items-center gap-2 py-2">
-      {hasBus && <div className="flex flex-wrap justify-center gap-2">{zone('top').map((s) => render(s, 'cell'))}</div>}
-      {hasBus && zone('top').length > 0 && <div className="h-3 w-0.5 bg-space-600" aria-hidden />}
-
-      <div className="flex w-full items-center justify-center gap-2">
-        {hasBus && <div className="flex flex-col gap-2">{zone('left').map((s) => render(s, 'wing'))}</div>}
-
-        <div
-          className={cn(
-            'rounded-2xl border-2 p-3',
-            hasBus ? 'border-space-600 bg-space-800/60' : 'border-transparent',
-          )}
-        >
-          <div className="mb-2 flex justify-center">{render(slots.find((s) => s.id === 'bus')!, 'cell')}</div>
-          {hasBus && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">{zone('core').filter((s) => s.id !== 'bus').map((s) => render(s, 'cell'))}</div>}
-        </div>
-
-        {hasBus && <div className="flex flex-col gap-2">{zone('right').map((s) => render(s, 'wing'))}</div>}
-      </div>
-
-      {hasBus && zone('bottom').length > 0 && <div className="h-3 w-0.5 bg-space-600" aria-hidden />}
-      {hasBus && <div className="flex flex-wrap justify-center gap-2">{zone('bottom').map((s) => render(s, 'cell'))}</div>}
-
-      {!hasBus && <p className="max-w-xs text-center text-sm text-muted">Start with a bus. It's the frame, and its size decides how many slots you get.</p>}
-    </div>
-  )
-}
-
-interface SlotProps {
-  slot: SlotDef
-  part?: Part
-  variant: 'wing' | 'cell'
-  problem: boolean
-  onRemove: (slotId: string) => void
-}
-
-function Slot({ slot, part, variant, problem, onRemove }: SlotProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: slot.id, data: { accepts: slot.accepts } })
+/**
+ * The craft as Member 1's engine sees it: a bus with a number of slots, internal parts
+ * filling them (a part may take 1, 2 or more), and slot-free parts such as solar panels
+ * mounted outside. The whole craft is one drop target.
+ */
+export function Spacecraft({ bus, parts, problemIds = [], onRemove, onRemoveBus }: SpacecraftProps) {
+  const { setNodeRef, isOver } = useDroppable({ id: CRAFT_ID })
   const { active } = useDndContext()
-  const dragged = partById((active?.data.current as DragData | undefined)?.partId)
-  const fits = dragged?.category === slot.accepts
-  const Icon = categoryIcon[slot.accepts]
+  const dragging = active?.data.current as DragData | undefined
+  const incoming = dragging && !dragging.fromCraft
+
+  const inside = parts.filter((p) => !isExternal(p))
+  const outside = parts.filter(isExternal)
+  const used = inside.reduce((n, p) => n + p.slots, 0)
+  const cols = !bus ? 3 : bus.slots <= 6 ? 3 : bus.slots <= 16 ? 4 : 8
+  const free = Math.max(0, (bus?.slots ?? 0) - used)
 
   return (
     <div
       ref={setNodeRef}
-      className={cn(
-        'relative flex items-center gap-2 rounded-xl border-2 text-left transition-colors',
-        variant === 'wing' ? 'h-24 w-20 flex-col justify-center p-2 sm:w-28' : 'h-16 w-32 p-2 sm:w-44',
-        part ? 'border-space-600 bg-space-900' : 'border-dashed border-space-600 bg-space-900/40',
-        fits && 'border-accent/70 bg-accent/5',
-        fits && isOver && 'border-accent bg-accent/15',
-        dragged && !fits && 'opacity-40',
-        problem && 'border-bad ring-2 ring-bad/40',
-      )}
+      className={cn('flex flex-col items-center gap-3 rounded-xl py-3 transition-colors', incoming && 'outline-2 outline-dashed outline-accent/50', isOver && incoming && 'bg-accent/5 outline-accent')}
     >
-      {part ? (
-        <PlacedPart slotId={slot.id} part={part} variant={variant} onRemove={onRemove} />
+      {!bus ? (
+        <p className="max-w-xs py-10 text-center text-sm text-muted">
+          Start with a bus. Drag it here from the <b className="text-ink">Bus</b> tab of the parts tray. Its size decides how many slots you get.
+        </p>
       ) : (
-        <span className={cn('flex items-center gap-2 text-xs text-muted', variant === 'wing' && 'flex-col')}>
-          <Icon className="size-4" aria-hidden />
-          {slot.label}
-        </span>
+        <>
+          {/* Outside: solar panels and other slot-free parts */}
+          {outside.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2">
+              {outside.map((p, i) => (
+                <PlacedPart key={`out-${p.id}-${i}`} uid={`out-${p.id}-${i}`} part={p} span={1} problem={problemIds.includes(p.id)} onRemove={onRemove} outside />
+              ))}
+            </div>
+          )}
+
+          {/* The bus and its slots */}
+          <div className="w-full max-w-lg rounded-2xl border-2 border-space-600 bg-space-800/60 p-3">
+            <div className="mb-2 flex items-center gap-2">
+              <PartIcon item={bus} className="size-8 shrink-0" />
+              <span className="min-w-0 flex-1 truncate text-sm font-medium">{bus.name}</span>
+              <span className={cn('shrink-0 text-xs tabular-nums', used > bus.slots ? 'text-bad' : 'text-muted')}>
+                {used}/{bus.slots} slots
+              </span>
+              <button onClick={onRemoveBus} className="relative shrink-0 rounded p-1 text-muted after:absolute after:-inset-2 after:content-[''] hover:text-ink" aria-label={`Remove ${bus.name}`}>
+                <X className="size-3.5" />
+              </button>
+            </div>
+            <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+              {inside.map((p, i) => (
+                <PlacedPart key={`in-${p.id}-${i}`} uid={`in-${p.id}-${i}`} part={p} span={Math.min(p.slots, cols)} problem={problemIds.includes(p.id)} onRemove={onRemove} />
+              ))}
+              {Array.from({ length: free }, (_, i) => (
+                <div key={`free-${i}`} className="flex min-h-14 items-center justify-center rounded-lg border border-dashed border-space-600 text-[11px] text-muted/70">
+                  Free
+                </div>
+              ))}
+            </div>
+            {used > bus.slots && <p className="mt-2 text-xs text-bad">Too many parts: {used - bus.slots} slot(s) over. Remove something or use a bigger bus.</p>}
+          </div>
+        </>
       )}
     </div>
   )
 }
 
-function PlacedPart({ slotId, part, variant, onRemove }: { slotId: string; part: Part; variant: 'wing' | 'cell'; onRemove: (id: string) => void }) {
-  const data: DragData = { partId: part.id, fromSlot: slotId }
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id: `slot:${slotId}`, data })
-
+function PlacedPart({ uid, part, span, problem, onRemove, outside }: { uid: string; part: Part; span: number; problem: boolean; onRemove: (id: string) => void; outside?: boolean }) {
+  const data: DragData = { id: part.id, kind: 'part', fromCraft: true }
+  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id: `craft:${uid}`, data })
   return (
-    <>
-      <div
-        ref={setNodeRef}
-        {...listeners}
-        {...attributes}
-        aria-label={`${part.name}. Drag to move, or drag back to the tray to remove.`}
-        title={part.tooltip}
-        className={cn(
-          'flex min-w-0 flex-1 cursor-grab touch-none items-center gap-2 active:cursor-grabbing',
-          variant === 'wing' && 'flex-col text-center',
-          isDragging && 'opacity-30',
-        )}
-      >
-        <PartIcon part={part} className={variant === 'wing' ? 'size-10' : 'size-10 shrink-0'} />
-        <span className="line-clamp-2 text-xs leading-tight font-medium">{part.name}</span>
+    <div
+      className={cn(
+        'relative flex min-h-14 items-center gap-2 rounded-lg border bg-space-900 p-1.5 pr-5',
+        outside ? 'border-space-600' : 'border-space-700',
+        problem && 'border-bad ring-2 ring-bad/40',
+        isDragging && 'opacity-40',
+      )}
+      style={{ gridColumn: `span ${span} / span ${span}` }}
+    >
+      <div ref={setNodeRef} {...listeners} {...attributes} aria-label={`Drag ${part.name} off the craft`} className="flex min-w-0 flex-1 cursor-grab touch-none items-center gap-2 active:cursor-grabbing">
+        <PartIcon item={part} className="size-9 shrink-0" />
+        <span className="min-w-0 text-xs leading-tight">
+          <span className="line-clamp-2">{part.name}</span>
+          {part.slots > 1 && <span className="text-[10px] text-muted">{part.slots} slots</span>}
+        </span>
       </div>
       <button
-        onClick={() => onRemove(slotId)}
+        onClick={() => onRemove(part.id)}
         className="absolute -top-2 -right-2 rounded-full border border-space-600 bg-space-800 p-0.5 text-muted after:absolute after:-inset-2 after:content-[''] hover:text-ink"
         aria-label={`Remove ${part.name}`}
       >
         <X className="size-3.5" />
       </button>
-    </>
+    </div>
   )
 }

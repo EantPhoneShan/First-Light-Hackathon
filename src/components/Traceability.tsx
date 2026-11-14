@@ -1,34 +1,29 @@
 import { motion } from 'framer-motion'
-import { ArrowDown, ArrowRight, CheckCircle2, CircleAlert, FlaskConical, Lock, Target, XCircle } from 'lucide-react'
+import { ArrowDown, ArrowRight, CheckCircle2, FlaskConical, Lock, Target } from 'lucide-react'
 import { PartIcon } from '@/components/workbench/PartIcon'
-import { partById } from '@/engine/mock'
-import { scienceFor, type Measurement } from '@/engine/mockScience'
-import type { Part } from '@/engine/placeholderTypes'
+import { findPart } from '@/engine/data'
+import type { Part } from '@/engine/types'
+import { gameData } from '@/game/ui'
 import { cn } from '@/lib/cn'
-import { useGame, useScenario } from '@/store/game'
-
-const fitStyle = {
-  best: { icon: CheckCircle2, text: 'text-ok', box: 'border-ok/60 bg-ok/10', word: 'Best fit' },
-  ok: { icon: CircleAlert, text: 'text-warn', box: 'border-warn/60 bg-warn/10', word: 'Works, with limits' },
-  no: { icon: XCircle, text: 'text-bad', box: 'border-bad/60 bg-bad/10', word: "Doesn't fit" },
-} as const
+import { useEvaluation, useGame, useScenario } from '@/store/game'
 
 /**
  * PRD F3, CML 1: start from the science goal. Goal -> what to measure -> which instrument.
- * The Science Lead leads this step. Instruments that can't serve the goal are locked on the workbench.
+ * Data is the scenario's goals (Member 1). evaluate().compat.instruments locks every instrument
+ * that doesn't serve the chosen measurement, with the reason, on the workbench too.
  */
 export function Traceability() {
   const scenario = useScenario()
-  const sci = scienceFor(scenario.id)
-  const chosenId = useGame((s) => s.measurementId)
-  const setMeasurement = useGame((s) => s.setMeasurement)
-  const lead = useGame((s) => s.room.players.find((p) => p.role === 'science')?.name)
-  if (!sci) return null
+  const science = useGame((s) => s.design.science)
+  const setScience = useGame((s) => s.setScience)
+  const lead = useGame((s) => s.players.find((p) => p.role === 'science')?.name)
+  const ev = useEvaluation()
 
-  const chosen = sci.measurements.find((m) => m.id === chosenId)
-  const lockedParts = Object.entries(sci.locked)
-    .map(([id, why]) => ({ part: partById(id), why }))
-    .filter((x): x is { part: Part; why: string } => !!x.part)
+  const goal = scenario.goals.find((g) => g.id === science.goalId)
+  const measurement = goal?.measurements.find((m) => m.id === science.measurementId)
+  const instruments = gameData.parts.filter((p) => p.category === 'instrument')
+  const unlocked = instruments.filter((p) => ev.compat.instruments[p.id]?.ok)
+  const locked = instruments.filter((p) => ev.compat.instruments[p.id]?.ok === false)
 
   return (
     <section aria-labelledby="trace-h" className="rounded-xl border border-space-700 bg-space-900 p-4 sm:p-5">
@@ -43,62 +38,76 @@ export function Traceability() {
       </div>
       <p className="mt-1 text-sm text-muted">Real missions start from the science, not the spacecraft: what do we need to know, what must we measure, and which instrument measures it?</p>
 
-      <div className="mt-4 grid grid-cols-[minmax(0,1fr)] items-start gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.3fr)_auto_minmax(0,1fr)]">
+      <div className="mt-4 grid grid-cols-[minmax(0,1fr)] items-start gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.2fr)_auto_minmax(0,1fr)]">
         {/* 1. Goal */}
         <Step n={1} title="Science goal" icon={Target}>
-          <p className="text-sm">{sci.goal}</p>
-          <p className="mt-2 text-xs text-muted">For the {scenario.customer.toLowerCase()}.</p>
+          <div role="radiogroup" aria-label="Science goal" className="flex flex-col gap-2">
+            {scenario.goals.map((g) => (
+              <Choice key={g.id} selected={g.id === science.goalId} onPick={() => setScience(g.id, null)}>
+                <span className="font-medium">{g.name}</span>
+              </Choice>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-muted">For the {scenario.customer.name.toLowerCase()}.</p>
         </Step>
 
         <Arrow />
 
         {/* 2. Measurement */}
         <Step n={2} title="What should we measure?">
-          <div role="radiogroup" aria-label="Measurement" className="flex flex-col gap-2">
-            {sci.measurements.map((m) => (
-              <MeasurementCard key={m.id} m={m} selected={m.id === chosenId} onPick={() => setMeasurement(m.id)} />
-            ))}
-          </div>
+          {goal ? (
+            <div role="radiogroup" aria-label="Measurement" className="flex flex-col gap-2">
+              {goal.measurements.map((m) => (
+                <Choice key={m.id} selected={m.id === science.measurementId} onPick={() => setScience(goal.id, m.id)}>
+                  <span className="font-medium">{m.name}</span>
+                  {m.id === science.measurementId && (
+                    <span className="mt-1 flex items-start gap-1.5 text-xs text-ok">
+                      <CheckCircle2 className="mt-px size-3.5 shrink-0" aria-hidden />
+                      <span className="text-ink/80">{m.why}</span>
+                    </span>
+                  )}
+                </Choice>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted">Pick a goal first.</p>
+          )}
         </Step>
 
         <Arrow />
 
         {/* 3. Instrument */}
         <Step n={3} title="Instrument">
-            {chosen ? (
-              <motion.div key={chosen.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-                {chosen.instruments.map((id) => {
-                  const p = partById(id)
-                  if (!p) return null
-                  const locked = sci.locked[id]
-                  return (
-                    <div key={id} className={cn('flex items-center gap-3 rounded-lg border p-2', locked ? 'border-bad/40 opacity-70' : 'border-ok/50 bg-ok/5')}>
-                      <PartIcon part={p} className={cn('size-12 shrink-0', locked && 'grayscale')} />
-                      <span className="min-w-0">
-                        <span className="flex items-center gap-1.5 text-sm font-medium">
-                          {locked && <Lock className="size-3.5 text-bad" aria-label="Locked" />}
-                          {p.name}
-                        </span>
-                        <span className="block text-xs text-muted">{locked ? 'Locked for this mission' : 'Unlocked on the workbench'}</span>
-                      </span>
-                    </div>
-                  )
-                })}
-                <p className="mt-2 text-xs text-muted">{chosen.senses}</p>
-              </motion.div>
-            ) : (
-              <p className="text-sm text-muted">Pick a measurement to see which instrument does it.</p>
-            )}
+          {measurement ? (
+            <motion.div key={measurement.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2">
+              {measurement.instrumentIds
+                .map((id) => findPart(gameData, id))
+                .filter((p): p is Part => !!p)
+                .map((p) => (
+                  <div key={p.id} className="flex items-center gap-3 rounded-lg border border-ok/50 bg-ok/5 p-2">
+                    <PartIcon item={p} className="size-12 shrink-0" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium">{p.name}</span>
+                      <span className="block text-xs text-muted">Unlocked on the workbench</span>
+                    </span>
+                  </div>
+                ))}
+            </motion.div>
+          ) : (
+            <p className="text-sm text-muted">
+              {goal ? 'Pick a measurement to see which instrument does it.' : `Until you choose, the ${unlocked.length} instruments that serve any goal are open.`}
+            </p>
+          )}
 
-          {lockedParts.length > 0 && (
+          {locked.length > 0 && (
             <div className="mt-3 border-t border-space-700 pt-3">
-              <p className="text-xs font-medium text-muted">Locked for {scenario.name}</p>
+              <p className="text-xs font-medium text-muted">Locked {measurement ? 'for this measurement' : `for ${scenario.name}`}</p>
               <ul className="mt-1 flex flex-col gap-1">
-                {lockedParts.map(({ part, why }) => (
-                  <li key={part.id} className="flex items-start gap-1.5 text-xs text-muted">
+                {locked.map((p) => (
+                  <li key={p.id} className="flex items-start gap-1.5 text-xs text-muted">
                     <Lock className="mt-0.5 size-3 shrink-0 text-bad" aria-hidden />
                     <span>
-                      <span className="text-ink">{part.name}:</span> {why.replace(/^Doesn't fit the goal: /, '')}
+                      <span className="text-ink">{p.name}</span>
                     </span>
                   </li>
                 ))}
@@ -133,24 +142,15 @@ function Arrow() {
   )
 }
 
-function MeasurementCard({ m, selected, onPick }: { m: Measurement; selected: boolean; onPick: () => void }) {
-  const st = fitStyle[m.fits]
+function Choice({ selected, onPick, children }: { selected: boolean; onPick: () => void; children: React.ReactNode }) {
   return (
     <button
       role="radio"
       aria-checked={selected}
       onClick={onPick}
-      className={cn('rounded-lg border p-2.5 text-left text-sm transition-colors', selected ? st.box : 'border-space-700 hover:border-space-600')}
+      className={cn('rounded-lg border p-2.5 text-left text-sm transition-colors', selected ? 'border-ok/60 bg-ok/10' : 'border-space-700 hover:border-space-600')}
     >
-      <span className="font-medium">{m.label}</span>
-      {selected && (
-        <span className={cn('mt-1 flex items-start gap-1.5 text-xs', st.text)}>
-          <st.icon className="mt-px size-3.5 shrink-0" aria-hidden />
-          <span>
-            <b>{st.word}.</b> <span className="text-ink/80">{m.why}</span>
-          </span>
-        </span>
-      )}
+      {children}
     </button>
   )
 }

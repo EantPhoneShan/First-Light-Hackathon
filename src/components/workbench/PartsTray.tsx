@@ -1,24 +1,32 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { Lock, Plus } from 'lucide-react'
 import { useState } from 'react'
-import type { Part, PartCategory } from '@/engine/placeholderTypes'
+import type { Availability, Bus, Part, PartCategory } from '@/engine/types'
+import { categoryLabel, n1 } from '@/game/ui'
 import { cn } from '@/lib/cn'
 import { TRAY_ID, type DragData } from './dnd'
-import { categoryLabel, PartIcon } from './PartIcon'
+import { PartIcon } from './PartIcon'
 
 interface PartsTrayProps {
+  buses: Bus[]
   parts: Part[]
-  onAdd: (part: Part) => void
-  /** Part id -> reason it's locked for this mission (F3). */
-  locks?: Record<string, string>
+  /** Member 1's evaluate().compat: part id -> can one more be added, and why not. */
+  availability: Record<string, Availability>
+  /** How many of each part are on the craft. */
+  counts: Record<string, number>
+  currentBusId: string | null
+  onAdd: (kind: 'part' | 'bus', id: string) => void
 }
 
-/** Parts grouped by category. Drag a part onto the craft, or tap + to drop it in the first free slot. */
-export function PartsTray({ parts, onAdd, locks = {} }: PartsTrayProps) {
+type Tab = 'all' | 'bus' | PartCategory
+
+/** Buses and parts by category. Drag onto the spacecraft, or tap + to add. */
+export function PartsTray({ buses, parts, availability, counts, currentBusId, onAdd }: PartsTrayProps) {
   const categories = [...new Set(parts.map((p) => p.category))]
-  const [tab, setTab] = useState<PartCategory | 'all'>('all')
-  const shown = tab === 'all' ? parts : parts.filter((p) => p.category === tab)
+  const [tab, setTab] = useState<Tab>('all')
   const { setNodeRef, isOver } = useDroppable({ id: TRAY_ID })
+  const showBuses = tab === 'all' || tab === 'bus'
+  const shownParts = tab === 'all' ? parts : tab === 'bus' ? [] : parts.filter((p) => p.category === tab)
 
   return (
     <aside
@@ -32,7 +40,7 @@ export function PartsTray({ parts, onAdd, locks = {} }: PartsTrayProps) {
       </div>
 
       <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Part category">
-        {(['all', ...categories] as const).map((c) => (
+        {(['all', 'bus', ...categories] as Tab[]).map((c) => (
           <button
             key={c}
             role="tab"
@@ -43,61 +51,118 @@ export function PartsTray({ parts, onAdd, locks = {} }: PartsTrayProps) {
               tab === c ? 'bg-accent text-space-950' : 'bg-space-800 text-muted hover:text-ink',
             )}
           >
-            {c === 'all' ? 'All' : categoryLabel[c]}
+            {c === 'all' ? 'All' : c === 'bus' ? 'Bus' : categoryLabel[c]}
           </button>
         ))}
       </div>
 
       <ul className="mt-2 flex max-h-[460px] flex-col gap-1.5 overflow-y-auto pr-1">
-        {shown.map((p) => (
-          <TrayPart key={p.id} part={p} onAdd={onAdd} locked={locks[p.id]} />
+        {showBuses &&
+          buses.map((b) => (
+            <TrayItem key={b.id} kind="bus" id={b.id} item={b} count={b.id === currentBusId ? 1 : 0} onAdd={onAdd}>
+              <Stats item={b} extra={`${b.slots} slots · carries ${n1(b.maxMassKg)} kg`} />
+            </TrayItem>
+          ))}
+        {shownParts.map((p) => (
+          <TrayItem key={p.id} kind="part" id={p.id} item={p} count={counts[p.id] ?? 0} locked={availability[p.id]?.ok === false ? availability[p.id].reason ?? 'Not available' : undefined} onAdd={onAdd}>
+            <PartInfo part={p} />
+          </TrayItem>
         ))}
       </ul>
     </aside>
   )
 }
 
-function TrayPart({ part, onAdd, locked }: { part: Part; onAdd: (p: Part) => void; locked?: string }) {
-  const data: DragData = { partId: part.id, fromSlot: null }
-  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id: `tray:${part.id}`, data, disabled: !!locked })
-
-  if (locked) {
-    return (
-      <li className="flex items-center gap-2 rounded-lg border border-dashed border-space-700 p-2" aria-label={`${part.name}, locked. ${locked}`}>
-        <PartIcon part={part} className="size-10 shrink-0 opacity-50 grayscale" />
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-1.5 text-sm font-medium text-muted">
-            <Lock className="size-3.5 shrink-0 text-bad" aria-hidden />
-            <span className="truncate">{part.name}</span>
-          </span>
-          <span className="mt-0.5 block text-[11px] leading-snug text-bad/90">{locked}</span>
-        </span>
-      </li>
-    )
-  }
+function TrayItem({
+  kind,
+  id,
+  item,
+  count,
+  locked,
+  onAdd,
+  children,
+}: {
+  kind: 'part' | 'bus'
+  id: string
+  item: Part | Bus
+  count: number
+  locked?: string
+  onAdd: (kind: 'part' | 'bus', id: string) => void
+  children: React.ReactNode
+}) {
+  const data: DragData = { id, kind, fromCraft: false }
+  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id: `tray:${id}`, data, disabled: !!locked })
+  const category = 'category' in item ? item.category : undefined
 
   return (
-    <li className={cn('flex items-center gap-2 rounded-lg border border-transparent bg-space-800/60 p-2 hover:border-space-600', isDragging && 'opacity-40')}>
-      <div ref={setNodeRef} {...listeners} {...attributes} aria-label={`Drag ${part.name}`} className="flex min-w-0 flex-1 cursor-grab touch-none items-center gap-2.5 active:cursor-grabbing">
-        <PartIcon part={part} className="size-10 shrink-0" />
-        <PartInfo part={part} />
+    <li
+      className={cn(
+        'flex items-center gap-2 rounded-lg border p-2',
+        locked ? 'border-dashed border-space-700' : 'border-transparent bg-space-800/60 hover:border-space-600',
+        isDragging && 'opacity-40',
+      )}
+      aria-label={locked ? `${item.name}, can't add. ${locked}` : undefined}
+    >
+      <div
+        ref={setNodeRef}
+        {...listeners}
+        {...attributes}
+        aria-label={locked ? undefined : `Drag ${item.name}`}
+        className={cn('flex min-w-0 flex-1 items-center gap-2.5', !locked && 'cursor-grab touch-none active:cursor-grabbing')}
+      >
+        <span className="relative shrink-0">
+          <PartIcon item={{ id, category }} className={cn('size-10', locked && 'opacity-50 grayscale')} />
+          {count > 0 && (
+            <span className="absolute -right-1 -bottom-1 rounded-full bg-accent px-1 text-[10px] font-semibold text-space-950 tabular-nums">
+              {kind === 'bus' ? '✓' : `×${count}`}
+            </span>
+          )}
+        </span>
+        <span className="min-w-0 flex-1">
+          {children}
+          {locked && (
+            <span className="mt-0.5 flex items-start gap-1 text-[11px] leading-snug text-bad/90">
+              <Lock className="mt-px size-3 shrink-0" aria-hidden />
+              {locked}
+            </span>
+          )}
+        </span>
       </div>
-      <button onClick={() => onAdd(part)} className="shrink-0 rounded-md p-2.5 text-accent hover:bg-space-700 sm:p-1.5" aria-label={`Add ${part.name}`}>
-        <Plus className="size-4" />
-      </button>
+      {!locked && (
+        <button onClick={() => onAdd(kind, id)} className="shrink-0 rounded-md p-2.5 text-accent hover:bg-space-700 sm:p-1.5" aria-label={`Add ${item.name}`}>
+          <Plus className="size-4" />
+        </button>
+      )}
     </li>
   )
 }
 
-export function PartInfo({ part }: { part: Part }) {
-  const power = part.powerW < 0 ? `+${-part.powerW} W` : `${part.powerW} W`
+function Stats({ item, extra }: { item: Part | Bus; extra?: string }) {
+  const gen = 'generationW' in item ? item.generationW : undefined
   return (
     <span className="min-w-0">
-      <span className="block truncate text-sm font-medium">{part.name}</span>
+      <span className="block truncate text-sm font-medium">{item.name}</span>
       <span className="block text-[11px] text-muted tabular-nums">
-        {part.massKg} kg · <span className={part.powerW < 0 ? 'text-ok' : undefined}>{power}</span> · ${part.costM}M · {part.buildMonths} mo
+        {n1(item.massKg)} kg · {gen ? <span className="text-ok">+{n1(gen)} W</span> : `${n1(item.powerW)} W`} · ${n1(item.costM)}M · {item.buildMonths} mo
+        {extra && ` · ${extra}`}
       </span>
-      <span className="mt-0.5 line-clamp-2 block text-[11px] leading-snug text-muted/80">{part.tooltip}</span>
+      <span className="mt-0.5 line-clamp-2 block text-[11px] leading-snug text-muted/80">{item.tooltip}</span>
     </span>
   )
+}
+
+/** The one stat that matters most for each kind of part. */
+function keyStat(p: Part): string | undefined {
+  if (p.capacityWh) return `${n1(p.capacityWh)} Wh`
+  if (p.storageMB) return `${n1(p.storageMB / 1000)} GB storage`
+  if (p.dataRateMbps) return `${n1(p.dataRateMbps)} Mbps`
+  if (p.dataMBPerOrbit) return `${n1(p.dataMBPerOrbit)} MB/orbit`
+  if (p.propellantKg) return `${n1(p.propellantKg)} kg fuel`
+  return undefined
+}
+
+export function PartInfo({ part }: { part: Part }) {
+  const stat = keyStat(part)
+  const slots = part.slots === 0 ? 'outside' : `${part.slots} slot${part.slots > 1 ? 's' : ''}`
+  return <Stats item={part} extra={[stat, slots].filter(Boolean).join(' · ')} />
 }

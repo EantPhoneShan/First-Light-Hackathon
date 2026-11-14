@@ -20,20 +20,26 @@ Built-in SVG art is original and needs no credit. Record the prompts you actuall
 
 | Name | Prompt after the style prompt | Used |
 |---|---|---|
-| part-bus-3u | A 3U CubeSat frame: a tall white aluminium box made of three stacked 10 cm cubes, orange corner rails. | |
-| part-bus-6u | A 6U CubeSat frame: a white aluminium box two cubes wide and three tall, orange corner rails. | |
-| part-bus-12u | A 12U CubeSat frame: a chunky white aluminium box two by two cubes and three tall, orange corner rails. | |
+| part-bus-cubesat-6u | A 3U CubeSat frame: a tall white aluminium box made of three stacked 10 cm cubes, orange corner rails. | |
+| part-bus-smallsat | A 6U CubeSat frame: a white aluminium box two cubes wide and three tall, orange corner rails. | |
+| part-bus-large | A 12U CubeSat frame: a chunky white aluminium box two by two cubes and three tall, orange corner rails. | |
 | part-solar-body | A small cube covered in blue solar cells on every face, thin navy frame. | |
 | part-solar-wings | A small white satellite body with two long deployable blue solar panels unfolded to each side, orange hinges. | |
 | part-battery-small | A small navy battery pack with an orange terminal and a yellow lightning bolt on the side. | |
 | part-battery-large | A double navy battery pack, two cells side by side, orange terminals, yellow lightning bolt. | |
-| part-radio-uhf | A small white radio box with four thin whip antennas sticking out diagonally. | |
-| part-radio-s | A small white radio box with a flat gold square patch antenna on top. | |
-| part-radio-x | A small white radio box with a tilted white dish antenna on a short mast, orange feed tip. | |
-| part-computer-std | A small green circuit board with black chips and gold connector pins. | |
+| part-antenna-uhf | A small white radio box with four thin whip antennas sticking out diagonally. | |
+| part-antenna-s | A small white radio box with a flat gold square patch antenna on top. | |
+| part-antenna-x | A small white radio box with a tilted white dish antenna on a short mast, orange feed tip. | |
+| part-computer | A small green circuit board with black chips and gold connector pins. | |
 | part-magnetorquer | Three copper-orange coil rods on a navy plate, one along each axis. | |
-| part-cold-gas | A silver spherical gas tank on a navy plate with a small dark thruster nozzle. | |
+| part-cold-gas-thruster | A silver spherical gas tank on a navy plate with a small dark thruster nozzle. | |
 | part-camera | A white cube camera with a large dark blue lens on the front. | |
+| part-solar-array | Two very large blue solar panels unfolded from a white satellite body, orange hinges. | |
+| part-battery-pack | A big navy battery pack made of six cells, orange terminals, yellow lightning bolt. | |
+| part-reaction-wheel | A heavy spinning disc in a navy housing, with an orange hub. | |
+| part-multispectral-imager | A white box camera with three small lenses in a row, each a different colour. | |
+| part-spectrometer | A navy instrument box with a rainbow strip on its side, splitting light into colours. | |
+| part-magnetometer | A small sensor at the end of a long thin boom on a navy base. | |
 | part-thermal-imager | A navy cube camera with a lens glowing orange and red like a heat map. | |
 
 ## Rockets (512 px tall, generic, no real rockets or logos)

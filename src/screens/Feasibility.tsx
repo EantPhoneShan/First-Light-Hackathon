@@ -2,133 +2,125 @@ import { CheckCircle2, ClipboardList, XCircle } from 'lucide-react'
 import { useId, type ReactNode } from 'react'
 import { Screen } from '@/components/Screen'
 import { Term } from '@/components/Term'
-import { revisitAt, scenarios } from '@/engine/mock'
+import { orbitInfo } from '@/engine/orbit'
+import type { DisposalPlan, PlannerData } from '@/engine/types'
+import { gameData, n1 } from '@/game/ui'
 import { cn } from '@/lib/cn'
-import { useGame, useScenario } from '@/store/game'
+import { useEvaluation, useGame, useScenario } from '@/store/game'
 
-const H_MIN = 300
-const H_MAX = 1000
-const SSO = { min: 450, max: 900 }
+const weightInfo: { key: keyof PlannerData['weights']; label: string; low: string; high: string }[] = [
+  { key: 'coverage', label: 'Coverage: looking often', low: 'Fine to look now and then', high: 'Must see every spot as often as possible' },
+  { key: 'detail', label: 'Detail: sharp, rich data', low: 'Rough pictures are enough', high: 'Every image must count' },
+  { key: 'lifetime', label: 'Lifetime: lasting the whole mission', low: 'A short mission is OK', high: 'Must last every planned year' },
+]
 
-/** Lowest altitude whose revisit time meets the target (revisit improves as you go higher). */
-function minAltForRevisit(days: number) {
-  for (let h = H_MIN; h <= H_MAX; h += 5) if (revisitAt(h) <= days) return h
-  return null
-}
+const disposals: { id: DisposalPlan; label: string; what: string }[] = [
+  { id: 'natural-decay', label: 'Let air drag bring it down', what: 'Free, but only works if the orbit is low enough to fall within the time limit.' },
+  { id: 'deorbit-burn', label: 'Fire a thruster at the end', what: 'Needs a thruster and enough fuel (delta-v), but works from any low orbit.' },
+  { id: 'graveyard', label: 'Move to a graveyard orbit', what: 'Only for GEO: push the craft higher, out of the busy ring.' },
+  { id: 'none', label: 'No plan yet', what: 'The craft could stay up as space junk for decades.' },
+]
 
-/** CML 2 Feasibility (F4, F5): set the requirements and see which orbits can meet them. */
+/**
+ * CML 2 Feasibility. F4: the Mission Planner's sliders weight the score. F10: end-of-mission plan.
+ * F5: a quick check of every orbit against this mission's targets, using Member 1's orbit maths.
+ */
 export function Feasibility() {
   const scenario = useScenario()
-  const req = useGame((s) => s.requirements)
-  const setReq = useGame((s) => s.setRequirements)
-  const planner = useGame((s) => s.room.players.find((p) => p.role === 'planner')?.name)
-  const baseYears = scenarios.find((s) => s.id === scenario.id)!.lifetimeYears
-
-  const hDetail = Math.min(H_MAX, req.detailM / 0.01) // highest altitude that is still sharp enough
-  const hRevisit = minAltForRevisit(req.revisitDays) // lowest altitude that covers ground fast enough
-  const lo = hRevisit ?? Infinity
-  const hi = hDetail
-  const feasible = lo <= hi
-  const inSso = feasible && Math.max(lo, SSO.min) <= Math.min(hi, SSO.max)
+  const planner = useGame((s) => s.design.planner)
+  const setWeight = useGame((s) => s.setWeight)
+  const setDisposal = useGame((s) => s.setDisposal)
+  const lead = useGame((s) => s.players.find((p) => p.role === 'planner')?.name)
+  const ev = useEvaluation()
 
   return (
-    <Screen title="Requirements" subtitle="CML 2 · Feasibility: decide what matters most, then check it's possible." reqs="F4, F5" nextLabel="Start designing">
+    <Screen title="Requirements" subtitle="CML 2 · Feasibility: decide what matters most, then check it's possible." reqs="F4, F5, F10" nextLabel="Start designing">
       <p className="inline-flex w-fit items-center gap-2 rounded-full border border-space-700 bg-space-900 px-3 py-1 text-sm text-muted">
         <ClipboardList className="size-4 text-accent" aria-hidden />
-        {planner ? `${planner} (Mission Planner) leads this step` : 'The Mission Planner leads this step'}
+        {lead ? `${lead} (Mission Planner) leads this step` : 'The Mission Planner leads this step'}
       </p>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="flex flex-col gap-4 rounded-xl border border-space-700 bg-space-900 p-4">
-          <Slider
-            label="Coverage: how often to look at each place"
-            value={req.revisitDays}
-            min={1}
-            max={10}
-            step={0.5}
-            onChange={(v) => setReq({ revisitDays: v })}
-            display={`every ${req.revisitDays} day${req.revisitDays === 1 ? '' : 's'}`}
-            note={
-              req.revisitDays <= 2
-                ? 'Very frequent. One satellite needs a wide view (a high orbit), or you need two satellites.'
-                : req.revisitDays <= 5
-                  ? 'A fire can grow a lot in a few days, but one satellite can manage this.'
-                  : 'Easy to reach, but the firefighters may see a fire too late.'
-            }
-          />
-          <Slider
-            label="Image detail: size of one pixel on the ground"
-            value={req.detailM}
-            min={2}
-            max={30}
-            step={1}
-            onChange={(v) => setReq({ detailM: v })}
-            display={`${req.detailM} m`}
-            note={
-              req.detailM <= 5
-                ? 'Sharp enough to see single buildings, but the camera must fly low and sees a narrow strip.'
-                : req.detailM <= 15
-                  ? 'Good for spotting fire fronts and burn scars.'
-                  : 'Blurry: fine for big fires, but small new ones may be missed.'
-            }
-          />
-          <Slider
-            label="Mission lifetime"
-            value={req.lifetimeYears}
-            min={baseYears}
-            max={baseYears + 4}
-            step={1}
-            onChange={(v) => setReq({ lifetimeYears: v })}
-            display={`${req.lifetimeYears} years`}
-            note={
-              req.lifetimeYears === baseYears
-                ? `The ${scenario.customer.toLowerCase()} need at least ${baseYears} years.`
-                : `Each extra year adds ground-station fees, and a low orbit needs more fuel to stay up against air drag.`
-            }
-          />
+          <div>
+            <h2 className="font-semibold">What matters most?</h2>
+            <p className="text-sm text-muted">These set how the final score is weighted. You can't max everything: that's the trade-off.</p>
+          </div>
+          {weightInfo.map((w) => (
+            <Slider
+              key={w.key}
+              label={w.label}
+              value={planner.weights[w.key]}
+              onChange={(v) => setWeight(w.key, v)}
+              display={planner.weights[w.key] < 0.34 ? 'Low' : planner.weights[w.key] < 0.67 ? 'Medium' : 'High'}
+              note={planner.weights[w.key] < 0.34 ? w.low : planner.weights[w.key] < 0.67 ? 'Balanced with the others' : w.high}
+            />
+          ))}
+
+          <div className="border-t border-space-700 pt-4">
+            <h2 className="font-semibold">
+              End-of-mission plan (<Term id="deorbit">de-orbit</Term>)
+            </h2>
+            <p className="text-sm text-muted">Dead satellites must come down within {gameData.disposalRuleYears} years, so they don't become space junk.</p>
+            <div role="radiogroup" aria-label="End-of-mission plan" className="mt-2 flex flex-col gap-2">
+              {disposals.map((d) => (
+                <button
+                  key={d.id}
+                  role="radio"
+                  aria-checked={planner.disposal === d.id}
+                  onClick={() => setDisposal(d.id)}
+                  className={cn('rounded-lg border p-2.5 text-left text-sm transition-colors', planner.disposal === d.id ? 'border-accent bg-accent/10' : 'border-space-700 hover:border-space-600')}
+                >
+                  <span className="font-medium">{d.label}</span>
+                  <span className="mt-0.5 block text-xs text-muted">{d.what}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col gap-3 rounded-xl border border-space-700 bg-space-900 p-4">
-          <h2 className="font-semibold">Which altitudes work?</h2>
-          <TradeChart lo={hRevisit} hi={hDetail} />
-          <div
-            role="status"
-            className={cn('flex items-start gap-2 rounded-lg p-3 text-sm', feasible ? 'bg-ok/10 text-ok' : 'bg-bad/10 text-bad')}
-          >
-            {feasible ? <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden /> : <XCircle className="mt-0.5 size-4 shrink-0" aria-hidden />}
-            <span className="text-ink">
-              {feasible ? (
-                <>
-                  Feasible. Fly between <b>{Math.round(lo)}</b> and <b>{Math.round(hi)} km</b>.{' '}
-                  {inSso ? (
-                    <>
-                      That includes <Term id="sso">sun-synchronous orbits</Term>, a good fit for this mission.
-                    </>
-                  ) : (
-                    'That is outside the usual sun-synchronous range, so check the orbit choices carefully.'
-                  )}
-                </>
-              ) : (
-                <>
-                  Not possible with one satellite.{' '}
-                  {hRevisit === null
-                    ? `Even at ${H_MAX} km, one satellite can't come back every ${req.revisitDays} days.`
-                    : `${req.detailM} m pixels need an orbit below ${Math.round(hDetail)} km, but coming back every ${req.revisitDays} days needs at least ${hRevisit} km.`}{' '}
-                  Relax the coverage or the detail, or plan for two satellites (coming in a later version).
-                </>
-              )}
-            </span>
+          <div>
+            <h2 className="font-semibold">Quick feasibility check</h2>
+            <p className="text-sm text-muted">
+              {scenario.name} needs to revisit every {scenario.revisitDays} days for {scenario.lifetimeYears} years, on ${scenario.budgetM}M. Which orbits can do it?
+            </p>
           </div>
-          <p className="text-xs text-muted">
-            Higher orbits see a wider strip, so they come back sooner, but each pixel covers more ground. That's the trade-off every Earth-watching mission makes.
-          </p>
+          <ul className="flex flex-col gap-2">
+            {gameData.orbits.map((o) => {
+              const info = orbitInfo(o, null, gameData.decay)
+              const lock = ev.compat.orbits[o.id]
+              const checks: [boolean, string][] = [
+                [lock?.ok !== false, lock?.ok === false ? lock.reason ?? 'No rocket can get there' : 'A rocket in budget can get there'],
+                [o.revisitDays <= scenario.revisitDays, o.revisitDays === 0 ? 'Watches one spot all the time' : `Revisits every ${o.revisitDays} days (need ${scenario.revisitDays})`],
+                [info.decayYears >= scenario.lifetimeYears, info.decayYears >= 1000 ? 'Stays up forever' : `Stays up about ${n1(info.decayYears)} years at ${o.altitudeKm} km (need ${scenario.lifetimeYears})`],
+              ]
+              const ok = checks.every(([pass]) => pass)
+              return (
+                <li key={o.id} className={cn('rounded-lg border p-3', ok ? 'border-ok/50 bg-ok/5' : 'border-space-700')}>
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    {ok ? <CheckCircle2 className="size-4 text-ok" aria-hidden /> : <XCircle className="size-4 text-bad" aria-hidden />}
+                    {o.name}
+                    <span className={cn('ml-auto text-xs', ok ? 'text-ok' : 'text-bad')}>{ok ? 'Feasible' : 'Not feasible'}</span>
+                  </p>
+                  <ul className="mt-1.5 flex flex-col gap-0.5 pl-6 text-xs">
+                    {checks.map(([pass, text]) => (
+                      <li key={text} className={pass ? 'text-muted' : 'text-bad'}>
+                        {pass ? '✓' : '✗'} {text}
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              )
+            })}
+          </ul>
         </div>
       </div>
     </Screen>
   )
 }
 
-function Slider(props: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void; display: string; note: ReactNode }) {
+function Slider(props: { label: string; value: number; onChange: (v: number) => void; display: string; note: ReactNode }) {
   const id = useId()
   return (
     <div>
@@ -136,14 +128,14 @@ function Slider(props: { label: string; value: number; min: number; max: number;
         <label htmlFor={id} className="text-sm font-medium">
           {props.label}
         </label>
-        <span className="shrink-0 font-display text-accent tabular-nums">{props.display}</span>
+        <span className="shrink-0 font-display text-accent">{props.display}</span>
       </div>
       <input
         id={id}
         type="range"
-        min={props.min}
-        max={props.max}
-        step={props.step}
+        min={0}
+        max={1}
+        step={0.05}
         value={props.value}
         onChange={(e) => props.onChange(Number(e.target.value))}
         aria-valuetext={props.display}
@@ -151,44 +143,5 @@ function Slider(props: { label: string; value: number; min: number; max: number;
       />
       <p className="mt-1 text-xs text-muted">{props.note}</p>
     </div>
-  )
-}
-
-/** Altitude axis with the band that meets detail (left), the band that meets coverage (right) and their overlap. */
-function TradeChart({ lo, hi }: { lo: number | null; hi: number }) {
-  const W = 320
-  const x = (h: number) => ((Math.min(H_MAX, Math.max(H_MIN, h)) - H_MIN) / (H_MAX - H_MIN)) * W
-  const loX = lo === null ? W : x(lo)
-  const hiX = x(hi)
-  return (
-    <svg viewBox={`-8 0 ${W + 16} 110`} className="w-full" role="img" aria-label={`Detail met below ${Math.round(hi)} km; coverage met above ${lo === null ? 'no altitude' : `${Math.round(lo)} km`}`}>
-      {/* Detail band */}
-      <text x={0} y={12} className="fill-muted text-[9px]">
-        Sharp enough
-      </text>
-      <rect x={0} y={16} width={W} height={12} rx={3} className="fill-space-800" />
-      <rect x={0} y={16} width={hiX} height={12} rx={3} className="fill-accent/60" />
-      {/* Coverage band */}
-      <text x={0} y={44} className="fill-muted text-[9px]">
-        Covers ground often enough
-      </text>
-      <rect x={0} y={48} width={W} height={12} rx={3} className="fill-space-800" />
-      {lo !== null && <rect x={loX} y={48} width={W - loX} height={12} rx={3} className="fill-accent/60" />}
-      {/* Overlap */}
-      {loX < hiX && <rect x={loX} y={14} width={hiX - loX} height={48} rx={4} className="fill-ok/20 stroke-ok" strokeWidth={1.5} />}
-      {/* SSO bracket */}
-      <line x1={x(SSO.min)} x2={x(SSO.max)} y1={72} y2={72} className="stroke-muted" />
-      <line x1={x(SSO.min)} x2={x(SSO.min)} y1={68} y2={76} className="stroke-muted" />
-      <line x1={x(SSO.max)} x2={x(SSO.max)} y1={68} y2={76} className="stroke-muted" />
-      <text x={(x(SSO.min) + x(SSO.max)) / 2} y={84} textAnchor="middle" className="fill-muted text-[9px]">
-        Sun-synchronous range
-      </text>
-      {/* Axis */}
-      {[300, 500, 700, 900].map((h) => (
-        <text key={h} x={x(h)} y={104} textAnchor={h === H_MIN ? 'start' : 'middle'} className="fill-muted text-[9px]">
-          {h} km
-        </text>
-      ))}
-    </svg>
   )
 }

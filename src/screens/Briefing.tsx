@@ -1,6 +1,7 @@
 import { Screen } from '@/components/Screen'
 import { Traceability } from '@/components/Traceability'
-import { scenarios } from '@/engine/mock'
+import { RESOURCE_LABELS } from '@/engine/types'
+import { gameData } from '@/game/ui'
 import { cn } from '@/lib/cn'
 import { useGame, useScenario } from '@/store/game'
 import { Term } from '@/components/Term'
@@ -10,18 +11,19 @@ export function Briefing() {
   const setScenario = useGame((s) => s.setScenario)
 
   const facts = [
-    ['Data customer', scenario.customer],
-    ['Spacecraft', scenario.craft],
+    ['Data customer', `${scenario.customer.name} (need images within ${scenario.customer.needsDataWithinHours} h)`],
+    ['Spacecraft', gameData.buses.filter((b) => scenario.busIds.includes(b.id)).map((b) => b.name).join(' or ')],
     ['Budget', `$${scenario.budgetM}M`],
-    ['Launch date', scenario.launchDate],
+    ['Launch', `in ${scenario.launchInMonths} months`],
     ['Required lifetime', `${scenario.lifetimeYears} years`],
-    ['Critical resources', scenario.critical.join(', ')],
+    ['Revisit target', `every ${scenario.revisitDays} days`],
+    ['Critical resources', scenario.criticalResources.map((r) => RESOURCE_LABELS[r]).join(', ')],
   ]
 
   return (
     <Screen title="Mission briefing" subtitle="CML 1 · Idea: start from the science goal." reqs="F2, F3" nextLabel="Set requirements">
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Scenario">
-        {scenarios.map((sc) => (
+        {gameData.scenarios.map((sc) => (
           <button
             key={sc.id}
             role="tab"

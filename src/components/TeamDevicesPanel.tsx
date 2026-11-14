@@ -2,7 +2,7 @@ import { Copy, LogOut, Smartphone } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { roleNames } from '@/engine/mockReview'
+import { roleNames } from '@/game/ui'
 import { cn } from '@/lib/cn'
 import { useGame } from '@/store/game'
 import { ROLES, type Role } from '@/sync'
@@ -15,7 +15,7 @@ import { SyncStatusDot } from '@/components/SyncStatusDot'
  */
 export function TeamDevicesPanel() {
   const room = useDeviceRoom()
-  const players = useGame((s) => s.room.players)
+  const players = useGame((s) => s.players)
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [role, setRole] = useState<Role>('planner')

@@ -1,5 +1,16 @@
-import { craftAngle, type SimContext } from '@/engine/mockSim'
-import type { SimState } from '@/engine/placeholderTypes'
+/** What the canvas needs for one frame (built from Member 1's SimState and SimSetup). */
+export interface SceneView {
+  /** Canvas angle in radians: Sun on the left (pi), shadow on the right (0). */
+  angleRad: number
+  inEclipse: boolean
+  inContact: boolean
+  dead: boolean
+  /** Half-height of the shadow band as a fraction of the orbit radius (0 = no shadow). */
+  shadowHalfWidth: number
+}
+
+/** Member 1's angle (0 deg = insertion, in sunlight; shadow centred at 180 deg) to canvas radians. */
+export const toCanvasAngle = (deg: number) => ((deg * Math.PI) / 180 + Math.PI) % (2 * Math.PI)
 
 export interface Star {
   x: number
@@ -21,7 +32,7 @@ const css = (name: string) => getComputedStyle(document.documentElement).getProp
  * Draws one frame: stars, Sun glow, Earth with day/night, the shadow cone,
  * the orbit, the spacecraft (panels dark in eclipse) and a downlink beam during passes.
  */
-export function drawScene(g: CanvasRenderingContext2D, w: number, h: number, s: SimState, ctx: SimContext, stars: Star[], altitudeKm: number) {
+export function drawScene(g: CanvasRenderingContext2D, w: number, h: number, s: SceneView, stars: Star[], altitudeKm: number) {
   const accent = css('--color-accent') || '#ff8a3d'
   const ok = css('--color-ok') || '#3ddc97'
   const bad = css('--color-bad') || '#ff5c6c'
@@ -50,7 +61,7 @@ export function drawScene(g: CanvasRenderingContext2D, w: number, h: number, s: 
   const cy = h / 2
   const m = Math.min(w, h)
   const R = m * 0.17
-  const deep = ctx.shadowHalfWidth === 0
+  const deep = false
   const r = deep ? m * 0.42 : Math.max(R + 16, R + (m * 0.44 - R) * Math.sqrt(altitudeKm / 35786))
 
   // Shadow cone (to the right)
@@ -94,10 +105,10 @@ export function drawScene(g: CanvasRenderingContext2D, w: number, h: number, s: 
   g.arc(cx, cy, R + 1.5, Math.PI * 0.5, Math.PI * 1.5)
   g.stroke()
 
-  const th = craftAngle(ctx, s.tMin)
+  const th = s.angleRad
   const px = cx + Math.cos(th) * r
   const py = cy + Math.sin(th) * r
-  const dead = s.status === 'dead'
+  const dead = s.dead
 
   // Trail
   g.strokeStyle = dead ? 'rgba(255,92,108,0.25)' : 'rgba(255,138,61,0.45)'

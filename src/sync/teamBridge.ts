@@ -10,18 +10,20 @@
  *   useTeamSyncBridge()         mount once (Layout); keeps store and cloud in step
  *   useDeviceRoom()             status for the UI
  *
- * The store's design is split into the four role sections that sync stores:
- *   planner  { scenarioId, requirements }
- *   science  { measurementId }
- *   engineer { partsBySlot }
- *   flight   { orbitId, altitudeKm, launcherId, stationIds }
+ * The store's design is Member 1's Design, already split into the four role
+ * sections that sync stores, so each section is sent as-is:
+ *   planner  { weights, disposal } + scenarioId
+ *   science  { goalId, measurementId, instrumentIds }
+ *   engineer { busId, partIds }
+ *   flight   { orbitId, altitudeKm, launcherId, antennaIds, stationIds }
  * Each section also carries that role's Approve/Hold, tied to a hash of the
  * design it was given for, so a later change clears it on every device.
  */
 import { useEffect, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
-import type { Design, Role as GameRole } from '@/engine/placeholderTypes'
-import { useGame, type Approval, type Requirements } from '@/store/game'
+import { normalizeEngineer, normalizeFlight, normalizePlanner, normalizeScience } from '@/engine/design'
+import type { Design, Role as GameRole } from '@/engine/types'
+import { useGame, type Approval } from '@/store/game'
 import { ROLES, sync, type Role, type Room, type SyncStatus } from './index'
 
 type Payload = Record<string, unknown>
@@ -56,21 +58,23 @@ export function useDeviceRoom(): DeviceRoomState {
 
 /** Stable text of the shared design, used to tie approvals to one version of it. */
 function designHash(d: Design): string {
-  const text = JSON.stringify([d.orbitId, d.altitudeKm, d.launcherId, sortObj(d.partsBySlot), [...d.stationIds].sort()])
+  const sorted = (ids: string[]) => [...ids].sort()
+  const text = JSON.stringify([
+    d.planner,
+    [d.science.goalId, d.science.measurementId, sorted(d.science.instrumentIds)],
+    [d.engineer.busId, sorted(d.engineer.partIds)],
+    [d.flight.orbitId, d.flight.altitudeKm, d.flight.launcherId, sorted(d.flight.antennaIds), sorted(d.flight.stationIds)],
+  ])
   let h = 5381
   for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0
   return (h >>> 0).toString(36)
-}
-
-function sortObj<T>(o: Record<string, T>): Record<string, T> {
-  return Object.fromEntries(Object.entries(o ?? {}).sort(([a], [b]) => a.localeCompare(b)))
 }
 
 type GameState = ReturnType<typeof useGame.getState>
 
 function approvalFor(s: GameState, role: Role): Payload | null {
   const a = s.approvals[role as GameRole]
-  if (!a || a.version !== s.design.version) return null
+  if (!a || a.version !== s.designVersion) return null
   return { state: a.state, note: a.note ?? null, hash: designHash(s.design) }
 }
 
@@ -78,16 +82,10 @@ function approvalFor(s: GameState, role: Role): Payload | null {
 function payloads(s: GameState): Record<Role, Payload> {
   const d = s.design
   return {
-    planner: { scenarioId: s.room.scenarioId, requirements: s.requirements, approval: approvalFor(s, 'planner') },
-    science: { measurementId: s.measurementId, approval: approvalFor(s, 'science') },
-    engineer: { partsBySlot: sortObj(d.partsBySlot), approval: approvalFor(s, 'engineer') },
-    flight: {
-      orbitId: d.orbitId,
-      altitudeKm: d.altitudeKm,
-      launcherId: d.launcherId,
-      stationIds: [...d.stationIds].sort(),
-      approval: approvalFor(s, 'flight'),
-    },
+    planner: { ...d.planner, scenarioId: s.scenarioId, approval: approvalFor(s, 'planner') },
+    science: { ...d.science, approval: approvalFor(s, 'science') },
+    engineer: { ...d.engineer, approval: approvalFor(s, 'engineer') },
+    flight: { ...d.flight, approval: approvalFor(s, 'flight') },
   }
 }
 
@@ -104,7 +102,7 @@ function canon(v: unknown): string {
 
 const isEmpty = (p: Payload | undefined) => !p || Object.keys(p).length === 0
 
-/** Apply the room from the cloud to the store. Returns nothing; only changes what differs. */
+/** Apply the room from the cloud to the store. Only changes what differs. */
 function applyRemote(room: Room, keepLocal: Set<Role>) {
   const s = useGame.getState()
   const sec = room.sections
@@ -115,51 +113,45 @@ function applyRemote(room: Room, keepLocal: Set<Role>) {
   const engineer = get('engineer')
   const flight = get('flight')
 
-  // Who made the latest design change: their role becomes design.updatedBy, so
-  // Member 2's conflict alerts name the right teammate.
+  // Who made the latest design change: their role becomes updatedBy, so
+  // conflict alerts name the right teammate.
   const latest = [...ROLES].sort((a, b) => sec[b].updatedAt - sec[a].updatedAt)[0]
   const byPlayer = room.players.find((p) => p.id === sec[latest].updatedBy)
   const byRole = (byPlayer?.roles[0] ?? latest) as GameRole
 
+  // normalize*() (Member 1) fills missing fields and ignores extras such as approval.
   const nextDesign: Design = {
-    ...s.design,
-    ...(engineer && { partsBySlot: (engineer.partsBySlot as Design['partsBySlot']) ?? {} }),
-    ...(flight && {
-      orbitId: (flight.orbitId as string | null) ?? null,
-      altitudeKm: typeof flight.altitudeKm === 'number' ? flight.altitudeKm : s.design.altitudeKm,
-      launcherId: (flight.launcherId as string | null) ?? null,
-      stationIds: Array.isArray(flight.stationIds) ? (flight.stationIds as string[]) : [],
-    }),
+    planner: planner ? normalizePlanner(planner) : s.design.planner,
+    science: science ? normalizeScience(science) : s.design.science,
+    engineer: engineer ? normalizeEngineer(engineer) : s.design.engineer,
+    flight: flight ? normalizeFlight(flight) : s.design.flight,
   }
   const designChanged = designHash(nextDesign) !== designHash(s.design)
-  const design = designChanged ? { ...nextDesign, version: s.design.version + 1, updatedBy: byRole } : s.design
+  const designVersion = designChanged ? s.designVersion + 1 : s.designVersion
 
   // Approvals count only if they were given for exactly this design.
-  const hash = designHash(design)
+  const hash = designHash(designChanged ? nextDesign : s.design)
   const approvals: Partial<Record<GameRole, Approval>> = {}
   for (const r of ROLES) {
     if (keepLocal.has(r)) {
       const mine = s.approvals[r as GameRole]
-      if (mine && mine.version === s.design.version && !designChanged) approvals[r as GameRole] = mine
+      if (mine && mine.version === s.designVersion && !designChanged) approvals[r as GameRole] = mine
       continue
     }
     const a = (get(r)?.approval ?? null) as { state: Approval['state']; note: string | null; hash: string } | null
-    if (a && a.hash === hash) approvals[r as GameRole] = { state: a.state, version: design.version, note: a.note ?? undefined }
+    if (a && a.hash === hash) approvals[r as GameRole] = { state: a.state, version: designVersion, note: a.note ?? undefined }
   }
 
-  const players = room.players
-    .filter((p) => p.roles.length > 0)
-    .map((p) => ({ name: p.name, role: p.roles[0] as GameRole, approved: false }))
+  const players = room.players.filter((p) => p.roles.length > 0).map((p) => ({ name: p.name, role: p.roles[0] as GameRole }))
   const mine = room.players.find((p) => p.id === sync.playerId)?.roles[0] as GameRole | undefined
 
   const patch: Partial<GameState> = {
-    design,
     approvals,
-    room: { ...s.room, code: room.code, players, ...(planner?.scenarioId ? { scenarioId: String(planner.scenarioId) } : {}) },
+    players,
+    ...(designChanged && { design: nextDesign, designVersion, updatedBy: byRole }),
+    ...(planner?.scenarioId ? { scenarioId: String(planner.scenarioId) } : {}),
     ...(mine && { myRole: mine }),
   }
-  if (planner?.requirements) patch.requirements = planner.requirements as Requirements
-  if (science && 'measurementId' in science) patch.measurementId = (science.measurementId as string | null) ?? null
   useGame.setState(patch)
 }
 
@@ -287,7 +279,7 @@ async function enter(run: () => Promise<string>, role: Role, pushFirst: boolean,
 
 /** Create a room from this device's current design. Returns the code to share. */
 export function hostDeviceRoom(name: string, role: Role) {
-  return enter(() => sync.createRoom(name, useGame.getState().room.scenarioId), role, true, name)
+  return enter(() => sync.createRoom(name, useGame.getState().scenarioId), role, true, name)
 }
 
 /** Join a teammate's room. The room's design replaces this device's design. */
@@ -304,5 +296,5 @@ export function leaveDeviceRoom() {
   sync.setOpenEditing(false)
   lastSynced = {}
   setState({ active: false, code: null, status: 'solo', error: null })
-  useGame.setState((s) => ({ room: { ...s.room, code: '', players: [] }, myRole: 'solo' }))
+  useGame.setState({ players: [], myRole: 'solo' })
 }

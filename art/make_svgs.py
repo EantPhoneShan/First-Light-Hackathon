@@ -395,15 +395,88 @@ def radar():
     return p.svg()
 
 
+def solar_array():
+    """Big deployable array for small and large satellite buses."""
+    p = Pic(3.2)
+    for x0 in (-11, 2.2):
+        w = p.box(x0, 0.2, 2.4, 8.8, 1.8, 0.01, CELL, CELL_D, CELL)
+        grid(p, w['top'], 6, 2, CELL_L, inset=0.03)
+    p.box(0, 0, 0, 2.2, 2.2, 4.4, WHITE, WHITE_D, WHITE_S)
+    p.line(p.P(-2.2, 1.1, 2.4), p.P(0, 1.1, 2.4), ORANGE, 2)
+    p.line(p.P(2.2, 1.1, 2.4), p.P(3.2, 1.1, 2.4), ORANGE, 2)
+    return p.svg()
+
+
+def battery_pack():
+    p = Pic(5.5)
+    for i in range(3):
+        for j in range(2):
+            p.box(i * 1.1, j * 1.3, 0, 1.0, 1.2, 2.4, SLATE_L, SLATE_D, SLATE)
+    f = p.box(-0.1, -0.1, 2.4, 3.4, 2.8, 0.25, NAVY_L, NAVY_D, NAVY)
+    p.box(0.3, 1.0, 2.65, 0.4, 0.4, 0.25, ORANGE_L, ORANGE_D, ORANGE)
+    p.box(2.3, 1.0, 2.65, 0.4, 0.4, 0.25, ORANGE_L, ORANGE_D, ORANGE)
+    bolt(p, f['top'])
+    return p.svg()
+
+
+def reaction_wheel():
+    p = Pic(8)
+    p.box(0, 0, 0, 2.6, 2.6, 0.5, SLATE_L, SLATE_D, SLATE)
+    cx, cy = p.P(1.3, 1.3, 0.9)
+    p.raw(f'<ellipse cx="{cx:.2f}" cy="{cy + 3:.2f}" rx="14" ry="7.5" fill="{WHITE_D}" stroke="{INK}" stroke-width="{SW}"/>', [(cx - 14, cy - 8), (cx + 14, cy + 11)])
+    p.raw(f'<ellipse cx="{cx:.2f}" cy="{cy:.2f}" rx="14" ry="7.5" fill="{WHITE}" stroke="{INK}" stroke-width="{SW}"/>')
+    p.raw(f'<ellipse cx="{cx:.2f}" cy="{cy:.2f}" rx="9" ry="4.8" fill="none" stroke="{WHITE_D}" stroke-width="1.2"/>')
+    p.raw(f'<ellipse cx="{cx:.2f}" cy="{cy:.2f}" rx="3" ry="1.6" fill="{ORANGE}" stroke="{INK}" stroke-width="0.5"/>')
+    p.raw(f'<path d="M{cx + 10:.2f},{cy - 9:.2f} a12 6 0 0 1 8 6" fill="none" stroke="{ORANGE}" stroke-width="1.4" stroke-linecap="round"/>', [(cx + 18, cy - 10)])
+    return p.svg()
+
+
+def multispectral():
+    p = Pic(7)
+    f = p.box(0, 0, 0, 3.2, 2.0, 2.0, WHITE, WHITE_D, WHITE_S)
+    face = f['left']
+    for u, col in ((0.2, CELL_D), (0.5, '#2f8f6b'), (0.8, ORANGE_D)):
+        ellipse_on(p, face, u, 0.5, 0.13, NAVY_D, sw=0.6)
+        ellipse_on(p, face, u, 0.5, 0.08, col, sw=0.3)
+    p.line(fp(f['top'], 0.15, 0.2), fp(f['top'], 0.85, 0.2), ORANGE, 1.2)
+    return p.svg()
+
+
+def spectrometer():
+    p = Pic(7)
+    f = p.box(0, 0, 0, 3.0, 1.8, 1.6, SLATE_L, SLATE_D, SLATE)
+    p.box(3.0, 0.5, 0.4, 0.8, 0.8, 0.8, WHITE, WHITE_D, WHITE_S)
+    # rainbow slit on the side: a spectrometer splits light into colours
+    cols = ['#ff5c6c', ORANGE, GOLD, '#3ddc97', CELL_L, '#8a6cff']
+    for i, c in enumerate(cols):
+        u0 = 0.15 + i * 0.11
+        p.poly([fp(f['left'], u0, 0.35), fp(f['left'], u0 + 0.1, 0.35), fp(f['left'], u0 + 0.1, 0.65), fp(f['left'], u0, 0.65)], c, sw=0.25)
+    return p.svg()
+
+
+def magnetometer():
+    p = Pic(6)
+    p.box(0, 0, 0, 1.6, 1.6, 0.6, SLATE_L, SLATE_D, SLATE)
+    p.line(p.P(0.8, 0.8, 0.6), p.P(4.6, 0.8, 3.6), WHITE_D, 2.2)
+    p.line(p.P(0.8, 0.8, 0.6), p.P(4.6, 0.8, 3.6), WHITE, 1)
+    p.box(4.3, 0.5, 3.4, 0.7, 0.7, 0.7, ORANGE_L, ORANGE_D, ORANGE)
+    cx, cy = p.P(4.65, 0.85, 4.4)
+    p.raw(f'<path d="M{cx - 6:.2f},{cy - 3:.2f} q6 -6 12 0 M{cx - 9:.2f},{cy - 6:.2f} q9 -9 18 0" fill="none" stroke="{CELL_L}" stroke-width="1.2" stroke-linecap="round"/>', [(cx - 9, cy - 12), (cx + 9, cy)])
+    return p.svg()
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     files = {
-        'bus-3u': bus_3u(), 'bus-6u': bus_6u(), 'bus-12u': bus_12u(),
-        'solar-body': solar_body(), 'solar-wings': solar_wings(),
-        'battery-small': battery(False), 'battery-large': battery(True),
-        'radio-uhf': radio('uhf'), 'radio-s': radio('s'), 'radio-x': radio('x'),
-        'computer-std': computer(), 'magnetorquer': magnetorquer(), 'cold-gas': cold_gas(),
-        'camera': camera(False), 'thermal-imager': camera(True), 'radar': radar(),
+        # Buses and parts, named by Member 1's ids in src/data/parts.json
+        'bus-cubesat-6u': bus_6u(), 'bus-smallsat': bus_12u(), 'bus-large': cubesat(3, 3, 3, cells=True).svg(),
+        'solar-body': solar_body(), 'solar-wings': solar_wings(), 'solar-array': solar_array(),
+        'battery-small': battery(False), 'battery-large': battery(True), 'battery-pack': battery_pack(),
+        'computer': computer(), 'magnetorquer': magnetorquer(), 'reaction-wheel': reaction_wheel(),
+        'cold-gas-thruster': cold_gas(),
+        'antenna-uhf': radio('uhf'), 'antenna-s': radio('s'), 'antenna-x': radio('x'),
+        'camera': camera(False), 'multispectral-imager': multispectral(), 'thermal-imager': camera(True),
+        'radar': radar(), 'spectrometer': spectrometer(), 'magnetometer': magnetometer(),
         'rocket-rideshare': rocket(0.8, [1.6, 0.9]),
         'rocket-small': rocket(1.0, [2.0, 1.0]),
         'rocket-medium': rocket(1.25, [2.6, 1.2]),
@@ -413,6 +486,11 @@ def main():
         'role-science': avatar('science'), 'role-flight': avatar('flight'),
         'scene-title': title_art(), 'scene-ground-dish': ground_dish(),
     }
+    # Remove art for part ids that no longer exist
+    keep = {f'{n}.svg' for n in files}
+    for old in os.listdir(OUT):
+        if old.endswith('.svg') and old not in keep:
+            os.remove(os.path.join(OUT, old))
     for name, svg in files.items():
         with open(os.path.join(OUT, f'{name}.svg'), 'w') as fh:
             fh.write(svg)
