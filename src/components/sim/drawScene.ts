@@ -33,7 +33,7 @@ const css = (name: string) => getComputedStyle(document.documentElement).getProp
  * the orbit, the spacecraft (panels dark in eclipse) and a downlink beam during passes.
  */
 export function drawScene(g: CanvasRenderingContext2D, w: number, h: number, s: SceneView, stars: Star[], altitudeKm: number) {
-  const accent = css('--color-accent') || '#ff8a3d'
+  const accent = css('--color-accent') || '#f2f5fc'
   const ok = css('--color-ok') || '#3ddc97'
   const bad = css('--color-bad') || '#ff5c6c'
 

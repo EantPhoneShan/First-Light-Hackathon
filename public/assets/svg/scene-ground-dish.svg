@@ -8,7 +8,7 @@
     <ellipse cx="64" cy="58" rx="42" ry="9" fill="#c9d1e3" stroke="#0b1328" stroke-width="2"/>
     <path d="M64 58 L64 22" stroke="#0b1328" stroke-width="2.5"/>
     <path d="M30 58 L64 22 L98 58" fill="none" stroke="#0b1328" stroke-width="1.5"/>
-    <circle cx="64" cy="20" r="5" fill="#ff8a3d" stroke="#0b1328" stroke-width="2"/>
+    <circle cx="64" cy="20" r="5" fill="#c9d1e3" stroke="#0b1328" stroke-width="2"/>
   </g>
-  <path d="M96 22 a10 10 0 0 1 10 10 M96 12 a20 20 0 0 1 20 20" fill="none" stroke="#ff8a3d" stroke-width="3" stroke-linecap="round"/>
+  <path d="M96 22 a10 10 0 0 1 10 10 M96 12 a20 20 0 0 1 20 20" fill="none" stroke="#c9d1e3" stroke-width="3" stroke-linecap="round"/>
 </svg>

@@ -232,7 +232,7 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
 
       {/* Orbit path */}
       <lineLoop geometry={ring}>
-        <lineBasicMaterial color="#ff8a3d" transparent opacity={mode === 'whole' ? 0.85 : 0.45} />
+        <lineBasicMaterial color="#ffffff" transparent opacity={mode === 'whole' ? 0.85 : 0.45} />
       </lineLoop>
 
       {/* Downlink beam */}
@@ -246,9 +246,9 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
         {mode === 'whole' && (
           <>
             <sprite scale={[0.14, 0.14, 1]}>
-              <spriteMaterial map={puff} color="#ff8a3d" transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+              <spriteMaterial map={puff} color="#ffffff" transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
             </sprite>
-            <TextLabel text="Your craft" anchor="above" color="#ff8a3d" px={10} />
+            <TextLabel text="Your craft" anchor="above" color="#ffffff" px={10} />
           </>
         )}
         <group ref={spinner} scale={scale}>

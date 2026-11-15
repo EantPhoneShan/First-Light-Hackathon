@@ -24,5 +24,5 @@
   <polygon points="10.41,0.05 11.43,0.63 9.70,1.63 8.68,1.05" fill="#ffc94a" stroke="#0b1328" stroke-width="0.35" stroke-linejoin="round" />
   <polygon points="16.02,0.86 17.04,1.44 15.31,2.44 14.29,1.86" fill="#ffc94a" stroke="#0b1328" stroke-width="0.35" stroke-linejoin="round" />
   <polygon points="13.92,2.07 14.93,2.66 13.20,3.66 12.19,3.07" fill="#ffc94a" stroke="#0b1328" stroke-width="0.35" stroke-linejoin="round" />
-  <line x1="-15.59" y1="-11.40" x2="15.59" y2="6.60" stroke="#ff8a3d" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="-15.59" y1="-11.40" x2="15.59" y2="6.60" stroke="#c9d1e3" stroke-width="1.2" stroke-linecap="round"/>
 </svg>

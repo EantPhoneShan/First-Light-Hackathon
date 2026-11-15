@@ -1,11 +1,11 @@
-import { BookOpen, Rocket, Swords, Users, Wrench } from 'lucide-react'
+import { BookOpen, Satellite, Swords, Users, Wrench } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Art } from '@/components/Art'
 import { useGame } from '@/store/game'
 import { cn } from '@/lib/cn'
 
 const modes = [
-  { to: '/briefing', label: 'Campaign', desc: 'Solo. You hold all four roles.', icon: Rocket, primary: true, mode: 'campaign' },
+  { to: '/briefing', label: 'Campaign', desc: 'Solo. You hold all four roles.', icon: Satellite, primary: true, mode: 'campaign' },
   { to: '/lobby', label: 'Team mission', desc: 'Up to 4 players, one shared screen.', icon: Users },
   { to: '/workbench', label: 'Tutorial', desc: 'Fly a broken CubeSat and find out why it dies. About 5 minutes.', icon: BookOpen, mode: 'tutorial' },
   { to: '/briefing', label: 'Sandbox', desc: 'No budget, no limits. Coming later.', icon: Wrench, disabled: true },

@@ -32,6 +32,6 @@
   <polygon points="-6.10,3.52 0.00,7.04 0.00,-7.04 -6.10,-10.56" fill="#a3aec8" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
   <polygon points="6.10,3.52 0.00,7.04 0.00,-7.04 6.10,-10.56" fill="#c9d1e3" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
   <polygon points="0.00,-14.08 6.10,-10.56 0.00,-7.04 -6.10,-10.56" fill="#eef2fa" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <line x1="-9.14" y1="-9.44" x2="-3.05" y2="-5.92" stroke="#ff8a3d" stroke-width="2" stroke-linecap="round"/>
-  <line x1="3.05" y1="-2.40" x2="5.82" y2="-0.80" stroke="#ff8a3d" stroke-width="2" stroke-linecap="round"/>
+  <line x1="-9.14" y1="-9.44" x2="-3.05" y2="-5.92" stroke="#c9d1e3" stroke-width="2" stroke-linecap="round"/>
+  <line x1="3.05" y1="-2.40" x2="5.82" y2="-0.80" stroke="#c9d1e3" stroke-width="2" stroke-linecap="round"/>
 </svg>

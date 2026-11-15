@@ -6,7 +6,7 @@
   <line x1="6.06" y1="-3.50" x2="0.00" y2="0.00" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
   <line x1="-6.06" y1="-10.50" x2="0.00" y2="-7.00" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
   <line x1="6.06" y1="-10.50" x2="0.00" y2="-7.00" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
-  <line x1="-6.06" y1="3.50" x2="-6.06" y2="-17.50" stroke="#ff8a3d" stroke-width="1.4" stroke-linecap="round"/>
-  <line x1="6.06" y1="3.50" x2="6.06" y2="-17.50" stroke="#ff8a3d" stroke-width="1.4" stroke-linecap="round"/>
-  <line x1="0.00" y1="7.00" x2="0.00" y2="-14.00" stroke="#ff8a3d" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="-6.06" y1="3.50" x2="-6.06" y2="-17.50" stroke="#c9d1e3" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="6.06" y1="3.50" x2="6.06" y2="-17.50" stroke="#c9d1e3" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="0.00" y1="7.00" x2="0.00" y2="-14.00" stroke="#c9d1e3" stroke-width="1.4" stroke-linecap="round"/>
 </svg>

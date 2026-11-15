@@ -17,7 +17,7 @@
   <line x1="-3.87" y1="13.99" x2="-5.20" y2="14.76" stroke="#ffc94a" stroke-width="0.9" stroke-linecap="round"/>
   <line x1="-0.75" y1="15.79" x2="-2.08" y2="16.56" stroke="#ffc94a" stroke-width="0.9" stroke-linecap="round"/>
   <line x1="2.37" y1="17.59" x2="1.04" y2="18.36" stroke="#ffc94a" stroke-width="0.9" stroke-linecap="round"/>
-  <polygon points="-4.16,3.60 0.00,6.00 0.00,5.84 -4.16,3.44" fill="#d9661c" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="4.16,3.60 0.00,6.00 0.00,5.84 4.16,3.44" fill="#ff8a3d" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="0.00,1.04 4.16,3.44 0.00,5.84 -4.16,3.44" fill="#ffb27a" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="-4.16,3.60 0.00,6.00 0.00,5.84 -4.16,3.44" fill="#a3aec8" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="4.16,3.60 0.00,6.00 0.00,5.84 4.16,3.44" fill="#c9d1e3" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="0.00,1.04 4.16,3.44 0.00,5.84 -4.16,3.44" fill="#eef2fa" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
 </svg>

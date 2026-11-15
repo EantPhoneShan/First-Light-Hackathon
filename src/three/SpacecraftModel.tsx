@@ -112,7 +112,7 @@ function Highlight({ size, tone }: { size: Vec3; tone: 'accent' | 'bad' }) {
   return (
     <mesh scale={[1.04, 1.04, 1.04]} raycast={() => null}>
       <boxGeometry args={size} />
-      <meshBasicMaterial color={tone === 'bad' ? '#ff5c6c' : '#ff8a3d'} wireframe transparent opacity={0.9} />
+      <meshBasicMaterial color={tone === 'bad' ? '#ff5c6c' : '#ffffff'} wireframe transparent opacity={0.9} />
     </mesh>
   )
 }

@@ -1,4 +1,4 @@
-import { BookOpen, Rocket, Volume2, VolumeX } from 'lucide-react'
+import { BookOpen, Volume2, VolumeX } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useConflictAlerts } from '@/hooks/useConflictAlerts'
@@ -51,7 +51,7 @@ export function Layout() {
       <header ref={headerRef} className="sticky top-0 z-10 border-b border-space-700 bg-space-900/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
           <Link to="/" className="flex shrink-0 items-center gap-2 font-display text-lg font-semibold">
-            <Rocket className="size-5 text-accent" aria-hidden />
+            <img src="/assets/svg/logo.svg" alt="" className="h-6 w-auto" draggable={false} />
             First Light
           </Link>
           <span className="hidden truncate text-sm text-muted sm:inline">

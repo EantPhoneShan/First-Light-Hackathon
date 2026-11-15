@@ -2,9 +2,9 @@
   <polygon points="-11.08,6.40 0.00,12.80 0.00,3.20 -11.08,-3.20" fill="#33457a" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
   <polygon points="11.08,6.40 0.00,12.80 0.00,3.20 11.08,-3.20" fill="#4a5f9a" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
   <polygon points="0.00,-9.60 11.08,-3.20 0.00,3.20 -11.08,-3.20" fill="#6a7fb8" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="-8.31,-3.20 0.00,1.60 0.00,-0.40 -8.31,-5.20" fill="#d9661c" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="8.31,-3.20 0.00,1.60 0.00,-0.40 8.31,-5.20" fill="#ff8a3d" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="0.00,-10.00 8.31,-5.20 0.00,-0.40 -8.31,-5.20" fill="#ffb27a" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="-8.31,-3.20 0.00,1.60 0.00,-0.40 -8.31,-5.20" fill="#a3aec8" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="8.31,-3.20 0.00,1.60 0.00,-0.40 8.31,-5.20" fill="#c9d1e3" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="0.00,-10.00 8.31,-5.20 0.00,-0.40 -8.31,-5.20" fill="#eef2fa" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
   <polygon points="-7.00,-5.20 7.00,-5.20 12.00,-20.80 -12.00,-20.80" fill="#2a3b6b" stroke="#0b1328" stroke-width="0.7"/>
   <ellipse cx="0.00" cy="-20.80" rx="12" ry="5" fill="#0b1328" stroke="#0b1328" stroke-width="0.7"/>
   <ellipse cx="0.00" cy="-20.80" rx="6" ry="2.4" fill="#5a86f0"/>

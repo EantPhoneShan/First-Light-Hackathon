@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowRight, ChevronDown, Compass, X } from 'lucide-react'
+import { ArrowRight, ChevronDown, Compass, MousePointerClick, X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Term } from '@/components/Term'
+import { cn } from '@/lib/cn'
 import { useEvaluation, useGame } from '@/store/game'
 
 interface Step {
@@ -10,10 +11,72 @@ interface Step {
   n: number
   title: string
   body: ReactNode
+  /** The one thing to do now, in a few words. Shown on its own line so it can't be missed. */
+  task?: ReactNode
   action?: { label: string; to: string }
 }
 
 const TOTAL = 6
+/** The six stops of the tutorial, shown as a track along the top of the card. */
+const STOPS = ['Meet', 'Launch', 'Fly', 'Why', 'Fix', 'Re-fly']
+
+/**
+ * What to point at on each step. The guide finds these on the page and makes them glow,
+ * so the player sees where to look instead of hunting for it.
+ */
+interface Spot {
+  css: string
+  /** Only the element whose text contains this. */
+  text?: string
+  /** Light up a parent instead (e.g. the whole bar, not just the meter). */
+  up?: number
+}
+const SPOTS: Record<string, Spot[]> = {
+  meet: [{ css: '[data-tour="gauge-power"]' }],
+  launch: [{ css: 'button', text: 'Go to orbit' }],
+  launch2: [{ css: 'button', text: 'Go to orbit' }],
+  fly: [{ css: '[role="meter"][aria-label="Battery"]', up: 1 }],
+  fly2: [{ css: '[role="radiogroup"][aria-label="Speed"]' }],
+  report: [
+    { css: 'h2', text: 'Why it happened', up: 1 },
+    { css: 'button', text: 'Modify and re-fly' },
+  ],
+  fix: [{ css: '[role="tab"]', text: 'Battery' }],
+  ready: [{ css: '[data-tour="gauge-power"]' }],
+}
+
+function findSpot(sp: Spot): Element | null {
+  const all = Array.from(document.querySelectorAll(sp.css))
+  let el: Element | null | undefined = sp.text ? all.find((e) => e.textContent?.trim() === sp.text || e.textContent?.includes(sp.text!)) : all[0]
+  for (let i = 0; el && i < (sp.up ?? 0); i++) el = el.parentElement
+  return el ?? null
+}
+
+/** Make the step's targets glow (and bring the first into view). Keeps looking, since some appear later. */
+function useSpotlight(stepId: string | undefined) {
+  useEffect(() => {
+    const spots = stepId ? SPOTS[stepId] : undefined
+    if (!spots) return
+    let lit: Element[] = []
+    let scrolled = false
+    const tick = () => {
+      const found = spots.map(findSpot).filter((e): e is Element => !!e)
+      for (const el of lit) if (!found.includes(el)) el.classList.remove('tut-spot')
+      for (const el of found) el.classList.add('tut-spot')
+      lit = found
+      if (!scrolled && found[0]) {
+        scrolled = true
+        found[0].scrollIntoView({ block: 'center', behavior: 'smooth' })
+      }
+    }
+    tick()
+    const id = window.setInterval(tick, 500)
+    return () => {
+      window.clearInterval(id)
+      for (const el of lit) el.classList.remove('tut-spot')
+    }
+  }, [stepId])
+}
 
 /**
  * F1 tutorial guide. A floating card that works out the current step from where the player is
@@ -46,6 +109,13 @@ export function TutorialGuide() {
 
   // Open the card again whenever the step changes.
   useEffect(() => setCollapsed(false), [step?.id])
+  useSpotlight(pathname === '/learn' ? undefined : step?.id)
+  // Leave room under the page so the card never sits on top of the button it points at.
+  const open = !!step && !collapsed && pathname !== '/learn'
+  useEffect(() => {
+    document.body.classList.toggle('tutorial-open', open)
+    return () => document.body.classList.remove('tutorial-open')
+  }, [open])
 
   if (!step || pathname === '/learn') return null
 
@@ -91,11 +161,26 @@ export function TutorialGuide() {
                 <X className="size-4" />
               </button>
             </div>
-            <h2 className="mt-2 font-display text-lg font-semibold">{step.title}</h2>
+            <ol className="mt-3 grid grid-cols-6 gap-1" aria-label="Tutorial progress">
+              {STOPS.map((label, i) => {
+                const n = i + 1
+                const state = n < step.n ? 'done' : n === step.n ? 'now' : 'next'
+                return (
+                  <li key={label} className="flex flex-col gap-1" aria-current={state === 'now' ? 'step' : undefined}>
+                    <span className={cn('h-1 rounded-full transition-colors duration-500', state === 'next' ? 'bg-space-700' : state === 'now' ? 'bg-accent' : 'bg-accent/50')} />
+                    <span className={cn('text-center font-mono text-[10px]', state === 'now' ? 'text-ink' : 'text-muted')}>{label}</span>
+                  </li>
+                )
+              })}
+            </ol>
+            <h2 className="mt-3 font-display text-lg font-semibold">{step.title}</h2>
             <div className="mt-1 text-sm text-muted [&_button]:text-ink">{step.body}</div>
-            <div className="mt-3 h-1 overflow-hidden rounded-full bg-space-700">
-              <div className="h-full bg-accent transition-[width] duration-500" style={{ width: `${(Math.min(step.n, TOTAL) / TOTAL) * 100}%` }} />
-            </div>
+            {step.task && (
+              <p className="mt-3 flex items-start gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-ink">
+                <MousePointerClick className="mt-0.5 size-4 shrink-0" aria-hidden />
+                <span>{step.task}</span>
+              </p>
+            )}
             {(step.action || step.id === 'done') && (
               <div className="mt-3 flex justify-end">
                 <button
@@ -141,6 +226,7 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
               This <Term id="cubesat">CubeSat</Term> is built to spot wildfires from <Term id="sso">sun-synchronous orbit</Term>. The Power gauge at the top is red on purpose: this craft has a design mistake built in. Launch it anyway and watch what the mistake does in flight.
             </>
           ),
+          task: <>Look at the glowing Power gauge, then press <b>Launch it</b>.</>,
           action: { label: 'Launch it', to: '/launch' },
         }
       if (!fixed)
@@ -154,12 +240,20 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
               <b className="text-ink">Large battery</b> onto the craft, or tap its + button.
             </>
           ),
+          task: (
+            <ol className="list-decimal pl-4">
+              <li>Remove the red-outlined small battery with its ×.</li>
+              <li>Open the glowing Battery tab.</li>
+              <li>Press + on the Large battery.</li>
+            </ol>
+          ),
         }
       return {
         id: 'ready',
         n: 6,
         title: 'Fly it again',
         body: <>The large battery easily covers the shadow, and the Power gauge has turned green. Launch again and watch the battery bar this time.</>,
+        task: <>Press <b>Launch again</b>.</>,
         action: { label: 'Launch again', to: '/launch' },
       }
 
@@ -173,6 +267,7 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
         ) : (
           <>In a real mission every role signs off here, and a red check would stop the launch. This red one is deliberate: launch anyway so you can see what it does to the craft.</>
         ),
+        task: <>Press <b>Go to launch</b>.</>,
         action: { label: 'Go to launch', to: '/launch' },
       }
 
@@ -183,10 +278,10 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
         title: 'Launch',
         body: (
           <>
-            The rocket climbs through <Term id="max-q">Max Q</Term>, drops its first stage, then opens the <Term id="fairing">fairing</Term> to release your craft. Press
-            Go to orbit when it's done.
+            The rocket climbs through <Term id="max-q">Max Q</Term>, drops its first stage, then opens the <Term id="fairing">fairing</Term> to release your craft.
           </>
         ),
+        task: <>Wait for the craft to reach orbit, then press the glowing <b>Go to orbit</b> button.</>,
       }
 
     case '/sim':
@@ -196,6 +291,7 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
           n: 4,
           title: 'It went dark',
           body: <>The spacecraft shut down in its first pass through Earth's shadow. The report will tell you why.</>,
+          task: <>Press <b>See why</b>.</>,
           action: { label: 'See why', to: '/report' },
         }
       if (fixed)
@@ -203,7 +299,8 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
           id: 'fly2',
           n: 6,
           title: 'Through the shadow',
-          body: <>Watch the battery dip in shadow and recharge in sunlight. Pick the Year speed to fast-forward the 3-year mission.</>,
+          body: <>Watch the battery dip in shadow and recharge in sunlight.</>,
+          task: <>Pick <b>Year</b> or <b>Fast</b> on the glowing speed bar to fly the whole 3-year mission.</>,
         }
       return {
         id: 'fly',
@@ -215,6 +312,7 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
             battery bar.
           </>
         ),
+        task: <>Watch the glowing Battery bar. What happens when the craft enters the shadow?</>,
       }
 
     case '/report':
@@ -222,7 +320,8 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
         id: 'report',
         n: 4,
         title: 'Find out why',
-        body: <>Read "Why it happened": the battery was too small for the time in shadow. Press Modify and re-fly to fix it.</>,
+        body: <>The battery was too small for the time in shadow.</>,
+        task: <>Read the glowing <b>Why it happened</b> box, then press <b>Modify and re-fly</b>.</>,
       }
 
     default:

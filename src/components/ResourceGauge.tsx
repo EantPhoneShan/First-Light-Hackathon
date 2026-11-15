@@ -50,6 +50,7 @@ export function ResourceGauge({ g, hiddenBy }: { g: Gauge; /** Team play: name o
 
   return (
     <div
+      data-tour={`gauge-${g.resource}`}
       title={explain[g.resource]}
       // Hover titles don't exist on touch screens, so a tap explains the gauge too.
       onClick={() => toast(`${g.label}: ${marginText(g)}`, { id: 'gauge-info', description: explain[g.resource] })}

@@ -6,7 +6,7 @@
   /* Telemetry: numbers and labels that read like a mission-control console */
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Dark space theme: navy + white with orange accents (matches the art style prompt) */
+  /* Dark space theme: navy with plain white as the only accent (no bright colours) */
   --color-space-950: #060b1a;
   /* Panels are slightly see-through so the star field shows behind them */
   --color-space-900: rgb(11 19 40 / 0.8);
@@ -15,8 +15,8 @@
   --color-space-600: #2a3b6b;
   --color-ink: #e8edf8;
   --color-muted: #8f9bbf;
-  --color-accent: #ff8a3d;
-  --color-accent-strong: #ff6b1a;
+  --color-accent: #f2f5fc;
+  --color-accent-strong: #ffffff;
   --color-ok: #3ddc97;
   --color-warn: #ffc94a;
   --color-bad: #ff5c6c;
@@ -61,4 +61,111 @@ h3 {
     backdrop-filter: none;
     background-color: #0b1328;
   }
+}
+
+/*
+ * Liquid Glass buttons, in the style of iOS: every button (and every link drawn
+ * as a card or button) is a sheet of frosted glass. The blur and saturation bend
+ * the stars behind it, a bright rim catches the light along the top edge, and a
+ * soft sheen runs down the face. It sits in the base layer so a button's own
+ * colour classes (bg-ok/20, bg-accent, hover:…) still tint the glass.
+ */
+@layer base {
+  button:not(.no-glass),
+  [role='tab']:not(.no-glass),
+  a[class*='rounded']:not(.no-glass) {
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    backdrop-filter: blur(18px) saturate(180%);
+    background-image: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.16) 0%,
+      rgb(255 255 255 / 0.05) 42%,
+      rgb(255 255 255 / 0) 58%,
+      rgb(255 255 255 / 0.07) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.38),
+      inset 0 -1px 0 0 rgb(255 255 255 / 0.1),
+      inset 0 0 0 1px rgb(255 255 255 / 0.1),
+      0 10px 28px -14px rgb(0 0 0 / 0.75);
+    transition:
+      transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.3),
+      background-color 0.2s,
+      border-color 0.2s,
+      color 0.2s,
+      box-shadow 0.2s;
+  }
+  button:not(.no-glass):not(:disabled):hover,
+  [role='tab']:not(.no-glass):hover,
+  a[class*='rounded']:not(.no-glass):not([aria-disabled='true']):hover {
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.55),
+      inset 0 -1px 0 0 rgb(255 255 255 / 0.14),
+      inset 0 0 0 1px rgb(255 255 255 / 0.18),
+      0 14px 34px -14px rgb(0 0 0 / 0.8);
+  }
+  button:not(.no-glass):not(:disabled):active,
+  a[class*='rounded']:not(.no-glass):not([aria-disabled='true']):active {
+    transform: scale(0.97);
+  }
+}
+
+/* Solid white buttons (the main action on each screen) become bright white glass. */
+button.bg-accent,
+a.bg-accent,
+[role='tab'].bg-accent {
+  background-color: rgb(255 255 255 / 0.86);
+}
+button.bg-accent:hover {
+  background-color: rgb(255 255 255 / 0.96);
+}
+
+/* Small action buttons are capsules, like iOS. Cards keep their rounded corners. */
+button[class*='inline-flex'][class*='rounded-lg'],
+a[class*='inline-flex'][class*='rounded-lg'] {
+  border-radius: 9999px;
+}
+
+/* Inline text buttons (a glossary term, a back link) stay as plain text. */
+button[class*='underline'],
+button[class*='decoration'] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background-image: none;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  button,
+  [role='tab'],
+  a[class*='rounded'] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* Tutorial spotlight: the thing the guide is talking about glows white and pulses. */
+.tut-spot {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid rgb(255 255 255 / 0.95);
+  outline-offset: 4px;
+  animation: tut-pulse 1.6s ease-in-out infinite;
+}
+@keyframes tut-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(255 255 255 / 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgb(255 255 255 / 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tut-spot {
+    animation: none;
+  }
+}
+body.tutorial-open #root {
+  padding-bottom: 22rem;
 }

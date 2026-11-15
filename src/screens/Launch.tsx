@@ -371,7 +371,7 @@ function OrbitView({ t, k, flicker, deep }: { t: number; k: number; flicker: num
     <g opacity={k}>
       <circle cx={cx} cy={cy} r={R + 14} fill="#4aa3ff" opacity={0.18} />
       <circle cx={cx} cy={cy} r={R} fill="url(#earthLimb)" />
-      {!deep && <circle cx={cx} cy={cy} r={orbitR} fill="none" stroke="#ff8a3d" strokeOpacity={0.5} strokeDasharray="6 6" />}
+      {!deep && <circle cx={cx} cy={cy} r={orbitR} fill="none" stroke="#ffffff" strokeOpacity={0.45} strokeDasharray="6 6" />}
 
       <g transform={`translate(${px} ${py}) rotate(${rot})`}>
         {/* Upper stage drifts back after deployment */}

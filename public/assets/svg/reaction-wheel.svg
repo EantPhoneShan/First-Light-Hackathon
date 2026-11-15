@@ -5,6 +5,6 @@
   <ellipse cx="0.00" cy="6.20" rx="14" ry="7.5" fill="#a3aec8" stroke="#0b1328" stroke-width="0.7"/>
   <ellipse cx="0.00" cy="3.20" rx="14" ry="7.5" fill="#eef2fa" stroke="#0b1328" stroke-width="0.7"/>
   <ellipse cx="0.00" cy="3.20" rx="9" ry="4.8" fill="none" stroke="#a3aec8" stroke-width="1.2"/>
-  <ellipse cx="0.00" cy="3.20" rx="3" ry="1.6" fill="#ff8a3d" stroke="#0b1328" stroke-width="0.5"/>
-  <path d="M10.00,-5.80 a12 6 0 0 1 8 6" fill="none" stroke="#ff8a3d" stroke-width="1.4" stroke-linecap="round"/>
+  <ellipse cx="0.00" cy="3.20" rx="3" ry="1.6" fill="#c9d1e3" stroke="#0b1328" stroke-width="0.5"/>
+  <path d="M10.00,-5.80 a12 6 0 0 1 8 6" fill="none" stroke="#c9d1e3" stroke-width="1.4" stroke-linecap="round"/>
 </svg>

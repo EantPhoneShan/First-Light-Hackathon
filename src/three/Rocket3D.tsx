@@ -233,7 +233,7 @@ export default function Rocket3D({
                         text={p.label}
                         position={[(i % 2 === 0 ? 1 : -1) * (spec.d * 0.7 + (spec.boosters ? spec.d * 1.4 : 0)), p.h / 2, 0]}
                         anchor={i % 2 === 0 ? "right" : "left"}
-                        color={hover === p.id ? "#ff8a3d" : "#e8edf8"}
+                        color={hover === p.id ? "#ffffff" : "#b8c2dc"}
                       />
                     )}
                   </Slide>

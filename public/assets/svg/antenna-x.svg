@@ -11,5 +11,5 @@
   <ellipse cx="0.00" cy="-11.20" rx="13" ry="7" fill="#c9d1e3" stroke="#0b1328" stroke-width="0.7" transform="rotate(-18 0.00 -11.20)"/>
   <ellipse cx="-1.00" cy="-12.20" rx="10.5" ry="5" fill="#eef2fa" transform="rotate(-18 0.00 -11.20)"/>
   <line x1="0.00" y1="-11.20" x2="3.00" y2="-20.20" stroke="#0b1328" stroke-width="0.9" stroke-linecap="round"/>
-  <circle cx="3.00" cy="-20.20" r="1.6" fill="#ff8a3d" stroke="#0b1328" stroke-width="0.5"/>
+  <circle cx="3.00" cy="-20.20" r="1.6" fill="#c9d1e3" stroke="#0b1328" stroke-width="0.5"/>
 </svg>

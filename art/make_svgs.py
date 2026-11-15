@@ -364,9 +364,21 @@ def avatar(role):
 
 # ---------------------------------------------------------------- scene
 
+def silver(svg):
+    """The app's UI is white only, so the orange hinge arms turn silver."""
+    for a, b in ((ORANGE_L, WHITE), (ORANGE, WHITE_S), (ORANGE_D, WHITE_D)):
+        svg = svg.replace(a, b)
+    return svg
+
+
+def logo():
+    """The app logo: the solar-wing satellite from the title art, in silver and blue."""
+    return silver(solar_wings())
+
+
 def wings_group():
     """Solar-wing CubeSat as an inline group (for the title art)."""
-    s = solar_wings()
+    s = silver(solar_wings())
     vb = s.split('viewBox="')[1].split('"')[0].split()
     inner = s.split('>', 1)[1].rsplit('</svg>', 1)[0]
     return [float(v) for v in vb], inner
@@ -382,13 +394,13 @@ def title_art():
   <defs>
     <radialGradient id="glow" cx="50%" cy="0%" r="70%"><stop offset="0%" stop-color="#4aa3ff" stop-opacity=".55"/><stop offset="100%" stop-color="#4aa3ff" stop-opacity="0"/></radialGradient>
     <linearGradient id="earth" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4aa3ff"/><stop offset="10%" stop-color="#1f5fa8"/><stop offset="100%" stop-color="#0d2a55"/></linearGradient>
-    <radialGradient id="sun" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff6d8"/><stop offset="35%" stop-color="#ffc94a" stop-opacity=".8"/><stop offset="100%" stop-color="#ff8a3d" stop-opacity="0"/></radialGradient>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff6d8"/><stop offset="35%" stop-color="#fff2c9" stop-opacity=".5"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
   </defs>
   {stars}
   <circle cx="900" cy="90" r="110" fill="url(#sun)"/>
   <ellipse cx="512" cy="1060" rx="1000" ry="760" fill="url(#glow)"/>
   <ellipse cx="512" cy="1080" rx="960" ry="760" fill="url(#earth)" stroke="#4aa3ff" stroke-width="2"/>
-  <ellipse cx="512" cy="1080" rx="1010" ry="800" fill="none" stroke="#ff8a3d" stroke-opacity=".55" stroke-width="2" stroke-dasharray="8 10"/>
+  <ellipse cx="512" cy="1080" rx="1010" ry="800" fill="none" stroke="#e8edf8" stroke-opacity=".4" stroke-width="2" stroke-dasharray="8 10"/>
   <g transform="translate(500 175) rotate(-8) scale({scale:.3f}) translate({-(vx + vw / 2):.2f} {-(vy + vh / 2):.2f})">{inner}</g>
 </svg>
 '''
@@ -507,6 +519,29 @@ def star_tracker():
     return p.svg()
 
 
+def weather_imager():
+    # A big white box with a wide scan mirror and a striped multi-colour filter wheel
+    p = Pic(7)
+    f = p.box(0, 0, 0, 3.4, 2.6, 2.4, WHITE, WHITE_D, WHITE_S)
+    lens = f['right']
+    ellipse_on(p, lens, 0.5, 0.5, 0.42, NAVY_D, sw=0.8)
+    for r, col in ((0.34, CELL_D), (0.25, '#2f8f6b'), (0.16, ORANGE_D), (0.08, CELL_L)):
+        ellipse_on(p, lens, 0.5, 0.5, r, col, sw=0.3)
+    grid(p, f['left'], 1, 3, SLATE_L)
+    return p.svg()
+
+
+def lightning_mapper():
+    # A compact camera with a wide lens and a lightning bolt on its side
+    p = Pic(8)
+    f = p.box(0, 0, 0, 2.2, 2.2, 2.0, SLATE_L, SLATE_D, SLATE)
+    ellipse_on(p, f['right'], 0.5, 0.5, 0.4, NAVY_D, sw=0.8)
+    ellipse_on(p, f['right'], 0.5, 0.5, 0.26, CELL_D, sw=0.4)
+    ellipse_on(p, f['right'], 0.42, 0.42, 0.07, CELL_L, sw=0)
+    bolt(p, f['left'])
+    return p.svg()
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     files = {
@@ -520,7 +555,7 @@ def main():
         'camera': camera(False), 'multispectral-imager': multispectral(), 'thermal-imager': camera(True),
         'radar': radar(), 'spectrometer': spectrometer(), 'magnetometer': magnetometer(),
         # New parts (15 Nov): reuse the closest drawing where the look is the same
-        'star-tracker': star_tracker(), 'gps-receiver': radio('s'), 'antenna-x-hr': radio('x'),
+        'logo': logo(), 'star-tracker': star_tracker(), 'weather-imager': weather_imager(), 'lightning-mapper': lightning_mapper(), 'gps-receiver': radio('s'), 'antenna-x-hr': radio('x'),
         'mass-memory': computer(), 'electric-thruster': cold_gas(), 'green-thruster': cold_gas(),
         'hyperspectral-imager': multispectral(), 'ais-receiver': radio('uhf'),
         'rocket-rideshare': rocket(0.8, [1.6, 0.9]),
@@ -532,6 +567,11 @@ def main():
         'role-science': avatar('science'), 'role-flight': avatar('flight'),
         'scene-title': title_art(), 'scene-ground-dish': ground_dish(),
     }
+    # White-only UI: orange trim turns silver everywhere except where it means something
+    # (the thermal imager's heat colours and the rockets' flames and livery).
+    for name in files:
+        if name != 'thermal-imager' and not name.startswith('rocket-'):
+            files[name] = silver(files[name])
     # Remove art for part ids that no longer exist
     keep = {f'{n}.svg' for n in files}
     for old in os.listdir(OUT):

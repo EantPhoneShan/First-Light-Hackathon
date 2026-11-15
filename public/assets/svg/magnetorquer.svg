@@ -2,18 +2,18 @@
   <polygon points="-18.19,10.50 0.00,21.00 0.00,19.60 -18.19,9.10" fill="#121d3a" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
   <polygon points="18.19,10.50 0.00,21.00 0.00,19.60 18.19,9.10" fill="#1c2a50" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
   <polygon points="0.00,-1.40 18.19,9.10 0.00,19.60 -18.19,9.10" fill="#2a3b6b" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="-2.42,2.10 12.12,10.50 12.12,7.70 -2.42,-0.70" fill="#d9661c" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="14.55,9.10 12.12,10.50 12.12,7.70 14.55,6.30" fill="#ff8a3d" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="0.00,-2.10 14.55,6.30 12.12,7.70 -2.42,-0.70" fill="#ffb27a" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="-2.42,16.10 -0.00,17.50 -0.00,14.70 -2.42,13.30" fill="#d9661c" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="10.91,11.20 -0.00,17.50 -0.00,14.70 10.91,8.40" fill="#ff8a3d" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="8.49,7.00 10.91,8.40 -0.00,14.70 -2.42,13.30" fill="#ffb27a" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="-13.34,9.10 -10.91,10.50 -10.91,-3.50 -13.34,-4.90" fill="#d9661c" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="-8.49,9.10 -10.91,10.50 -10.91,-3.50 -8.49,-4.90" fill="#ff8a3d" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <polygon points="-10.91,-6.30 -8.49,-4.90 -10.91,-3.50 -13.34,-4.90" fill="#ffb27a" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
-  <line x1="2.42" y1="-0.70" x2="0.00" y2="0.70" stroke="#d9661c" stroke-width="0.5" stroke-linecap="round"/>
-  <line x1="4.85" y1="0.70" x2="2.42" y2="2.10" stroke="#d9661c" stroke-width="0.5" stroke-linecap="round"/>
-  <line x1="7.27" y1="2.10" x2="4.85" y2="3.50" stroke="#d9661c" stroke-width="0.5" stroke-linecap="round"/>
-  <line x1="9.70" y1="3.50" x2="7.27" y2="4.90" stroke="#d9661c" stroke-width="0.5" stroke-linecap="round"/>
-  <line x1="12.12" y1="4.90" x2="9.70" y2="6.30" stroke="#d9661c" stroke-width="0.5" stroke-linecap="round"/>
+  <polygon points="-2.42,2.10 12.12,10.50 12.12,7.70 -2.42,-0.70" fill="#a3aec8" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="14.55,9.10 12.12,10.50 12.12,7.70 14.55,6.30" fill="#c9d1e3" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="0.00,-2.10 14.55,6.30 12.12,7.70 -2.42,-0.70" fill="#eef2fa" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="-2.42,16.10 -0.00,17.50 -0.00,14.70 -2.42,13.30" fill="#a3aec8" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="10.91,11.20 -0.00,17.50 -0.00,14.70 10.91,8.40" fill="#c9d1e3" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="8.49,7.00 10.91,8.40 -0.00,14.70 -2.42,13.30" fill="#eef2fa" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="-13.34,9.10 -10.91,10.50 -10.91,-3.50 -13.34,-4.90" fill="#a3aec8" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="-8.49,9.10 -10.91,10.50 -10.91,-3.50 -8.49,-4.90" fill="#c9d1e3" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="-10.91,-6.30 -8.49,-4.90 -10.91,-3.50 -13.34,-4.90" fill="#eef2fa" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <line x1="2.42" y1="-0.70" x2="0.00" y2="0.70" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
+  <line x1="4.85" y1="0.70" x2="2.42" y2="2.10" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
+  <line x1="7.27" y1="2.10" x2="4.85" y2="3.50" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
+  <line x1="9.70" y1="3.50" x2="7.27" y2="4.90" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
+  <line x1="12.12" y1="4.90" x2="9.70" y2="6.30" stroke="#a3aec8" stroke-width="0.5" stroke-linecap="round"/>
 </svg>
