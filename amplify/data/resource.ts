@@ -108,7 +108,8 @@ export const data = defineData({
   schema,
   authorizationModes: {
     defaultAuthorizationMode: 'apiKey',
-    // Enough to cover the hackathon and judging. Max is 365.
-    apiKeyAuthorizationMode: { expiresInDays: 30 },
+    // The longest AppSync allows. The year is counted from each deploy, so any deploy
+    // (any push to main) gives the key another full year.
+    apiKeyAuthorizationMode: { expiresInDays: 365 },
   },
 });
