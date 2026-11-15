@@ -243,7 +243,28 @@ function livery() {
 }
 
 /** Earth: ocean, procedural continents, ice caps and clouds. One-off, larger. */
+/**
+ * Earth: NASA's Blue Marble (public domain, Reto Stöckli / NASA GSFC, via
+ * Visible Earth; see docs/CREDITS.md). If the image can't load, the
+ * procedural painted Earth below is used instead.
+ */
+let blueMarble: THREE.Texture | null = null
 export function earthTexture(): THREE.Texture {
+  if (blueMarble) return blueMarble
+  const t = new THREE.TextureLoader().load('/assets/bg/earth-bluemarble.jpg', undefined, undefined, () => {
+    // Offline or missing: paint the procedural Earth into the same texture.
+    const painted = paintedEarthTexture()
+    t.image = painted.image as HTMLImageElement
+    t.needsUpdate = true
+  })
+  t.colorSpace = THREE.SRGBColorSpace
+  t.anisotropy = 8
+  blueMarble = t
+  return t
+}
+
+/** Procedural Earth (fallback): ocean, continents, ice caps and clouds from fractal noise. */
+function paintedEarthTexture(): THREE.Texture {
   const W = 2048
   const H = 1024
   // Value noise that wraps in x, summed over octaves (fractal), from a fixed seed.

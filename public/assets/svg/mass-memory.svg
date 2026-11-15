@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-18.63 -10.63 41.41 41.41">
+  <polygon points="-16.63,9.60 4.16,21.60 4.16,20.16 -16.63,8.16" fill="#1d5c45" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="20.78,12.00 4.16,21.60 4.16,20.16 20.78,10.56" fill="#247556" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="0.00,-1.44 20.78,10.56 4.16,20.16 -16.63,8.16" fill="#2f8f6b" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="-7.62,5.36 0.00,9.76 0.00,8.00 -7.62,3.60" fill="#121d3a" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="7.62,5.36 0.00,9.76 0.00,8.00 7.62,3.60" fill="#1c2a50" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="0.00,-0.80 7.62,3.60 0.00,8.00 -7.62,3.60" fill="#2a3b6b" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="4.85,9.36 10.39,12.56 10.39,10.80 4.85,7.60" fill="#121d3a" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="14.55,10.16 10.39,12.56 10.39,10.80 14.55,8.40" fill="#1c2a50" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="9.01,5.20 14.55,8.40 10.39,10.80 4.85,7.60" fill="#2a3b6b" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="-2.08,13.36 3.46,16.56 3.46,14.80 -2.08,11.60" fill="#121d3a" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="8.31,13.76 3.46,16.56 3.46,14.80 8.31,12.00" fill="#1c2a50" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="2.77,8.80 8.31,12.00 3.46,14.80 -2.08,11.60" fill="#2a3b6b" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <line x1="-13.22" y1="8.59" x2="-14.55" y2="9.36" stroke="#ffc94a" stroke-width="0.9" stroke-linecap="round"/>
+  <line x1="-10.10" y1="10.39" x2="-11.43" y2="11.16" stroke="#ffc94a" stroke-width="0.9" stroke-linecap="round"/>
+  <line x1="-6.98" y1="12.19" x2="-8.31" y2="12.96" stroke="#ffc94a" stroke-width="0.9" stroke-linecap="round"/>
+  <line x1="-3.87" y1="13.99" x2="-5.20" y2="14.76" stroke="#ffc94a" stroke-width="0.9" stroke-linecap="round"/>
+  <line x1="-0.75" y1="15.79" x2="-2.08" y2="16.56" stroke="#ffc94a" stroke-width="0.9" stroke-linecap="round"/>
+  <line x1="2.37" y1="17.59" x2="1.04" y2="18.36" stroke="#ffc94a" stroke-width="0.9" stroke-linecap="round"/>
+  <polygon points="-4.16,3.60 0.00,6.00 0.00,5.84 -4.16,3.44" fill="#d9661c" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="4.16,3.60 0.00,6.00 0.00,5.84 4.16,3.44" fill="#ff8a3d" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+  <polygon points="0.00,1.04 4.16,3.44 0.00,5.84 -4.16,3.44" fill="#ffb27a" stroke="#0b1328" stroke-width="0.7" stroke-linejoin="round" />
+</svg>

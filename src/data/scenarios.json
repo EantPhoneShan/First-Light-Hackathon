@@ -28,7 +28,7 @@
               "id": "smoke-and-scars",
               "name": "Smoke plumes and burned land",
               "why": "Smoke and fresh burn scars show where a fire is and which way it is spreading.",
-              "instrumentIds": ["multispectral-imager", "camera"]
+              "instrumentIds": ["multispectral-imager", "camera", "hyperspectral-imager"]
             }
           ]
         },
@@ -40,7 +40,7 @@
               "id": "dry-plants",
               "name": "Dry plants",
               "why": "Dry plants reflect light differently from healthy green ones, and they burn easily.",
-              "instrumentIds": ["multispectral-imager"]
+              "instrumentIds": ["multispectral-imager", "hyperspectral-imager"]
             }
           ]
         }
@@ -93,7 +93,7 @@
               "id": "flood-extent",
               "name": "Flooded land on clear days",
               "why": "Between storms, water and wet ground look different from dry land in several colours of light.",
-              "instrumentIds": ["multispectral-imager"]
+              "instrumentIds": ["multispectral-imager", "hyperspectral-imager"]
             }
           ]
         }
@@ -103,6 +103,44 @@
       "tooltip": "When rivers burst during a storm, rescue teams need maps, but clouds block normal cameras. A radar satellite can see through them, if it has enough power.",
       "source": "science-missions",
       "sourceNote": "A user-segment-led mission (disaster agencies need maps within hours). Radar sees through clouds and at night. Budget and build time are game estimates sized for a small satellite with a radar."
+    },
+    {
+      "id": "ship-watch",
+      "name": "Ship Watch",
+      "objective": "Track ships far out at sea every 2 days for 2 years, and spot ones that switch off their tracker.",
+      "difficulty": "easy",
+      "customer": { "name": "Coast guard", "needsDataWithinHours": 6 },
+      "busIds": ["bus-cubesat-3u", "bus-cubesat-6u"],
+      "budgetM": 2,
+      "baseOpsCostPerYearM": 0.06,
+      "launchInMonths": 18,
+      "lifetimeYears": 2,
+      "revisitDays": 2,
+      "criticalResources": ["power", "comms"],
+      "goals": [
+        {
+          "id": "track-ships",
+          "name": "Know where ships are at sea",
+          "measurements": [
+            {
+              "id": "ship-positions",
+              "name": "Ship positions from their radio messages",
+              "why": "Big ships broadcast their name, position and speed by AIS radio. From orbit a CubeSat can hear them far beyond the reach of coast stations.",
+              "instrumentIds": ["ais-receiver"]
+            },
+            {
+              "id": "dark-ships",
+              "name": "Ships seen from above",
+              "why": "A ship that switches off its AIS still shows up in images, so a camera can catch it.",
+              "instrumentIds": ["camera", "multispectral-imager"]
+            }
+          ]
+        }
+      ],
+      "eventsAllowed": ["solar-storm", "station-outage", "part-failure"],
+      "tooltip": "Coast guards need to know which ships are where, even far out at sea. A small CubeSat can listen for the radio messages every big ship sends.",
+      "source": "estimate",
+      "sourceNote": "Based on real AIS CubeSats such as AAUSAT-3, which showed a 1U CubeSat with a simple dipole antenna can receive AIS from low Earth orbit. Budget, schedule and revisit are game estimates."
     }
   ]
 }

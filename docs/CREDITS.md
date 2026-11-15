@@ -19,3 +19,11 @@ Numbers in the game are simplified and approximate, for learning only.
 ## AI use
 
 AI tools were used to help write code, planning documents and text. AI-generated images, if any, are labelled as AI-generated in the game.
+
+## Images
+
+| Image | Source | Licence |
+|---|---|---|
+| Earth in the 3D views (`public/assets/bg/earth-bluemarble.jpg`) | NASA Visible Earth, *Blue Marble: Land Surface, Shallow Water and Shaded Topography* (Reto Stöckli / NASA GSFC; Robert Simmon; MODIS Land Group), via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Land_shallow_topo_2048.jpg) and [visibleearth.nasa.gov](https://visibleearth.nasa.gov/images/57752) | Public domain (NASA) |
+| Star field, mountain valley and grassland photos (`public/assets/bg/stars.webp`, `mountains.webp`, `grassland.jpg`) | Supplied by the team. **Source and licence still to be added before submission.** | ? |
+| Spacecraft, rockets, ground stations and all other 3D models and textures | Made in code for this game (`src/three/`) | Ours |

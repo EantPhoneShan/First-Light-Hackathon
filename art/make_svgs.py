@@ -493,6 +493,20 @@ def magnetometer():
     return p.svg()
 
 
+def star_tracker():
+    # A small black camera body with a long sun baffle and an orange mount
+    p = Pic(8)
+    p.box(0, 0, 0, 1.6, 1.6, 1.2, SLATE_L, SLATE_D, SLATE)
+    p.box(0.2, 0.2, 1.2, 1.2, 1.2, 0.25, ORANGE_L, ORANGE_D, ORANGE)
+    cx, cy = p.P(0.8, 0.8, 1.45)
+    top_x, top_y = p.P(0.8, 0.8, 3.4)
+    p.raw(f'<polygon points="{cx - 7:.2f},{cy:.2f} {cx + 7:.2f},{cy:.2f} {top_x + 12:.2f},{top_y:.2f} {top_x - 12:.2f},{top_y:.2f}" fill="{NAVY_L}" stroke="{INK}" stroke-width="{SW}"/>',
+          [(top_x - 12, top_y - 6), (top_x + 12, cy)])
+    p.raw(f'<ellipse cx="{top_x:.2f}" cy="{top_y:.2f}" rx="12" ry="5" fill="{INK}" stroke="{INK}" stroke-width="{SW}"/>')
+    p.raw(f'<ellipse cx="{top_x:.2f}" cy="{top_y:.2f}" rx="6" ry="2.4" fill="{CELL_L}"/>')
+    return p.svg()
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     files = {
@@ -505,6 +519,10 @@ def main():
         'antenna-uhf': radio('uhf'), 'antenna-s': radio('s'), 'antenna-x': radio('x'),
         'camera': camera(False), 'multispectral-imager': multispectral(), 'thermal-imager': camera(True),
         'radar': radar(), 'spectrometer': spectrometer(), 'magnetometer': magnetometer(),
+        # New parts (15 Nov): reuse the closest drawing where the look is the same
+        'star-tracker': star_tracker(), 'gps-receiver': radio('s'), 'antenna-x-hr': radio('x'),
+        'mass-memory': computer(), 'electric-thruster': cold_gas(), 'green-thruster': cold_gas(),
+        'hyperspectral-imager': multispectral(), 'ais-receiver': radio('uhf'),
         'rocket-rideshare': rocket(0.8, [1.6, 0.9]),
         'rocket-small': rocket(1.0, [2.0, 1.0]),
         'rocket-medium': rocket(1.25, [2.6, 1.2]),
