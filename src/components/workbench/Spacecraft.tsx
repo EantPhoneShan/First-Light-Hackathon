@@ -1,5 +1,6 @@
 import { useDndContext, useDraggable, useDroppable } from '@dnd-kit/core'
 import { X } from 'lucide-react'
+import type { ReactNode } from 'react'
 import type { Bus, Part } from '@/engine/types'
 import { isExternal } from '@/game/ui'
 import { cn } from '@/lib/cn'
@@ -17,6 +18,8 @@ interface SpacecraftProps {
   canRemove?: (part: Part) => boolean
   /** Team flow: may this player remove the bus? Default: yes. */
   canRemoveBus?: boolean
+  /** What to say while there is no bus (team flow: who we're waiting for). Default: how to add one. */
+  empty?: ReactNode
 }
 
 /**
@@ -24,7 +27,7 @@ interface SpacecraftProps {
  * filling them (a part may take 1, 2 or more), and slot-free parts such as solar panels
  * mounted outside. The whole craft is one drop target.
  */
-export function Spacecraft({ bus, parts, problemIds = [], onRemove, onRemoveBus, canRemove = () => true, canRemoveBus = true }: SpacecraftProps) {
+export function Spacecraft({ bus, parts, problemIds = [], onRemove, onRemoveBus, canRemove = () => true, canRemoveBus = true, empty }: SpacecraftProps) {
   const { setNodeRef, isOver } = useDroppable({ id: CRAFT_ID })
   const { active } = useDndContext()
   const dragging = active?.data.current as DragData | undefined
@@ -43,7 +46,11 @@ export function Spacecraft({ bus, parts, problemIds = [], onRemove, onRemoveBus,
     >
       {!bus ? (
         <p className="max-w-xs py-10 text-center text-sm text-muted">
-          Start with a bus. Drag it here from the <b className="text-ink">Bus</b> tab of the parts tray. Its size decides how many slots you get.
+          {empty ?? (
+            <>
+              Start with a bus. Drag it here from the <b className="text-ink">Bus</b> tab of the parts tray. Its size decides how many slots you get.
+            </>
+          )}
         </p>
       ) : (
         <>

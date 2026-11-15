@@ -18,12 +18,14 @@ interface PartsTrayProps {
   onAdd: (kind: 'part' | 'bus', id: string) => void
   /** Team flow: why this player can't change the bus (only the Spacecraft Engineer can). */
   busLocked?: string
+  /** Team flow: one line saying which parts this player adds and who adds the rest. */
+  note?: string
 }
 
 type Tab = 'all' | 'bus' | PartCategory
 
 /** Buses and parts by category. Drag onto the spacecraft, or tap + to add. */
-export function PartsTray({ buses, parts, availability, counts, currentBusId, onAdd, busLocked }: PartsTrayProps) {
+export function PartsTray({ buses, parts, availability, counts, currentBusId, onAdd, busLocked, note }: PartsTrayProps) {
   const categories = [...new Set(parts.map((p) => p.category))]
   const [tab, setTab] = useState<Tab>('all')
   const { setNodeRef, isOver } = useDroppable({ id: TRAY_ID })
@@ -40,6 +42,7 @@ export function PartsTray({ buses, parts, availability, counts, currentBusId, on
         <h2 className="font-semibold">Parts</h2>
         <span className="text-xs text-muted">{isOver ? 'Drop to remove' : 'Drag onto the spacecraft'}</span>
       </div>
+      {note && <p className="mt-2 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs text-ink">{note}</p>}
 
       <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Part category">
         {(['all', ...(buses.length ? ['bus'] : []), ...categories] as Tab[]).map((c) => (

@@ -28,7 +28,7 @@ import { findBus, findPart } from '@/engine/data'
 import { CATEGORY_OWNER, RESOURCES, type Availability, type Part } from '@/engine/types'
 import { EditGate } from '@/components/LeadButton'
 import { useTeamFlow } from '@/game/teamFlow'
-import { GAUGE_WATCHER, gameData, n1, partsOnCraft, roleNames } from '@/game/ui'
+import { GAUGE_WATCHER, categoryLabel, gameData, n1, partsOnCraft, roleNames } from '@/game/ui'
 import { cn } from '@/lib/cn'
 import { play } from '@/lib/sound'
 import { useCanSee, useEvaluation, useGame, useScenario } from '@/store/game'
@@ -104,6 +104,28 @@ export function Workbench() {
   const trayParts = flow.team ? gameData.parts.filter(canEditPart) : gameData.parts
   const trayBuses = flow.team && !canBus ? [] : buses
 
+  // Team play, and the bus isn't mine to add: say who we're waiting for and what I add,
+  // instead of pointing at a Bus tab this player doesn't have.
+  const players = useGame((s) => s.players)
+  const engineerName = players.find((p) => p.role === 'engineer')?.name
+  const engineer = engineerName ? `${engineerName} (${roleNames.engineer})` : `the ${roleNames.engineer}`
+  const myKinds = [...new Set(trayParts.map((p) => categoryLabel[p.category].toLowerCase()))]
+  const kindsText = myKinds.length > 1 ? `${myKinds.slice(0, -1).join(', ')} and ${myKinds[myKinds.length - 1]}` : (myKinds[0] ?? '')
+  const waitForBus: ReactNode = canBus ? null : (
+    <span>
+      Waiting for <b className="text-ink">{engineer}</b> to add the bus.{kindsText ? ` Then you add the ${kindsText}.` : ''}
+    </span>
+  )
+  const trayNote = !flow.team
+    ? undefined
+    : canBus
+      ? trayParts.length < gameData.parts.length
+        ? `You add the bus and the ${kindsText}. Other parts belong to your teammates.`
+        : undefined
+      : kindsText
+        ? `You add the ${kindsText}. ${engineerName ?? `The ${roleNames.engineer}`} adds the bus and the rest.`
+        : `${engineerName ?? `The ${roleNames.engineer}`} builds the craft. Your work is in the other tabs.`
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } }),
@@ -119,7 +141,7 @@ export function Workbench() {
     }
     if (!bus) {
       play('error')
-      return toast.error('Add a bus first. It decides how many slots you have.')
+      return toast.error(canBus ? 'Add a bus first. It decides how many slots you have.' : `Wait for ${engineer} to add the bus first.`)
     }
     const a = availability[id]
     if (a && !a.ok) {
@@ -238,7 +260,7 @@ export function Workbench() {
             </div>
             {view === '3d' ? (
               // No WebGL on this device? Fall back to the 2D slot view instead of crashing the page.
-              <Fallback3D fallback={<Spacecraft bus={bus} parts={onCraft} problemIds={refly?.partIds} onRemove={remove} onRemoveBus={() => (setBus(null), play('remove'))} canRemove={canEditPart} canRemoveBus={canBus} />}>
+              <Fallback3D fallback={<Spacecraft bus={bus} parts={onCraft} problemIds={refly?.partIds} onRemove={remove} onRemoveBus={() => (setBus(null), play('remove'))} canRemove={canEditPart} canRemoveBus={canBus} empty={waitForBus} />}>
               <CraftDrop className="mt-3">
                 <Suspense fallback={<div className="flex h-[320px] items-center justify-center text-sm text-muted sm:h-[480px]">Loading 3D view…</div>}>
                   <Craft3D
@@ -248,20 +270,22 @@ export function Workbench() {
                     canRemove={canEditPart}
                     onRemove={remove}
                     empty={
-                      <span>
-                        Start with a bus. Drag it here, or tap + in the <b className="text-ink">Bus</b> tab of the parts tray.
-                      </span>
+                      waitForBus ?? (
+                        <span>
+                          Start with a bus. Drag it here, or tap + in the <b className="text-ink">Bus</b> tab of the parts tray.
+                        </span>
+                      )
                     }
                   />
                 </Suspense>
               </CraftDrop>
               </Fallback3D>
             ) : (
-              <Spacecraft bus={bus} parts={onCraft} problemIds={refly?.partIds} onRemove={remove} onRemoveBus={() => (setBus(null), play('remove'))} canRemove={canEditPart} canRemoveBus={canBus} />
+              <Spacecraft bus={bus} parts={onCraft} problemIds={refly?.partIds} onRemove={remove} onRemoveBus={() => (setBus(null), play('remove'))} canRemove={canEditPart} canRemoveBus={canBus} empty={waitForBus} />
             )}
           </div>
 
-          <PartsTray buses={trayBuses} parts={trayParts} availability={availability} counts={counts} currentBusId={design.engineer.busId} onAdd={add} busLocked={canBus ? undefined : `Only the ${roleNames.engineer} picks the bus.`} />
+          <PartsTray buses={trayBuses} parts={trayParts} availability={availability} counts={counts} currentBusId={design.engineer.busId} onAdd={add} busLocked={canBus ? undefined : `Only the ${roleNames.engineer} picks the bus.`} note={trayNote} />
         </div>
 
         <DragOverlay dropAnimation={null}>
