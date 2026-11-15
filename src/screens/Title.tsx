@@ -1,6 +1,7 @@
 import { BookOpen, Satellite, Swords, Users, Wrench } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Art } from '@/components/Art'
+import { Starfield } from '@/components/Starfield'
 import { useGame } from '@/store/game'
 import { cn } from '@/lib/cn'
 
@@ -18,6 +19,7 @@ export function Title() {
   const endTutorial = useGame((s) => s.endTutorial)
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-10 px-4 py-12">
+      <Starfield />
       <div className="text-center">
         <Art name="scene-title" className="mx-auto -mb-6 w-full max-w-xl [mask-image:radial-gradient(ellipse_at_center,black_45%,transparent_72%)]" />
         <p className="text-sm font-medium tracking-widest text-accent uppercase">Mission Design Lab</p>
