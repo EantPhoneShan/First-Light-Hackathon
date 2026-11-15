@@ -78,6 +78,17 @@ Approvals: use `isApproved(room, role)` and `allApproved(room)`. Never read `app
 
 `npm run dev`, open two tabs, create a room in one and join with the code in the other. Each tab counts as its own player (local backend). With AWS deployed, use two phones.
 
+## Automatic cleanup
+
+Rooms are not deleted when players leave, so a refresh or a dropped connection can rejoin with the same code. To stop finished rooms piling up, every Room, Player and Section row carries a `ttl` time and DynamoDB deletes the row by itself after it (Time to Live, switched on in `amplify/backend.ts`).
+
+- A room and its player entries last **24 hours after they were last used**. Any change to the room, and being in the room, pushes that forward.
+- The design parts last a week, so a room that is still alive never loses its design.
+- After 24 hours unused the code answers "No room called ..." straight away, even if AWS has not removed the row yet (it can take a day or two). If the code is handed out again, the new room starts empty.
+- Scores have no `ttl`. The leaderboard is kept.
+
+Nothing to call: `src/sync/adapters/aws.ts` sets `ttl` on every write.
+
 ## Leaderboard
 
 ```ts

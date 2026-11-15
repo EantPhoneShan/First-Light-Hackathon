@@ -12,6 +12,9 @@ import { submitScore } from '../functions/submit-score/resource';
  *  Score    leaderboard entries              index: scenario, sorted by score
  *           (read-only for players; only the submitScore Lambda writes, after replaying the flight)
  *
+ *  Room, Player and Section rows carry `ttl`, and DynamoDB removes them by itself after that time,
+ *  so finished rooms don't pile up. Score rows have no ttl and are kept.
+ *
  *  submitScore  mutation -> Lambda: verifyScore() replays the flight and saves the server's score
  */
 const schema = a.schema({
@@ -24,6 +27,8 @@ const schema = a.schema({
       seed: a.integer(),
       // Event answers for the current flight ({ eventId: choiceId }), so every device replays the same flight.
       choices: a.json(),
+      // When DynamoDB may delete this row (epoch seconds). See "Automatic cleanup" in amplify/backend.ts.
+      ttl: a.integer(),
     })
     .identifier(['code'])
     .authorization((allow) => [allow.publicApiKey()]),
@@ -35,6 +40,7 @@ const schema = a.schema({
       name: a.string(),
       roles: a.string().array(),
       lastSeen: a.float(),
+      ttl: a.integer(),
     })
     .identifier(['roomCode', 'playerId'])
     .authorization((allow) => [allow.publicApiKey()]),
@@ -49,6 +55,7 @@ const schema = a.schema({
       updatedBy: a.string(),
       updatedAt: a.float(),
       approvedKey: a.string(),
+      ttl: a.integer(),
     })
     .identifier(['roomCode', 'role'])
     .authorization((allow) => [allow.publicApiKey()]),

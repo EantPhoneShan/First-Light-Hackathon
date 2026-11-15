@@ -20,6 +20,43 @@ const outputs = import.meta.glob('../../../amplify_outputs.json', { eager: true,
 
 let client: Any = null;
 
+/**
+ * Automatic cleanup. Every row carries `ttl`, a time in epoch seconds, and DynamoDB deletes the
+ * row by itself once that time has passed (Time to Live, switched on in amplify/backend.ts).
+ * A room and its player entries last 24 hours after they were last used. The design parts last a
+ * week, so a room that is still alive never loses its design. Scores are never cleaned up.
+ */
+const HOUR_S = 60 * 60;
+const ROOM_TTL_S = 24 * HOUR_S;
+const SECTION_TTL_S = 7 * 24 * HOUR_S;
+/** While a room is in use, push its expiry forward at most this often. */
+const TOUCH_EVERY_MS = 60 * 60 * 1000;
+
+const expiresIn = (seconds: number) => Math.floor(Date.now() / 1000) + seconds;
+/** DynamoDB can take a day or two to remove an expired row, so treat it as gone already. */
+const isExpired = (row: Any) => typeof row?.ttl === 'number' && row.ttl * 1000 < Date.now();
+
+const lastTouch = new Map<string, number>();
+
+/** Keep a room alive while people are in it. Fire and forget: a missed touch is retried later. */
+function touchRoom(code: string) {
+  const now = Date.now();
+  if (now - (lastTouch.get(code) ?? 0) < TOUCH_EVERY_MS) return;
+  lastTouch.set(code, now);
+  Promise.resolve(getClient().models.Room.update({ code, ttl: expiresIn(ROOM_TTL_S) })).catch(() => {});
+}
+
+/** Remove what an expired room left behind, so a reused code starts empty. */
+async function clearRoom(code: string, withRoom: boolean) {
+  const c = getClient();
+  const [players, sections] = await Promise.all([c.models.Player.list({ roomCode: code }), c.models.Section.list({ roomCode: code })]);
+  await Promise.all([
+    ...((check(players) ?? []) as Any[]).map((p) => c.models.Player.delete({ roomCode: code, playerId: p.playerId })),
+    ...((check(sections) ?? []) as Any[]).map((s) => c.models.Section.delete({ roomCode: code, role: s.role })),
+  ]);
+  if (withRoom) check(await c.models.Room.delete({ code }));
+}
+
 function getClient(): Any {
   if (client) return client;
   const config = Object.values(outputs)[0];
@@ -85,7 +122,9 @@ async function fetchRoom(code: string): Promise<Room | null> {
     c.models.Player.list({ roomCode: code }),
     c.models.Section.list({ roomCode: code }),
   ]);
-  return assemble(check(room), check(players) ?? [], check(sections) ?? []);
+  const roomRow = check(room);
+  if (isExpired(roomRow)) return null;
+  return assemble(roomRow, check(players) ?? [], check(sections) ?? []);
 }
 
 export function awsAdapter(): SyncAdapter {
@@ -97,7 +136,13 @@ export function awsAdapter(): SyncAdapter {
     async createRoom(room) {
       const c = getClient();
       const existing = check(await c.models.Room.get({ code: room.code }));
-      if (existing) return null;
+      if (existing && !isExpired(existing)) return null;
+      try {
+        await clearRoom(room.code, !!existing);
+      } catch {
+        // An expired room that can't be cleared still holds the code: have the caller try another.
+        if (existing) return null;
+      }
       check(
         await c.models.Room.create({
           code: room.code,
@@ -106,8 +151,10 @@ export function awsAdapter(): SyncAdapter {
           hostId: room.hostId,
           seed: room.seed,
           choices: JSON.stringify(room.choices ?? {}),
+          ttl: expiresIn(ROOM_TTL_S),
         }),
       );
+      lastTouch.set(room.code, Date.now());
       await Promise.all(room.players.map((p) => this.upsertPlayer(room.code, p)));
       return room;
     },
@@ -116,9 +163,10 @@ export function awsAdapter(): SyncAdapter {
 
     async upsertPlayer(code, p) {
       const c = getClient();
-      const row = { roomCode: code, playerId: p.id, name: p.name, roles: p.roles, lastSeen: p.lastSeen };
+      const row = { roomCode: code, playerId: p.id, name: p.name, roles: p.roles, lastSeen: p.lastSeen, ttl: expiresIn(ROOM_TTL_S) };
       const res = await c.models.Player.update(row);
       if (!res.data) check(await c.models.Player.create(row));
+      touchRoom(code);
     },
 
     async removePlayer(code, playerId) {
@@ -143,15 +191,17 @@ export function awsAdapter(): SyncAdapter {
         updatedBy: s.updatedBy,
         updatedAt: s.updatedAt,
         approvedKey: s.approvedKey,
+        ttl: expiresIn(SECTION_TTL_S),
       };
       check(current ? await c.models.Section.update(row) : await c.models.Section.create(row));
     },
 
     async setRoomFields(code, fields) {
       // choices is an AWSJSON field: send it as a JSON string like section data.
-      const row: Any = { code, ...fields };
+      const row: Any = { code, ...fields, ttl: expiresIn(ROOM_TTL_S) };
       if (fields.choices !== undefined) row.choices = JSON.stringify(fields.choices);
       check(await getClient().models.Room.update(row));
+      lastTouch.set(code, Date.now());
     },
 
     subscribe(code, onRoom, onStatus: (s: SyncStatus) => void) {
