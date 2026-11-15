@@ -149,7 +149,8 @@ button[class*='decoration'] {
   position: relative;
   z-index: 1;
   outline: 2px solid rgb(255 255 255 / 0.95);
-  outline-offset: 4px;
+  /* Drawn tight to the element, so the ring never pokes out of the panel or the screen edge */
+  outline-offset: 2px;
   animation: tut-pulse 1.6s ease-in-out infinite;
 }
 @keyframes tut-pulse {
