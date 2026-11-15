@@ -9,7 +9,7 @@
  * Units: Earth radius = 1. The craft is drawn far larger than real so you can
  * see it (a real one would be smaller than a pixel).
  */
-import { Html, OrbitControls } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Eye, Globe2 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
@@ -20,6 +20,7 @@ import { busGeom } from './craftLayout'
 import { puffTexture } from './materials'
 import { SpacecraftModel } from './SpacecraftModel'
 import { Earth, SpaceLights } from './Stage'
+import { TextLabel } from './TextLabel'
 
 export interface OrbitView {
   /** Flight time in minutes (drives Earth's spin). */
@@ -188,9 +189,7 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
           <sphereGeometry args={[0.5, 32, 16]} />
           <meshBasicMaterial color="#fffbe8" toneMapped={false} />
         </mesh>
-        <Html center style={{ pointerEvents: 'none' }} zIndexRange={[10, 0]}>
-          <span className="translate-y-8 rounded bg-space-950/80 px-1.5 py-0.5 text-[11px] whitespace-nowrap text-warn">☀ Sun</span>
-        </Html>
+        <TextLabel text="☀ Sun" position={[0, -0.8, 0]} anchor="below" color="#ffc94a" px={11} />
       </group>
       {mode === 'whole' && (
         <group>
@@ -206,9 +205,7 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
               </mesh>
             </group>
           ))}
-          <Html position={[2.6, 0.75, 0]} center style={{ pointerEvents: 'none' }} zIndexRange={[10, 0]}>
-            <span className="rounded bg-space-950/80 px-1.5 py-0.5 text-[10px] whitespace-nowrap text-warn">Sunlight</span>
-          </Html>
+          <TextLabel text="Sunlight" position={[2.6, 0.75, 0]} color="#ffc94a" px={10} />
         </group>
       )}
 
@@ -221,9 +218,7 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
               <meshBasicMaterial color="#3ddc97" />
             </mesh>
             {mode === 'whole' && (
-              <Html center style={{ pointerEvents: 'none' }} zIndexRange={[10, 0]}>
-                <span className="translate-y-3 rounded bg-space-950/80 px-1.5 py-0.5 text-[10px] whitespace-nowrap text-ok">{st.name}</span>
-              </Html>
+              <TextLabel text={st.name} anchor="below" color="#3ddc97" px={10} />
             )}
           </group>
         ))}
@@ -253,9 +248,7 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
             <sprite scale={[0.14, 0.14, 1]}>
               <spriteMaterial map={puff} color="#ff8a3d" transparent depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
             </sprite>
-            <Html center style={{ pointerEvents: 'none' }} zIndexRange={[10, 0]}>
-              <span className="-translate-y-4 rounded bg-space-950/80 px-1.5 py-0.5 text-[10px] whitespace-nowrap text-accent">Your craft</span>
-            </Html>
+            <TextLabel text="Your craft" anchor="above" color="#ff8a3d" px={10} />
           </>
         )}
         <group ref={spinner} scale={scale}>
@@ -292,7 +285,7 @@ export default function Orbit3D(props: Orbit3DProps) {
             key={id}
             onClick={() => setMode(id)}
             aria-pressed={mode === id}
-            className={cn('inline-flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs backdrop-blur', mode === id ? 'border-accent bg-accent/20 text-ink' : 'border-space-600 bg-space-900/70 text-muted hover:text-ink')}
+            className={cn('inline-flex min-h-8 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs backdrop-blur', mode === id ? 'border-accent bg-accent/20 text-ink' : 'border-space-600 bg-space-900/70 text-muted hover:text-ink')}
           >
             <Icon className="size-3.5" aria-hidden />
             {label}

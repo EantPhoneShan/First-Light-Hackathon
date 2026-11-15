@@ -48,8 +48,8 @@ export function ShareCode({ allowLoad = true }: { allowLoad?: boolean }) {
         Share code
       </h2>
       <div className="flex gap-2">
-        <input readOnly value={code} onFocus={(e) => e.target.select()} aria-label="Share code for this design" className="min-w-0 flex-1 truncate rounded-lg border border-space-600 bg-space-950 px-2 py-1.5 font-mono text-xs text-muted" />
-        <button onClick={copy} className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-space-600 px-2.5 py-1.5 text-xs hover:bg-space-800" aria-label="Copy share code">
+        <input readOnly value={code} onFocus={(e) => e.target.select()} aria-label="Share code for this design" className="min-w-0 flex-1 truncate rounded-lg border border-space-600 bg-space-950 px-2 py-2 font-mono text-xs text-muted" />
+        <button onClick={copy} className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-space-600 px-3 py-2 text-xs hover:bg-space-800" aria-label="Copy share code">
           {copied ? <Check className="size-3.5 text-ok" aria-hidden /> : <ClipboardCopy className="size-3.5" aria-hidden />}
           {copied ? 'Copied' : 'Copy'}
         </button>
@@ -69,9 +69,9 @@ export function ShareCode({ allowLoad = true }: { allowLoad?: boolean }) {
             aria-label="Paste a share code to load"
             disabled={!flow.canRewriteDesign}
             title={!flow.canRewriteDesign ? 'A code replaces every role’s part, so it only loads when you play all four roles.' : undefined}
-            className="min-w-0 flex-1 rounded-lg border border-space-600 bg-space-950 px-2 py-1.5 font-mono text-xs placeholder:font-sans placeholder:text-muted/60 disabled:opacity-50"
+            className="min-w-0 flex-1 rounded-lg border border-space-600 bg-space-950 px-2 py-2 font-mono text-xs placeholder:font-sans placeholder:text-muted/60 disabled:opacity-50"
           />
-          <button type="submit" disabled={!input.trim() || !flow.canRewriteDesign} className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-space-700 px-2.5 py-1.5 text-xs hover:bg-space-600 disabled:opacity-40">
+          <button type="submit" disabled={!input.trim() || !flow.canRewriteDesign} className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-space-700 px-3 py-2 text-xs hover:bg-space-600 disabled:opacity-40">
             <Download className="size-3.5" aria-hidden />
             Load
           </button>

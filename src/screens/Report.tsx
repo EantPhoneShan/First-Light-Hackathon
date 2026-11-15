@@ -29,6 +29,7 @@ export function Report() {
   const flights = useGame((s) => s.flights)
   const setRefly = useGame((s) => s.setRefly)
   const resetDesign = useGame((s) => s.resetDesign)
+  const flow = useTeamFlow()
 
   const flight = flights[flights.length - 1]
   const ghost = flights.length > 1 ? flights[flights.length - 2] : undefined
@@ -50,7 +51,6 @@ export function Report() {
     )
   }
 
-  const flow = useTeamFlow()
   const canRewrite = flow.canRewriteDesign
   const refly = () => {
     // Runs on the leader's device just before the room moves back to design (backStep).
@@ -151,7 +151,7 @@ function ScoreCard({ report, ghost }: { report: MissionReport; ghost?: MissionRe
             <li key={l.id}>
               <div className="flex items-baseline justify-between gap-2 text-sm">
                 <span className="font-medium">{l.label}</span>
-                <span className="tabular-nums text-muted">
+                <span className="shrink-0 whitespace-nowrap tabular-nums text-muted">
                   {l.points} / {l.max}
                 </span>
               </div>

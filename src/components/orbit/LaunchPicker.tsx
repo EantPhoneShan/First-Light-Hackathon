@@ -94,7 +94,7 @@ export function LaunchPicker() {
       </div>
 
       {shown ? (
-        <Suspense fallback={<div className="flex h-[460px] items-center justify-center rounded-xl border border-space-700 text-sm text-muted">Loading 3D rocket…</div>}>
+        <Suspense fallback={<div className="flex h-[340px] items-center justify-center sm:h-[540px] rounded-xl border border-space-700 text-sm text-muted">Loading 3D rocket…</div>}>
           <Rocket3D launcher={shown} bus={findBus(gameData, design.engineer.busId)} parts={partsOnCraft(design)} />
         </Suspense>
       ) : (

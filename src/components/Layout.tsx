@@ -36,7 +36,15 @@ export function Layout() {
   // In a team the stepper shows the room's step and can't be used to jump ahead:
   // only the Mission Planner moves everyone on, with Next.
   const locked = teamFlow.team || teamFlow.deviceRoom
+  // Phones: keep the current step in view in the scrolling step bar.
+  const stepsRef = useRef<HTMLElement>(null)
   const current = flow.findIndex((s) => (locked ? s.id === teamFlow.step : s.path === pathname))
+  useEffect(() => {
+    const nav = stepsRef.current
+    const el = nav?.querySelector<HTMLElement>('[aria-current="step"]')
+    if (!nav || !el) return
+    nav.scrollTo({ left: el.offsetLeft - nav.clientWidth / 2 + el.offsetWidth / 2, behavior: 'smooth' })
+  }, [current])
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -87,7 +95,7 @@ export function Layout() {
           </button>
         </div>
 
-        <nav aria-label="Mission phases" className="mx-auto max-w-6xl overflow-x-auto px-4 pb-3">
+        <nav ref={stepsRef} aria-label="Mission phases" className="mx-auto max-w-6xl overflow-x-auto px-4 pb-3">
           <ol className="flex min-w-max gap-1">
             {flow.map((step, i) => (
               <li key={step.path}>

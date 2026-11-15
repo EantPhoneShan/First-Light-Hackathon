@@ -45,6 +45,7 @@ export default function Craft3D({ bus, parts, problemIds, canRemove = () => true
   const [exploded, setExploded] = useState(false)
   const [cutaway, setCutaway] = useState(true)
   const [selected, setSelected] = useState<string | null>(null)
+  const [selectedPart, setSelectedPart] = useState<Part | null>(null)
   const [resetKey, setResetKey] = useState(0)
   const controls = useRef<OrbitControlsImpl>(null)
   const size = bus ? Math.max(...busGeom(bus).size) : 0.3
@@ -55,7 +56,7 @@ export default function Craft3D({ bus, parts, problemIds, canRemove = () => true
   }, [parts, selected])
 
   return (
-    <div className="relative h-[420px] w-full overflow-hidden rounded-xl bg-[url('/assets/bg/stars.webp')] bg-cover bg-center sm:h-[480px]">
+    <div className="relative h-[320px] w-full overflow-hidden rounded-xl bg-[url('/assets/bg/stars.webp')] bg-cover bg-center sm:h-[480px]">
       <Canvas dpr={[1, 2]} camera={{ fov: 35 }} gl={{ antialias: true, alpha: true }} aria-label="3D spacecraft">
         <SpaceLights photoBackdrop />
         {/* Earth far below, so the craft looks like it's already in orbit */}
@@ -73,24 +74,31 @@ export default function Craft3D({ bus, parts, problemIds, canRemove = () => true
             problemIds={problemIds}
             interactive
             selectedKey={selected}
-            onSelect={(k) => setSelected(k)}
-            selectedActions={(p) =>
-              onRemove && canRemove(p) ? (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onRemove(p.id)
-                    setSelected(null)
-                  }}
-                  className="rounded bg-bad/20 px-1.5 py-0.5 text-bad hover:bg-bad/30"
-                >
-                  Remove
-                </button>
-              ) : null
-            }
+            onSelect={(k, p) => (setSelected(k), setSelectedPart(p))}
           />
         )}
       </Canvas>
+
+      {/* The selected part, with Remove: a normal panel over the view (not inside the 3D scene) */}
+      {bus && selected && selectedPart && (
+        <div className="absolute inset-x-2 bottom-10 flex items-center gap-2 rounded-lg border border-accent/60 bg-space-900/95 px-3 py-2 text-sm shadow-xl sm:right-auto">
+          <span className="min-w-0 flex-1 truncate font-medium">{selectedPart.name}</span>
+          {onRemove && canRemove(selectedPart) && (
+            <button
+              onClick={() => {
+                onRemove(selectedPart.id)
+                setSelected(null)
+              }}
+              className="rounded-md bg-bad/20 px-3 py-1.5 text-bad hover:bg-bad/30"
+            >
+              Remove
+            </button>
+          )}
+          <button onClick={() => setSelected(null)} className="rounded-md px-2 py-1.5 text-muted hover:text-ink" aria-label="Close">
+            ✕
+          </button>
+        </div>
+      )}
 
       {!bus && <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-muted">{empty}</div>}
 
@@ -104,7 +112,8 @@ export default function Craft3D({ bus, parts, problemIds, canRemove = () => true
       {bus && (
         <p className="pointer-events-none absolute bottom-2 left-2 flex items-center gap-1.5 rounded bg-space-950/70 px-2 py-1 text-[11px] text-muted">
           <Box className="size-3" aria-hidden />
-          Drag to turn · scroll to zoom · click a part
+          <span className="pointer-coarse:hidden">Drag to turn · scroll to zoom · click a part</span>
+          <span className="hidden pointer-coarse:inline">Drag to turn · pinch to zoom · tap a part</span>
         </p>
       )}
     </div>
@@ -117,7 +126,7 @@ function ToolButton({ on, onClick, icon: Icon, label }: { on: boolean; onClick: 
       onClick={onClick}
       aria-pressed={on}
       title={label}
-      className={cn('inline-flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs backdrop-blur transition-colors', on ? 'border-accent bg-accent/20 text-ink' : 'border-space-600 bg-space-900/70 text-muted hover:text-ink')}
+      className={cn('inline-flex min-h-8 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs backdrop-blur transition-colors', on ? 'border-accent bg-accent/20 text-ink' : 'border-space-600 bg-space-900/70 text-muted hover:text-ink')}
     >
       <Icon className="size-3.5" aria-hidden />
       <span className="hidden sm:inline">{label}</span>

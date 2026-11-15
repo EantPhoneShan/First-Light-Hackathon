@@ -324,7 +324,7 @@ export default function Station3D({ station, active }: { station: Station; activ
   const cam: Record<Kind, [number, number, number]> = { amateur: [10, 3, 15], campus: [16, 9, 22], polar: [26, 6, 32], network: [30, 7, 36] }
   const target: Record<Kind, [number, number, number]> = { amateur: [0, 4.5, 0], campus: [0, 9, 0], polar: [0, 7, 0], network: [0, 6, 0] }
   return (
-    <div className="relative h-[300px] w-full overflow-hidden rounded-xl border border-space-700 sm:h-[360px]">
+    <div className="relative h-[260px] w-full overflow-hidden rounded-xl border border-space-700 sm:h-[360px]">
       <Canvas key={kind} dpr={[1, 2]} camera={{ fov: 38, position: cam[kind], near: 0.1, far: RING * 3 }} aria-label={`3D model of the ${station.name}`}>
         <Scene kind={kind} active={active} />
         <OrbitControls makeDefault target={target[kind]} enablePan={false} minDistance={6} maxDistance={60} minPolarAngle={1.33} maxPolarAngle={Math.PI / 2 - 0.04} autoRotate autoRotateSpeed={0.4} />

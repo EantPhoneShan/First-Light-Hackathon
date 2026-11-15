@@ -84,10 +84,10 @@ export function Workbench() {
   }
 
   const tabs = [
-    { id: 'craft' as const, label: 'Spacecraft', icon: Box, missing: !bus },
-    { id: 'launch' as const, label: 'Orbit & launch', icon: OrbitIcon, missing: !design.flight.orbitId || !design.flight.launcherId },
-    { id: 'ground' as const, label: 'Ground', icon: RadioTower, missing: design.flight.stationIds.length === 0 },
-    { id: 'trade' as const, label: 'Trade study', icon: Scale, missing: false },
+    { id: 'craft' as const, label: 'Spacecraft', short: 'Craft', icon: Box, missing: !bus },
+    { id: 'launch' as const, label: 'Orbit & launch', short: 'Orbit', icon: OrbitIcon, missing: !design.flight.orbitId || !design.flight.launcherId },
+    { id: 'ground' as const, label: 'Ground', short: 'Ground', icon: RadioTower, missing: design.flight.stationIds.length === 0 },
+    { id: 'trade' as const, label: 'Trade study', short: 'Trade', icon: Scale, missing: false },
   ]
 
   const sensors = useSensors(
@@ -177,7 +177,8 @@ export function Workbench() {
             )}
           >
             <t.icon className="size-4 shrink-0" aria-hidden />
-            <span className="truncate">{t.label}</span>
+            <span className="truncate sm:hidden">{t.short}</span>
+            <span className="hidden truncate sm:inline">{t.label}</span>
             {refly?.tabs.includes(t.id as 'launch' | 'ground') ? (
               <span className="size-1.5 shrink-0 rounded-full bg-bad" aria-label="has a fix to make" />
             ) : (
@@ -214,7 +215,7 @@ export function Workbench() {
                     role="radio"
                     aria-checked={view === v}
                     onClick={() => setView(v)}
-                    className={cn('rounded-md px-2.5 py-1 transition-colors', view === v ? 'bg-accent text-space-950' : 'text-muted hover:text-ink')}
+                    className={cn('rounded-md px-3 py-1.5 transition-colors', view === v ? 'bg-accent text-space-950' : 'text-muted hover:text-ink')}
                   >
                     {v === '3d' ? '3D' : 'Slots'}
                   </button>
@@ -223,7 +224,7 @@ export function Workbench() {
             </div>
             {view === '3d' ? (
               <CraftDrop className="mt-3">
-                <Suspense fallback={<div className="flex h-[420px] items-center justify-center text-sm text-muted sm:h-[480px]">Loading 3D view…</div>}>
+                <Suspense fallback={<div className="flex h-[320px] items-center justify-center text-sm text-muted sm:h-[480px]">Loading 3D view…</div>}>
                   <Craft3D
                     bus={bus}
                     parts={onCraft}

@@ -83,7 +83,7 @@ export function OtherBuilds({ flight }: { flight: FlightResult }) {
                 onClick={() => loadDesign(b.design)}
                 disabled={!canTry}
                 title={canTry ? 'Load this build onto the workbench' : 'In a team, each role changes its own part to try this.'}
-                className="rounded-md border border-space-600 px-2 py-1 text-xs hover:bg-space-800 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-md border border-space-600 px-3 py-1.5 text-xs hover:bg-space-800 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Try it
               </button>

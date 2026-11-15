@@ -6,7 +6,6 @@
  * New parts drop in from above and snap into place; parts slide when the
  * packing changes. Hover a part to see its name; click it to select it.
  */
-import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 import * as THREE from 'three'
@@ -14,6 +13,7 @@ import type { Bus, Part } from '@/engine/types'
 import { busGeom, outsideParts, packParts, type BusGeom, type Placed, type Vec3 } from './craftLayout'
 import { mats } from './materials'
 import { InsidePart } from './parts3d'
+import { TextLabel } from './TextLabel'
 
 export interface SpacecraftModelProps {
   bus: Bus
@@ -117,16 +117,9 @@ function Highlight({ size, tone }: { size: Vec3; tone: 'accent' | 'bad' }) {
   )
 }
 
-function Label({ part, at, extra, overflow }: { part: Part; at: Vec3; extra?: ReactNode; overflow?: boolean }) {
-  return (
-    <Html position={at} center distanceFactor={undefined} zIndexRange={[20, 0]} style={{ pointerEvents: extra ? 'auto' : 'none', transform: 'translateY(-130%)' }}>
-      <div className="flex items-center gap-2 rounded-lg border border-space-600 bg-space-900/95 px-2.5 py-1.5 text-xs whitespace-nowrap text-ink shadow-xl">
-        <span className="font-medium">{part.name}</span>
-        {overflow && <span className="text-bad">doesn't fit</span>}
-        {extra}
-      </div>
-    </Html>
-  )
+/** Part name drawn in the scene (no HTML, so it can't break when the view closes). */
+function Label({ part, at, overflow }: { part: Part; at: Vec3; extra?: ReactNode; overflow?: boolean }) {
+  return <TextLabel text={part.name} sub={overflow ? "Doesn't fit in the bus" : undefined} position={at} anchor="above" color={overflow ? '#ff5c6c' : '#e8edf8'} />
 }
 
 // ---------------------------------------------------------------- bus frame

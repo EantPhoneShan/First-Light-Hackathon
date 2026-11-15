@@ -3,7 +3,7 @@
  * 3D, with your spacecraft inside, and an exploded view that pulls the stack
  * apart and labels every piece. Loaded lazily (three.js).
  */
-import { Html, OrbitControls } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Expand, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -23,6 +23,7 @@ import {
   type RocketSpec,
 } from "./rocketParts";
 import { SpaceLights } from "./Stage";
+import { TextLabel } from "./TextLabel";
 
 type OrbitControlsImpl = React.ComponentRef<typeof OrbitControls>;
 
@@ -182,7 +183,7 @@ export default function Rocket3D({
   const total = stackOf(spec).top + (exploded ? gap * list.length : 0);
 
   return (
-    <div className="relative h-[460px] w-full overflow-hidden rounded-xl border border-space-700 bg-[url('/assets/bg/stars.webp')] bg-cover bg-center sm:h-[540px]">
+    <div className="relative h-[340px] w-full overflow-hidden rounded-xl border border-space-700 bg-[url('/assets/bg/stars.webp')] bg-cover bg-center sm:h-[540px]">
       <Canvas
         dpr={[1, 2]}
         camera={{ fov: 32 }}
@@ -208,15 +209,7 @@ export default function Rocket3D({
               {/* A 1.8 m person by the base, for scale */}
               <group position={[spec.d * (spec.boosters ? 2.2 : 1.2), 0, 0]}>
                 <Person />
-                <Html
-                  position={[0, 2.4, 0]}
-                  center
-                  style={{ pointerEvents: "none" }}
-                >
-                  <span className="text-[10px] whitespace-nowrap text-muted">
-                    1.8 m person
-                  </span>
-                </Html>
+                <TextLabel text="1.8 m person" position={[0, 2.4, 0]} anchor="above" px={10} color="#8f9bbf" />
               </group>
 
               {list.map((p, i) => {
@@ -236,31 +229,12 @@ export default function Rocket3D({
                     </group>
                     {(exploded || hover === p.id) && (
                       // Exploded: a short tag on alternating sides; hover adds the explanation.
-                      <Html
-                        position={[
-                          (i % 2 === 0 ? 1 : -1) *
-                            (spec.d * 0.7 + (spec.boosters ? spec.d * 1.4 : 0)),
-                          p.h / 2,
-                          0,
-                        ]}
-                        style={{ pointerEvents: "none" }}
-                        zIndexRange={[20, 0]}
-                      >
-                        <div
-                          className={cn(
-                            "-translate-y-1/2 rounded-lg border bg-space-900/95 px-2.5 py-1 text-xs shadow-xl",
-                            i % 2 === 0 ? "" : "-translate-x-full",
-                            hover === p.id
-                              ? "w-56 border-accent"
-                              : "border-space-600 whitespace-nowrap",
-                          )}
-                        >
-                          <p className="font-medium text-ink">{p.label}</p>
-                          {hover === p.id && (
-                            <p className="mt-0.5 text-muted">{p.what}</p>
-                          )}
-                        </div>
-                      </Html>
+                      <TextLabel
+                        text={p.label}
+                        position={[(i % 2 === 0 ? 1 : -1) * (spec.d * 0.7 + (spec.boosters ? spec.d * 1.4 : 0)), p.h / 2, 0]}
+                        anchor={i % 2 === 0 ? "right" : "left"}
+                        color={hover === p.id ? "#ff8a3d" : "#e8edf8"}
+                      />
                     )}
                   </Slide>
                 );
@@ -274,15 +248,7 @@ export default function Rocket3D({
                   >
                     <Booster spec={spec} />
                     {exploded && s === -1 && (
-                      <Html
-                        position={[-spec.d * 0.8, spec.s1.len * 0.6, 0]}
-                        style={{ pointerEvents: "none" }}
-                      >
-                        <div className="-translate-x-full -translate-y-1/2 rounded-lg border border-space-600 bg-space-900/95 px-2.5 py-1 text-xs whitespace-nowrap shadow-xl">
-                          <p className="font-medium text-ink">Side boosters</p>
-                          <p className="text-muted">Drop off first</p>
-                        </div>
-                      </Html>
+                      <TextLabel text="Side boosters" sub="Drop off first" position={[-spec.d * 0.8, spec.s1.len * 0.6, 0]} anchor="left" />
                     )}
                   </group>
                 ))}
@@ -291,12 +257,18 @@ export default function Rocket3D({
         </group>
       </Canvas>
 
+      {hover && (
+        <div className="pointer-events-none absolute inset-x-2 bottom-10 rounded-lg border border-accent/60 bg-space-900/95 px-3 py-2 text-xs shadow-xl sm:right-auto sm:max-w-sm">
+          <p className="font-medium text-ink">{list.find((x) => x.id === hover)?.label}</p>
+          <p className="mt-0.5 text-muted">{list.find((x) => x.id === hover)?.what}</p>
+        </div>
+      )}
       <div className="absolute top-2 left-2 flex gap-1.5">
         <button
           onClick={() => setExploded((v) => !v)}
           aria-pressed={exploded}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs backdrop-blur",
+            "inline-flex min-h-8 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs backdrop-blur",
             exploded
               ? "border-accent bg-accent/20 text-ink"
               : "border-space-600 bg-space-900/70 text-muted hover:text-ink",
@@ -307,7 +279,7 @@ export default function Rocket3D({
         </button>
         <button
           onClick={() => setResetKey((k) => k + 1)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-space-600 bg-space-900/70 px-2 py-1.5 text-xs text-muted backdrop-blur hover:text-ink"
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-space-600 bg-space-900/70 px-2.5 py-1.5 text-xs text-muted backdrop-blur hover:text-ink"
         >
           <RotateCcw className="size-3.5" aria-hidden />
           Reset view

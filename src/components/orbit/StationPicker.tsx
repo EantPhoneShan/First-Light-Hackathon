@@ -83,7 +83,7 @@ export function StationPicker() {
         })}
       </ul>
 
-      <Suspense fallback={<div className="flex h-[300px] items-center justify-center rounded-xl border border-space-700 text-sm text-muted">Loading 3D station…</div>}>
+      <Suspense fallback={<div className="flex h-[260px] items-center justify-center sm:h-[360px] rounded-xl border border-space-700 text-sm text-muted">Loading 3D station…</div>}>
         <Station3D station={shown} active={flight.stationIds.includes(shown.id)} />
       </Suspense>
     </div>
