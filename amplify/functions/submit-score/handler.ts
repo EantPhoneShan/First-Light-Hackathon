@@ -44,7 +44,18 @@ export const handler: Schema['submitScore']['functionHandler'] = async (event) =
   }
 
   const roomCode = args.roomCode ? String(args.roomCode).replace(/[^A-Za-z0-9]/g, '').slice(0, 12) : undefined;
+
+  // A team flight is one flight, however many teammates press "Add this flight".
+  // Room + seed + scenario names it (every launch gets a new seed), so the first
+  // save wins and everyone after that gets the same row back.
+  const flightId = roomCode ? `room-${roomCode}-${v.scenarioId}-${submission.seed}` : undefined;
+  if (flightId) {
+    const existing = await client.models.Score.get({ id: flightId });
+    if (existing.data) return saved(existing.data);
+  }
+
   const { data, errors } = await client.models.Score.create({
+    ...(flightId ? { id: flightId } : {}),
     scenario: v.scenarioId,
     score: v.score,
     stars: v.stars,
@@ -53,9 +64,20 @@ export const handler: Schema['submitScore']['functionHandler'] = async (event) =
     roomCode,
   });
   if (errors?.length || !data) {
+    // Two teammates pressed at the same moment: the other save got there first.
+    if (flightId) {
+      const existing = await client.models.Score.get({ id: flightId });
+      if (existing.data) return saved(existing.data);
+    }
     console.error('[submit-score] save failed', errors);
     throw new Error('The score was checked but could not be saved. Please try again.');
   }
 
-  return { id: data.id, scenarioId: v.scenarioId, score: v.score, stars: v.stars, outcome: v.outcome, teamName: data.teamName ?? 'Anonymous' };
+  return saved(data);
 };
+
+type ScoreRow = { id: string; scenario: string; score: number; stars?: number | null; outcome?: string | null; teamName?: string | null };
+
+function saved(row: ScoreRow) {
+  return { id: row.id, scenarioId: row.scenario, score: row.score, stars: row.stars ?? 0, outcome: row.outcome ?? '', teamName: row.teamName ?? 'Anonymous' };
+}
