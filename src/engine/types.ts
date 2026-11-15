@@ -25,6 +25,8 @@ export type SourceId =
   | 'cml' // JPL Concept Maturity Levels
   | 'mdl' // Goddard Mission Design Lab
   | 'gmat' // NASA General Mission Analysis Tool (orbit values to check against)
+  | 'nasa-soa' // NASA State-of-the-Art of Small Spacecraft Technology (part ranges)
+  | 'nasa-goes' // NASA GOES-R series design overview (geostationary weather satellite)
   | 'physics' // Textbook formula (orbit period, eclipse, rocket equation)
   | 'estimate'; // Rounded game value; the note says what it is based on
 

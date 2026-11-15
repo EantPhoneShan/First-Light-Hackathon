@@ -101,8 +101,8 @@
       "reliability": 0.99,
       "icon": "part-solar-body",
       "tooltip": "Solar cells glued to the outside of the craft. Light and cheap, but small.",
-      "source": "estimate",
-      "sourceNote": "Rounded for cells covering a 6U CubeSat's sides, averaged over how the craft faces the Sun."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (Power, Table 3-2): body-mounted 6U panels give about 17.6 to 19.2 W at peak. The game uses 12 W, an orbit average, because body cells only face the Sun part of the time."
     },
     {
       "id": "solar-wings",
@@ -120,8 +120,8 @@
       "reliability": 0.96,
       "icon": "part-solar-wings",
       "tooltip": "Panels that fold out after launch, like wings. They nearly double your power.",
-      "source": "cubesat101",
-      "sourceNote": "CubeSat 101 (ChargerSat-1): deployable solar panels nearly double the power input. With the body cells: 12 W + 11 W = 23 W, about double."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (Power, Table 3-2): deployed 6U arrays give about 19.2 to 36 W at peak; the game uses 11 W as an orbit average. CubeSat 101 (ChargerSat-1): deployable panels nearly double the power, and with the body cells 12 W + 11 W = 23 W."
     },
     {
       "id": "solar-array",
@@ -139,8 +139,8 @@
       "reliability": 0.97,
       "icon": "part-solar-wings",
       "tooltip": "A big folding solar panel for larger satellites.",
-      "source": "estimate",
-      "sourceNote": "Rounded for small-satellite solar arrays."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (Power): flown space arrays cluster around 30 W/kg; this array is 300 W for 8 kg (about 37 W/kg). Price and build time are game estimates."
     },
     {
       "id": "battery-small",
@@ -148,7 +148,7 @@
       "category": "battery",
       "tier": "simple",
       "slots": 1,
-      "massKg": 0.1,
+      "massKg": 0.06,
       "powerW": 0,
       "capacityWh": 8,
       "costM": 0.03,
@@ -156,8 +156,8 @@
       "reliability": 0.98,
       "icon": "part-battery-small",
       "tooltip": "Stores solar power for when the craft is in Earth's shadow (eclipse). Light, but holds little.",
-      "source": "cubesat101",
-      "sourceNote": "CubeSat 101: CubeSats use common lithium-ion batteries with protection circuits. Capacity is a rounded estimate."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (Power, Table 3-5): CubeSat battery packs store about 91 to 178 Wh/kg; 8 Wh for 0.06 kg is about 133 Wh/kg. CubeSat 101: CubeSats use common lithium-ion cells with protection circuits."
     },
     {
       "id": "battery-large",
@@ -173,8 +173,8 @@
       "reliability": 0.98,
       "icon": "part-battery-large",
       "tooltip": "A bigger lithium-ion battery pack. Heavier, but it carries the craft through long eclipses.",
-      "source": "cubesat101",
-      "sourceNote": "CubeSat 101: lithium-ion batteries. Capacity is a rounded estimate."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (Power, Table 3-5): packs store about 91 to 178 Wh/kg; 40 Wh for 0.35 kg is about 114 Wh/kg."
     },
     {
       "id": "battery-pack",
@@ -191,8 +191,8 @@
       "reliability": 0.98,
       "icon": "part-battery-large",
       "tooltip": "A large battery pack for bigger satellites.",
-      "source": "estimate",
-      "sourceNote": "Rounded for small-satellite battery packs."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (Power, Table 3-5): packs store about 91 to 178 Wh/kg; 400 Wh for 3 kg is about 133 Wh/kg. Price is a game estimate."
     },
     {
       "id": "computer",
@@ -209,8 +209,8 @@
       "reliability": 0.97,
       "icon": "part-computer-std",
       "tooltip": "The craft's brain. Runs the parts and stores data until it can be sent to Earth.",
-      "source": "estimate",
-      "sourceNote": "Rounded for a CubeSat onboard computer with flash storage."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (Avionics, Table 8-4): CubeSat on-board computers draw about 0.2 to 6 W, and onboard memory is typically from hundreds of KB to several GB; the game uses 1.5 W and 4,000 MB. Price is a game estimate."
     },
     {
       "id": "magnetorquer",
@@ -226,8 +226,8 @@
       "reliability": 0.99,
       "icon": "part-magnetorquer",
       "tooltip": "Electromagnets that push against Earth's magnetic field to turn the craft. Simple, but slow and rough pointing.",
-      "source": "estimate",
-      "sourceNote": "Rounded for a CubeSat magnetorquer board."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (GNC, Table 5-4): CubeSat magnetorquers weigh about 0.017 to 0.205 kg and draw 0.38 to 0.77 W; the game uses a 3-axis board of 0.2 kg and 0.5 W. Price is a game estimate."
     },
     {
       "id": "reaction-wheel",
@@ -243,8 +243,8 @@
       "reliability": 0.95,
       "icon": "part-reaction-wheel",
       "tooltip": "A spinning wheel that turns the craft precisely, so cameras can point exactly where you want.",
-      "source": "estimate",
-      "sourceNote": "Rounded for a CubeSat reaction wheel unit."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (GNC, Table 5-3): CubeSat reaction wheels weigh about 0.05 to 0.75 kg and draw about 0.85 to 33 W at peak; the game uses 0.7 kg and 2 W average. Price is a game estimate."
     },
     {
       "id": "cold-gas-thruster",
@@ -262,8 +262,8 @@
       "reliability": 0.95,
       "icon": "part-cold-gas",
       "tooltip": "Puffs of gas that change the orbit a little, for example to bring the craft down at the end of the mission.",
-      "source": "estimate",
-      "sourceNote": "Rounded for a CubeSat cold-gas system; 0.4 kg of the mass is propellant. Delta-v uses the rocket equation."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (In-Space Propulsion, Table 4-1): cold gas gives a specific impulse of 40 to 110 s; the game uses 65 s. 0.4 kg of the mass is propellant; delta-v uses the rocket equation."
     },
     {
       "id": "antenna-uhf",
@@ -300,8 +300,8 @@
       "reliability": 0.96,
       "icon": "part-radio-s",
       "tooltip": "A faster radio, about 100 times quicker than UHF. Enough for a few images per pass.",
-      "source": "estimate",
-      "sourceNote": "Rounded for a CubeSat S-band transmitter."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (Communications, Table 9-3): CubeSat S-band radios send about 0.125 to 4 Mbps; the game uses 1 Mbps."
     },
     {
       "id": "antenna-x",
@@ -310,8 +310,8 @@
       "tier": "simple",
       "slots": 1,
       "maxPerCraft": 1,
-      "massKg": 0.4,
-      "powerW": 6,
+      "massKg": 0.15,
+      "powerW": 3,
       "band": "x",
       "dataRateMbps": 50,
       "costM": 0.35,
@@ -319,8 +319,8 @@
       "reliability": 0.94,
       "icon": "part-radio-x",
       "tooltip": "A high-speed radio that can send lots of images, but it uses more power, costs more and takes longer to get.",
-      "source": "estimate",
-      "sourceNote": "Rounded for a CubeSat X-band transmitter."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (Communications, Table 9-3): a 50 Mbps CubeSat X-band transmitter weighs about 130 g and transmits at 2 W; the game counts 3 W of input power. Price and build time are game estimates."
     },
     {
       "id": "camera",
@@ -452,8 +452,8 @@
       "icon": "part-star-tracker",
       "tooltip": "A tiny camera that recognises star patterns to know exactly which way the craft points. Needed for sharp, well-aimed images.",
       "learnMoreUrl": "https://www.nasa.gov/smallsat-institute/sst-soa",
-      "source": "estimate",
-      "sourceNote": "Mass and power from datasheets: CubeSpace CubeStar Gen 2 (47 g, 0.17 W average), AAC Clyde Space ST200 (42 g, 0.37 to 1 W), Adcole MAI-SS (0.3 kg, 1.5 W). Price, build time and reliability are game estimates."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (GNC, Table 5-5): small-spacecraft star trackers weigh about 0.04 to 0.5 kg and draw about 0.27 to 3 W; the game uses 0.15 kg and 0.7 W. Price and build time are game estimates."
     },
     {
       "id": "gps-receiver",
@@ -470,8 +470,8 @@
       "icon": "part-gps",
       "tooltip": "Works out where the craft is and the exact time from GPS satellites above it, so every image can be pinned to the right spot on the map.",
       "learnMoreUrl": "https://www.nasa.gov/smallsat-institute/sst-soa",
-      "source": "estimate",
-      "sourceNote": "NovAtel OEM719 product sheet: about 31 g, 0.9 W (GPS L1) to 1.3 W (L1/L2). Used in CubeSat GPS kits by GomSpace and Pumpkin. Price, build time and reliability are game estimates."
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (GNC, Table 5-10): small-spacecraft GPS receivers weigh about 0.002 to 0.4 kg and draw 0.01 to 3 W (NovAtel OEM719: 31 g, 0.9 W); the game uses 0.05 kg and 1.1 W. Price and build time are game estimates."
     },
     {
       "id": "antenna-x-hr",
@@ -490,8 +490,8 @@
       "icon": "part-radio-x-hr",
       "tooltip": "Three times faster than the standard X-band radio, so huge images get home in one pass. But it draws a lot of power while it transmits.",
       "learnMoreUrl": "https://endurosat.com/products/x-band-transmitter/",
-      "source": "estimate",
-      "sourceNote": "EnduroSat X-band transmitter: up to 150 Mbps, 396 g, about 12 W average. IQ spacecom XLink-X: up to 100 Mbps, 200 g, under 16 W. Price, build time and reliability are game estimates."
+      "source": "nasa-soa",
+      "sourceNote": "EnduroSat X-band transmitter: up to 150 Mbps, 396 g, about 12 W average. IQ spacecom XLink-X: up to 100 Mbps, 200 g, under 16 W. Price, build time and reliability are game estimates. NASA State-of-the-Art of Small Spacecraft Technology (Communications) lists CubeSat X-band transmitters from 50 Mbps up to several Gbps."
     },
     {
       "id": "mass-memory",
@@ -529,8 +529,8 @@
       "icon": "part-electric-thruster",
       "tooltip": "Pushes with a gentle stream of charged droplets. Ten times more efficient than gas, so a tiny tank goes a long way, but it needs electric power to run.",
       "learnMoreUrl": "https://digitalcommons.usu.edu/smallsat/2009/all2009/10",
-      "source": "estimate",
-      "sourceNote": "Busek 1U electrospray design: Isp 800 to 1600 s, about 2.5 W, over 350 m/s for a 1 kg CubeSat. Later electrospray systems: Isp above 1000 s at under 10 W. Mass, price and build time are game estimates."
+      "source": "nasa-soa",
+      "sourceNote": "Busek 1U electrospray design: Isp 800 to 1600 s, about 2.5 W, over 350 m/s for a 1 kg CubeSat. Later electrospray systems: Isp above 1000 s at under 10 W. Mass, price and build time are game estimates. NASA State-of-the-Art of Small Spacecraft Technology (In-Space Propulsion, Table 4-1): electrospray thrusters give 225 to 3,000 s."
     },
     {
       "id": "green-thruster",
@@ -549,8 +549,8 @@
       "icon": "part-green-thruster",
       "tooltip": "A small rocket engine that burns a safer 'green' fuel instead of toxic hydrazine. Strong pushes for moving the orbit or coming down at the end.",
       "learnMoreUrl": "https://ntrs.nasa.gov/api/citations/20240004070/downloads/GPDM%20JANNAF.pdf",
-      "source": "estimate",
-      "sourceNote": "L3Harris MPS-130 1U module: 1.1 kg dry, 1.7 kg wet. NASA Lunar Flashlight (AF-M315E/ASCENT): mission-average Isp about 210 s. Price and build time are game estimates."
+      "source": "nasa-soa",
+      "sourceNote": "L3Harris MPS-130 1U module: 1.1 kg dry, 1.7 kg wet. NASA Lunar Flashlight (AF-M315E/ASCENT): mission-average Isp about 210 s. Price and build time are game estimates. NASA State-of-the-Art of Small Spacecraft Technology (In-Space Propulsion, Table 4-1): green monopropellants give 150 to 310 s."
     },
     {
       "id": "hyperspectral-imager",
@@ -591,6 +591,121 @@
       "learnMoreUrl": "https://www.eoportal.org/satellite-missions/aausat3",
       "source": "estimate",
       "sourceNote": "AAC SpaceQuest STS-300: 0.4 to 0.65 W. Alen Space AIS payload: under 135 g, 2.35 W peak. Flown on AAUSAT-3 (1U CubeSat). Price and build time are game estimates."
+    },
+    {
+      "id": "weather-imager",
+      "name": "Weather imager",
+      "category": "instrument",
+      "tier": "advanced",
+      "slots": 6,
+      "fits": [
+        "large"
+      ],
+      "massKg": 300,
+      "powerW": 400,
+      "dataMBPerOrbit": 215000,
+      "measures": [
+        "clouds",
+        "moisture"
+      ],
+      "scienceValue": 95,
+      "costM": 90,
+      "buildMonths": 36,
+      "reliability": 0.95,
+      "icon": "part-weather-imager",
+      "tooltip": "A big camera that sees many colours of light, including heat, and takes a picture of the whole Earth disk every 15 minutes to follow storms.",
+      "learnMoreUrl": "https://www.earthdata.nasa.gov/data/instruments/abi",
+      "source": "nasa-goes",
+      "sourceNote": "NASA GOES-R design overview (NTRS 20170009467): the GOES-R Advanced Baseline Imager takes a full Earth disk image every 15 minutes; NASA Earthdata: 16 spectral bands. Mass, power, data rate and price are game estimates."
+    },
+    {
+      "id": "lightning-mapper",
+      "name": "Lightning mapper",
+      "category": "instrument",
+      "tier": "advanced",
+      "slots": 4,
+      "fits": [
+        "large"
+      ],
+      "massKg": 120,
+      "powerW": 300,
+      "dataMBPerOrbit": 54000,
+      "measures": [
+        "lightning"
+      ],
+      "scienceValue": 85,
+      "costM": 30,
+      "buildMonths": 30,
+      "reliability": 0.96,
+      "icon": "part-lightning-mapper",
+      "tooltip": "A fast camera that catches every lightning flash across half the planet, day and night. Lots of lightning can mean a storm is getting stronger.",
+      "learnMoreUrl": "https://www.earthdata.nasa.gov/data/instruments/glm",
+      "source": "nasa-goes",
+      "sourceNote": "NASA GOES-R design overview (NTRS 20170009467) and NASA Earthdata: the Geostationary Lightning Mapper is a high-speed camera at 777.4 nm that detects total lightning across the Western Hemisphere. Mass, power, data rate and price are game estimates."
+    },
+    {
+      "id": "solar-array-large",
+      "name": "Large solar wing",
+      "category": "solar",
+      "tier": "advanced",
+      "slots": 0,
+      "maxPerCraft": 2,
+      "fits": [
+        "large"
+      ],
+      "massKg": 50,
+      "powerW": 0,
+      "generationW": 1500,
+      "costM": 5,
+      "buildMonths": 18,
+      "reliability": 0.98,
+      "icon": "part-solar-wings",
+      "tooltip": "A long solar wing for a big satellite, several metres across.",
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (Power): flown space arrays cluster around 30 W/kg; this wing is 1,500 W for 50 kg. Price and build time are game estimates."
+    },
+    {
+      "id": "battery-bank",
+      "name": "Battery bank",
+      "category": "battery",
+      "tier": "advanced",
+      "slots": 2,
+      "fits": [
+        "large"
+      ],
+      "massKg": 14,
+      "powerW": 0,
+      "capacityWh": 2000,
+      "costM": 1,
+      "buildMonths": 9,
+      "reliability": 0.98,
+      "icon": "part-battery-large",
+      "tooltip": "A big lithium-ion battery for a large satellite, enough to ride through the long eclipses at GEO.",
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (Power, Table 3-5): packs store about 91 to 178 Wh/kg; 2,000 Wh for 14 kg is about 143 Wh/kg. Price is a game estimate."
+    },
+    {
+      "id": "hydrazine-system",
+      "name": "Hydrazine thrusters",
+      "category": "propulsion",
+      "tier": "advanced",
+      "slots": 4,
+      "maxPerCraft": 1,
+      "fits": [
+        "smallsat",
+        "large"
+      ],
+      "massKg": 360,
+      "powerW": 20,
+      "propellantKg": 320,
+      "ispS": 220,
+      "costM": 8,
+      "buildMonths": 18,
+      "reliability": 0.97,
+      "icon": "part-cold-gas",
+      "tooltip": "Rocket thrusters and a big tank of fuel. They keep a GEO satellite in its slot for years, then move it to a graveyard orbit at the end.",
+      "source": "nasa-soa",
+      "sourceNote": "NASA State-of-the-Art of Small Spacecraft Technology (In-Space Propulsion): hydrazine thrusters of 1 N and up give about 200 to 235 s; the game uses 220 s. NASA GOES-R design overview (NTRS 20170009467): the GOES-R fuel requirement is 15 years of storage and operations. 320 kg of the mass is propellant; price is a game estimate."
     }
   ]
 }

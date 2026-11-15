@@ -44,8 +44,11 @@ describe('simulation', () => {
   });
 
   it('kills a thin-margin craft late, once its panels wear out', () => {
-    // X-band radio and reaction wheel leave about 1% spare power: fine at first, then the panels wear.
-    const r = simulate(mod(fixed, (d) => { d.engineer.partIds[4] = 'reaction-wheel'; d.flight.antennaIds = ['antenna-x']; }), wildfire, gameData);
+    // Test data only: a hungrier imager plus a reaction wheel leave about 4% spare power:
+    // fine at first, then the panels wear (2% a year) and the battery can't refill.
+    const data = structuredClone(gameData);
+    data.parts.find((p) => p.id === 'thermal-imager')!.powerW = 6.5;
+    const r = simulate(mod(fixed, (d) => (d.engineer.partIds[4] = 'reaction-wheel')), wildfire, data);
     expect(r.outcome).not.toBe('success');
     expect(r.survivedMin).toBeGreaterThan(30 * 1440);
     expect(r.markers.find((m) => m.kind === 'battery-dead')!.why).toMatch(/worn down/);

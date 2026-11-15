@@ -70,8 +70,10 @@ describe('rules engine', () => {
   });
 
   it('turns amber under 10% spare (CubeSat 101 reserve)', () => {
-    // X-band radio and reaction wheel: about 1% power to spare.
-    const e = ev(mod(fixed, (d) => { d.engineer.partIds[4] = 'reaction-wheel'; d.flight.antennaIds = ['antenna-x']; }));
+    // Test data only: a hungrier imager plus a reaction wheel leaves about 4% power to spare.
+    const data = structuredClone(gameData);
+    data.parts.find((p) => p.id === 'thermal-imager')!.powerW = 6.5;
+    const e = evaluate(mod(fixed, (d) => (d.engineer.partIds[4] = 'reaction-wheel')), wildfire, data);
     expect(e.gauges.power.status).toBe('warn');
     expect(ev(mod(fixed, (d) => (d.engineer.partIds[4] = 'reaction-wheel'))).gauges.budget.status).toBe('warn');
   });

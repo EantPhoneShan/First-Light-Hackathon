@@ -53,6 +53,12 @@ export const RULES = {
   graveyardRaiseKm: 300,
   /** Solar panels lose this share of their power each year in space (estimate). */
   solarWearPerYear: 0.02,
+  /**
+   * Delta-v a GEO satellite spends each year to stay in its slot (textbook value,
+   * mostly to fight the pull of the Sun and Moon). The GOES-R fuel requirement is
+   * 15 years, per the NASA GOES-R design overview.
+   */
+  geoStationKeepingMsPerYear: 50,
 };
 
 const BUS_RANK: Record<BusSize, number> = { cubesat: 0, smallsat: 1, large: 2 };
@@ -245,7 +251,8 @@ export function evaluate(design: Design, scenario: Scenario, data: GameData): Ev
   if (orbit && orb) {
     if (orbit.kind === 'geo') {
       if (plan !== 'graveyard') add('disposal.geo', 'disposal', 'fail', why.geoNeedsGraveyard(), 'planner');
-      deltaVNeedMs = raiseOrbitDeltaV(orb.altitudeKm, orb.altitudeKm + RULES.graveyardRaiseKm);
+      // Staying in the slot for the whole mission, then the move to the graveyard.
+      deltaVNeedMs = RULES.geoStationKeepingMsPerYear * years + raiseOrbitDeltaV(orb.altitudeKm, orb.altitudeKm + RULES.graveyardRaiseKm);
     } else {
       const staysTooLong = orb.decayYears > data.disposalRuleYears;
       if (plan === 'none') add('disposal.none', 'disposal', 'warn', why.noDisposal(), 'planner');
@@ -260,9 +267,10 @@ export function evaluate(design: Design, scenario: Scenario, data: GameData): Ev
     }
     const needsBurn = orbit.kind === 'geo' || plan === 'deorbit-burn';
     if (needsBurn && thrusters.length === 0) {
-      add('deltaV.no-thruster', 'deltaV', 'fail', why.burnNoThruster(), 'engineer');
+      add('deltaV.no-thruster', 'deltaV', 'fail', orbit.kind === 'geo' ? why.geoNoThruster() : why.burnNoThruster(), 'engineer');
     } else if (deltaVNeedMs > deltaVHaveMs) {
-      add('deltaV.short', 'deltaV', 'fail', why.deltaVShort(deltaVNeedMs, deltaVHaveMs), 'flight', thrusters.map((p) => p.id));
+      const w = orbit.kind === 'geo' ? why.geoDeltaVShort(deltaVNeedMs, deltaVHaveMs, years) : why.deltaVShort(deltaVNeedMs, deltaVHaveMs);
+      add('deltaV.short', 'deltaV', 'fail', w, 'flight', thrusters.map((p) => p.id));
     }
   }
 

@@ -212,6 +212,14 @@ export const why = {
     why: 'The plan says de-orbit burn, but the craft has no thruster to burn with.',
     hint: 'Add a thruster, or fly low enough to decay naturally.',
   }),
+  geoNoThruster: (): Why => ({
+    why: 'A GEO satellite needs thrusters: without them it drifts out of its slot within months, and it can never reach the graveyard orbit at the end.',
+    hint: 'Add thrusters with enough propellant for the whole mission.',
+  }),
+  geoDeltaVShort: (need: number, have: number, yrs: number): Why => ({
+    why: `A GEO satellite burns fuel every year to stay in its slot: ${years(yrs)} of that plus the move to a graveyard orbit needs ${fmt(need)} m/s, but the thrusters only give ${fmt(have)} m/s.`,
+    hint: 'Carry thrusters with more propellant, or make the craft lighter so the fuel goes further.',
+  }),
   deltaVShort: (need: number, have: number): Why => ({
     why: `No propellant left for the end of the mission: it needs ${fmt(need)} m/s of delta-v, but the thruster only gives ${fmt(have)} m/s, so it stays as debris.`,
     hint: 'Fly lower so less is needed, or carry a lighter craft.',

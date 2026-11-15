@@ -141,6 +141,63 @@
       "tooltip": "Coast guards need to know which ships are where, even far out at sea. A small CubeSat can listen for the radio messages every big ship sends.",
       "source": "estimate",
       "sourceNote": "Based on real AIS CubeSats such as AAUSAT-3, which showed a 1U CubeSat with a simple dipole antenna can receive AIS from low Earth orbit. Budget, schedule and revisit are game estimates."
+    },
+    {
+      "id": "storm-tracker",
+      "name": "Storm Tracker",
+      "objective": "Watch one half of the Earth all the time from geostationary orbit for 10 years, so forecasters can follow storms as they grow.",
+      "difficulty": "medium",
+      "customer": {
+        "name": "Weather forecasters",
+        "needsDataWithinHours": 1
+      },
+      "busIds": [
+        "bus-large"
+      ],
+      "budgetM": 330,
+      "baseOpsCostPerYearM": 3,
+      "launchInMonths": 75,
+      "lifetimeYears": 10,
+      "revisitDays": 0,
+      "criticalResources": [
+        "mass",
+        "budget"
+      ],
+      "goals": [
+        {
+          "id": "follow-storms",
+          "name": "Follow storms as they grow",
+          "measurements": [
+            {
+              "id": "cloud-imagery",
+              "name": "Clouds and moisture, all the time",
+              "why": "Pictures of clouds and water vapour every few minutes show where storms form and how fast they move. This is the GOES-R mission's key measurement.",
+              "instrumentIds": [
+            "weather-imager"
+          ]
+            },
+            {
+              "id": "lightning",
+              "name": "Lightning flashes",
+              "why": "A sudden jump in lightning can warn that a storm is getting stronger, before radar or pictures show it.",
+              "instrumentIds": [
+                "lightning-mapper"
+              ]
+            }
+          ]
+        }
+      ],
+      "mustMeasure": [
+        "cloud-imagery"
+      ],
+      "eventsAllowed": [
+        "solar-storm",
+        "station-outage",
+        "part-failure"
+      ],
+      "tooltip": "A big weather satellite that hovers over one spot and never looks away. It must be light enough for its rocket and fit the budget, and it needs fuel to stay in place for 10 years.",
+      "source": "nasa-goes",
+      "sourceNote": "NASA GOES-R design overview: continuous imagery of the Western Hemisphere from geostationary orbit, a full Earth disk image every 15 minutes, Cloud and Moisture Imagery as the key requirement, data latency no longer than the refresh time, a 120 Mbps raw data downlink and a 15-year fuel requirement. Budget, schedule and lifetime are game estimates sized for one large satellite."
     }
   ]
 }

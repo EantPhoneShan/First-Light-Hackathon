@@ -13,6 +13,10 @@ First Light is an independent student project for the NASA Space Apps Challenge 
 | [A Learning Game About Telescopes](https://science.nasa.gov/mission/webb/game-build-it-yourself/) | Inspiration: science goals decide which instruments are allowed |
 | [NASA Mission Viz](https://nasa.github.io/mission-viz/) | Reference for the orbit and simulation view |
 | [General Mission Analysis Tool (GMAT)](https://software.nasa.gov/software/GSC-19468-1) | Reference for orbit concepts; the game uses simplified maths, not GMAT itself |
+| [State-of-the-Art of Small Spacecraft Technology](https://www.nasa.gov/smallsat-institute/sst-soa/) (NASA Ames) | Checks the part numbers against NASA's ranges: solar panel power, battery Wh/kg, radio data rates, thruster specific impulse |
+| [GOES-R Series space segment overview](https://ntrs.nasa.gov/citations/20170009467) (NASA NTRS) | The Storm Tracker scenario: full-disk image every 15 minutes, cloud and moisture imagery, lightning mapper, 120 Mbps downlink, 15-year fuel requirement |
+
+Which number comes from which source, item by item: [docs/DATA-SOURCES.md](DATA-SOURCES.md).
 
 Numbers in the game are simplified and approximate, for learning only.
 

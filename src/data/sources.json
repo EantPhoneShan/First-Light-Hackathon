@@ -10,6 +10,8 @@
     { "id": "cml", "title": "JPL: Concept Maturity Levels (CML 1 to 4)", "url": "https://dataverse.jpl.nasa.gov/dataset.xhtml?persistentId=hdl:2014/44299" },
     { "id": "mdl", "title": "NASA Goddard: Mission Design Lab", "url": "https://etd.gsfc.nasa.gov/capabilities/integrated-design-center/mission-design-lab/" },
     { "id": "gmat", "title": "NASA General Mission Analysis Tool (GMAT)", "url": "https://software.nasa.gov/software/GSC-19468-1" },
+    { "id": "nasa-soa", "title": "NASA: State-of-the-Art of Small Spacecraft Technology (NASA Ames Small Spacecraft Systems Virtual Institute)", "url": "https://www.nasa.gov/smallsat-institute/sst-soa/" },
+    { "id": "nasa-goes", "title": "NASA: An Overview of the Design and Development of the GOES-R Series Space Segment (NTRS)", "url": "https://ntrs.nasa.gov/citations/20170009467" },
     { "id": "physics", "title": "Standard orbit and rocket formulas (orbit period, eclipse geometry, rocket equation)" },
     { "id": "estimate", "title": "Rounded game estimate (see the note on each item)" }
   ]

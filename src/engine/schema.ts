@@ -7,7 +7,7 @@
  */
 import { z } from 'zod';
 
-const sourceId = z.enum(['challenge', 'cubesat101', 'science-missions', 'cml', 'mdl', 'gmat', 'physics', 'estimate']);
+const sourceId = z.enum(['challenge', 'cubesat101', 'science-missions', 'cml', 'mdl', 'gmat', 'nasa-soa', 'nasa-goes', 'physics', 'estimate']);
 const role = z.enum(['planner', 'science', 'engineer', 'flight']);
 const busSize = z.enum(['cubesat', 'smallsat', 'large']);
 const band = z.enum(['uhf', 's', 'x']);

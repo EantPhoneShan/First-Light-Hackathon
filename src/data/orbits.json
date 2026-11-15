@@ -26,7 +26,7 @@
       "revisitDays": 2,
       "tooltip": "Goes over the poles and passes each place at the same time of day, so every photo has the same lighting. A favourite for Earth-watching satellites.",
       "source": "estimate",
-      "sourceNote": "Typical Earth-observation orbit. Revisit and sun angle are rounded estimates."
+      "sourceNote": "Typical Earth-observation orbit. NASA: Landsat 9 flies a 705 km, 98.2 degree sun-synchronous orbit; the game offers 500 to 650 km for CubeSats. Revisit and sun angle are rounded estimates."
     },
     {
       "id": "geo",

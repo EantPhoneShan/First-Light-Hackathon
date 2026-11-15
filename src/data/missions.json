@@ -50,7 +50,7 @@
       "agency": "NOAA, built with NASA",
       "orbitKind": "geo",
       "busSize": "large",
-      "instrumentIds": ["multispectral-imager"],
+      "instrumentIds": ["weather-imager", "lightning-mapper", "multispectral-imager"],
       "summary": "Weather satellites that hover over one spot from geostationary orbit. The first launched in 2016; their main imager sees 16 bands of light to watch weather all the time.",
       "url": "https://www.nasa.gov/news-release/nasa-successfully-launches-noaa-advanced-geostationary-weather-satellite/",
       "checked": "NASA pages on GOES-R: four satellites (R, S, T, U), first launched November 2016, Advanced Baseline Imager with 16 spectral bands, run by an integrated NOAA-NASA office."

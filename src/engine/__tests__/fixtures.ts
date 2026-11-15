@@ -36,3 +36,13 @@ export const radarBuild: Design = {
   engineer: { busId: 'bus-smallsat', partIds: ['solar-array', 'solar-array', 'battery-pack', 'computer', 'reaction-wheel'] },
   flight: { orbitId: 'sso', altitudeKm: 550, launcherId: 'small-rocket', antennaIds: ['antenna-x'], stationIds: ['station-polar'] },
 };
+
+export const storm: Scenario = findScenario(gameData, 'storm-tracker')!;
+
+/** Storm Tracker 3-star build: both instruments, the medium rocket, enough fuel for 10 years. */
+export const stormBuild: Design = {
+  planner: { weights: { coverage: 0.5, detail: 0.5, lifetime: 0.5 }, disposal: 'graveyard' },
+  science: { goalId: 'follow-storms', measurementId: null, instrumentIds: ['weather-imager', 'lightning-mapper'] },
+  engineer: { busId: 'bus-large', partIds: ['solar-array-large', 'battery-bank', 'computer', 'mass-memory', 'reaction-wheel', 'star-tracker', 'hydrazine-system'] },
+  flight: { orbitId: 'geo', altitudeKm: null, launcherId: 'medium-rocket', antennaIds: ['antenna-x'], stationIds: ['station-network'] },
+};
