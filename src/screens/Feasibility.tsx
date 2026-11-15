@@ -1,9 +1,10 @@
 import { CheckCircle2, ClipboardList, XCircle } from 'lucide-react'
 import { useId, type ReactNode } from 'react'
 import { Screen } from '@/components/Screen'
-import { Term } from '@/components/Term'
+import { DisposalPicker } from '@/components/DisposalPicker'
+import { disposals } from '@/content/disposals'
 import { orbitInfo } from '@/engine/orbit'
-import type { DisposalPlan, PlannerData } from '@/engine/types'
+import type { PlannerData } from '@/engine/types'
 import { gameData, n1, roleNames } from '@/game/ui'
 import { useTeamFlow } from '@/game/teamFlow'
 import { EditGate } from '@/components/LeadButton'
@@ -17,12 +18,6 @@ const weightInfo: { key: keyof PlannerData['weights']; label: string; low: strin
   { key: 'lifetime', label: 'Lifetime: lasting the whole mission', low: 'A short mission is OK', high: 'Must last every planned year' },
 ]
 
-const disposals: { id: DisposalPlan; label: string; what: string }[] = [
-  { id: 'natural-decay', label: 'Let air drag bring it down', what: 'Free, but only works if the orbit is low enough to fall within the time limit.' },
-  { id: 'deorbit-burn', label: 'Fire a thruster at the end', what: 'Needs a thruster and enough fuel (delta-v), but works from any low orbit.' },
-  { id: 'graveyard', label: 'Move to a graveyard orbit', what: 'Only for GEO: push the craft higher, out of the busy ring.' },
-  { id: 'none', label: 'No plan yet', what: 'The craft could stay up as space junk for decades.' },
-]
 
 /**
  * CML 2 Feasibility. F4: the Mission Planner's sliders weight the score. F10: end-of-mission plan.
@@ -32,7 +27,6 @@ export function Feasibility() {
   const scenario = useScenario()
   const planner = useGame((s) => s.design.planner)
   const setWeight = useGame((s) => s.setWeight)
-  const setDisposal = useGame((s) => s.setDisposal)
   const lead = useGame((s) => s.players.find((p) => p.role === 'planner')?.name)
   const ev = useEvaluation()
   const flow = useTeamFlow()
@@ -77,24 +71,7 @@ export function Feasibility() {
             ))}
   
             <div className="border-t border-space-700 pt-4">
-              <h2 className="font-semibold">
-                End-of-mission plan (<Term id="deorbit">de-orbit</Term>)
-              </h2>
-              <p className="text-sm text-muted">Dead satellites must come down within {gameData.disposalRuleYears} years, so they don't become space junk.</p>
-              <div role="radiogroup" aria-label="End-of-mission plan" className="mt-2 flex flex-col gap-2">
-                {disposals.map((d) => (
-                  <button
-                    key={d.id}
-                    role="radio"
-                    aria-checked={planner.disposal === d.id}
-                    onClick={() => setDisposal(d.id)}
-                    className={cn('rounded-lg border p-2.5 text-left text-sm transition-colors', planner.disposal === d.id ? 'border-accent bg-accent/10' : 'border-space-700 hover:border-space-600')}
-                  >
-                    <span className="font-medium">{d.label}</span>
-                    <span className="mt-0.5 block text-xs text-muted">{d.what}</span>
-                  </button>
-                ))}
-              </div>
+              <DisposalPicker />
             </div>
           </EditGate>
         )}

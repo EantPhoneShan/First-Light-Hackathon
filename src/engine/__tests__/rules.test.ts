@@ -61,6 +61,19 @@ describe('rules engine', () => {
     expect(e.compat.instruments['thermal-imager'].ok).toBe(true);
   });
 
+  it('only warns about a burn plan with no thruster when drag brings the craft down in time', () => {
+    // 550 km: drag brings it down in about 12 years, inside the 25-year rule.
+    const low = ev(mod(fixed, (d) => (d.planner.disposal = 'deorbit-burn')));
+    const p = low.problems.find((x) => x.id === 'disposal.burn-not-needed')!;
+    expect(p.status).toBe('warn');
+    expect(p.why).toMatch(/You don’t need one here|You don't need one here/);
+    expect(low.problems.some((x) => x.id === 'deltaV.no-thruster')).toBe(false);
+    expect(low.ready).toBe(true);
+    // 650 km: about 45 years, so the burn is really needed and missing it is red.
+    const high = ev(mod(fixed, (d) => { d.planner.disposal = 'deorbit-burn'; d.flight.altitudeKm = 650; }));
+    expect(high.problems.find((x) => x.id === 'deltaV.no-thruster')!.status).toBe('fail');
+  });
+
   it('greys out a bus too small for the essential parts', () => {
     const e = ev(fixed);
     expect(e.compat.buses['bus-cubesat-6u'].ok).toBe(true);

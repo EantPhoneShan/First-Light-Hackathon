@@ -208,6 +208,10 @@ export const why = {
     why: 'Air drag never brings a craft down from GEO, so it would drift there forever.',
     hint: 'Plan a move to a graveyard orbit, and carry the propellant for it.',
   }),
+  burnNotNeeded: (decay: number, alt: number, rule: number): Why => ({
+    why: `The plan is a de-orbit burn, but there is no thruster. You don't need one here: at ${fmt(alt)} km, air drag brings the craft down in about ${years(decay)}, inside the ${rule}-year rule.`,
+    hint: 'The Mission Planner can switch the end-of-mission plan to natural decay, which saves the slot, mass and power a thruster would use.',
+  }),
   burnNoThruster: (): Why => ({
     why: 'The plan says de-orbit burn, but the craft has no thruster to burn with.',
     hint: 'Add a thruster, or fly low enough to decay naturally.',

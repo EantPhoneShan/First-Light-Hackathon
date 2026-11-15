@@ -248,8 +248,11 @@ export function evaluate(design: Design, scenario: Scenario, data: GameData): Ev
   const deltaVHaveMs = sum(thrusters, (p) => rocketDeltaV(p.ispS ?? 0, massKg, p.propellantKg ?? 0));
   let deltaVNeedMs = 0;
   const plan = design.planner.disposal;
+  // A burn is only REQUIRED in GEO, or when drag alone would leave the craft up too long.
+  let burnRequired = false;
   if (orbit && orb) {
     if (orbit.kind === 'geo') {
+      burnRequired = true;
       if (plan !== 'graveyard') add('disposal.geo', 'disposal', 'fail', why.geoNeedsGraveyard(), 'planner');
       // Staying in the slot for the whole mission, then the move to the graveyard.
       deltaVNeedMs = RULES.geoStationKeepingMsPerYear * years + raiseOrbitDeltaV(orb.altitudeKm, orb.altitudeKm + RULES.graveyardRaiseKm);
@@ -263,10 +266,15 @@ export function evaluate(design: Design, scenario: Scenario, data: GameData): Ev
       if (plan === 'deorbit-burn') {
         const safeAlt = safeDecayAltitudeKm(data.disposalRuleYears, data.decay);
         deltaVNeedMs = lowerPerigeeDeltaV(orb.altitudeKm, safeAlt);
+        burnRequired = staysTooLong;
+        // Planned a burn, but drag already brings the craft down in time: not a
+        // failure, just an unneeded plan (no thruster needed, no power spent on one).
+        if (!staysTooLong && thrusters.length === 0) {
+          add('disposal.burn-not-needed', 'disposal', 'warn', why.burnNotNeeded(orb.decayYears, orb.altitudeKm, data.disposalRuleYears), 'planner');
+        }
       }
     }
-    const needsBurn = orbit.kind === 'geo' || plan === 'deorbit-burn';
-    if (needsBurn && thrusters.length === 0) {
+    if (burnRequired && thrusters.length === 0) {
       add('deltaV.no-thruster', 'deltaV', 'fail', orbit.kind === 'geo' ? why.geoNoThruster() : why.burnNoThruster(), 'engineer');
     } else if (deltaVNeedMs > deltaVHaveMs) {
       const w = orbit.kind === 'geo' ? why.geoDeltaVShort(deltaVNeedMs, deltaVHaveMs, years) : why.deltaVShort(deltaVNeedMs, deltaVHaveMs);

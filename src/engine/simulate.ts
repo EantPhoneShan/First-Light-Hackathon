@@ -202,7 +202,8 @@ function disposalOutcome(design: Design, ev: Evaluation, data: GameData): SimSet
   if (failed) return { ok: false, status: 'warn', why: flight.disposalDebris(decay, data.disposalRuleYears) };
   const plan = design.planner.disposal;
   if (plan === 'graveyard') return { ok: true, status: 'ok', why: flight.disposalGraveyard() };
-  if (plan === 'deorbit-burn') return { ok: true, status: 'ok', why: flight.disposalBurn() };
+  // A burn plan with no thruster still ends well if drag brings the craft down in time.
+  if (plan === 'deorbit-burn' && ev.totals.deltaVHaveMs > 0) return { ok: true, status: 'ok', why: flight.disposalBurn() };
   return { ok: true, status: 'ok', why: flight.disposalDecay(decay) };
 }
 

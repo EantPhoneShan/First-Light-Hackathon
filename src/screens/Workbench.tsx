@@ -11,6 +11,7 @@ import {
 } from '@dnd-kit/core'
 import { Box, Orbit as OrbitIcon, RadioTower, Scale, Wrench, X } from 'lucide-react'
 import { TradeStudy } from '@/components/TradeStudy'
+import { DisposalPicker } from '@/components/DisposalPicker'
 import { Fallback3D } from '@/components/Fallback3D'
 import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
@@ -90,7 +91,7 @@ export function Workbench() {
     { id: 'craft' as const, label: 'Spacecraft', short: 'Craft', icon: Box, missing: !bus },
     { id: 'launch' as const, label: 'Orbit & launch', short: 'Orbit', icon: OrbitIcon, missing: !design.flight.orbitId || !design.flight.launcherId },
     { id: 'ground' as const, label: 'Ground', short: 'Ground', icon: RadioTower, missing: design.flight.stationIds.length === 0 },
-    { id: 'trade' as const, label: 'Trade study', short: 'Trade', icon: Scale, missing: false },
+    { id: 'trade' as const, label: 'Plan & trade', short: 'Plan', icon: Scale, missing: design.planner.disposal === 'none' },
   ]
   // Team play: each player sees only the tabs for their own work. Engineer and Science Lead
   // build the craft; Flight Dynamics does orbit, launch and ground; the Planner runs the trade study.
@@ -208,7 +209,15 @@ export function Workbench() {
           <LaunchPicker />
         </EditGate>
       )}
-      {activeTab === 'trade' && <TradeStudy />}
+      {activeTab === 'trade' && (
+        <div className="flex flex-col gap-6">
+          {/* The Planner can rethink the end-of-mission plan once the design shows what it costs (F10). */}
+          <EditGate can={flow.canEdit('planner')} who={roleNames.planner} className="rounded-xl border border-space-700 bg-space-900 p-4">
+            <DisposalPicker />
+          </EditGate>
+          <TradeStudy />
+        </div>
+      )}
       {activeTab === 'ground' && (
         <EditGate can={flow.canEdit('flight')} who={roleNames.flight}>
           <StationPicker />
