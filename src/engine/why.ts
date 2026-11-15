@@ -292,6 +292,8 @@ export const flight = {
 // ---------------------------------------------------------------------------
 
 export const reason = {
+  busTooSmall: (need: number, slots: number) =>
+    `Too small for this mission: a battery, computer, pointing, radio and an instrument need at least ${need} slots, and it has ${slots}.`,
   launcherNoOrbit: (orbit: string) => `Can’t reach the ${orbit}.`,
   launcherTooSmall: (bus: string) => `Can’t carry a ${bus}.`,
   launcherTooWeak: (mass: number, cap: number) => `Your craft (${fmt(mass)} kg) is over its ${fmt(cap)} kg limit for this orbit.`,

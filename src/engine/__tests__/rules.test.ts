@@ -61,6 +61,14 @@ describe('rules engine', () => {
     expect(e.compat.instruments['thermal-imager'].ok).toBe(true);
   });
 
+  it('greys out a bus too small for the essential parts', () => {
+    const e = ev(fixed);
+    expect(e.compat.buses['bus-cubesat-6u'].ok).toBe(true);
+    if (wildfire.busIds.includes('bus-cubesat-3u')) {
+      expect(e.compat.buses['bus-cubesat-3u']).toEqual({ ok: false, reason: expect.stringMatching(/at least 5 slots, and it has 3/) });
+    }
+  });
+
   it('turns amber under 10% spare (CubeSat 101 reserve)', () => {
     // X-band radio and reaction wheel: about 1% power to spare.
     const e = ev(mod(fixed, (d) => { d.engineer.partIds[4] = 'reaction-wheel'; d.flight.antennaIds = ['antenna-x']; }));
