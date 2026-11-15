@@ -29,7 +29,7 @@ function clean(e: ScoreEntry): ScoreEntry {
   return {
     scenario: String(e.scenario).slice(0, 40),
     score: Math.max(0, Math.min(1000, Math.round(Number(e.score) || 0))),
-    teamName: (String(e.teamName || 'Anonymous').replace(/[^\p{L}\p{N} _.-]/gu, '').trim() || 'Anonymous').slice(0, 24),
+    teamName: (String(e.teamName || 'Anonymous').replace(/[^\p{L}\p{N} _.&-]/gu, '').replace(/\s+/g, ' ').trim() || 'Anonymous').slice(0, 24),
     outcome: String(e.outcome || '').slice(0, 20),
     stars: typeof e.stars === 'number' ? Math.max(0, Math.min(3, Math.round(e.stars))) : undefined,
     roomCode: e.roomCode ?? undefined,

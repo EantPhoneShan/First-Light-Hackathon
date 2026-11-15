@@ -20,9 +20,9 @@ function parseJson(value: unknown): unknown {
   }
 }
 
-/** Same rule as the leaderboard: letters, numbers, spaces, _ . - only, 24 characters. */
+/** Same rule as the leaderboard: letters, numbers, spaces, _ . & - only, single spaces, 24 characters. */
 function cleanName(value: unknown): string {
-  const name = String(value ?? '').replace(/[^\p{L}\p{N} _.-]/gu, '').trim().slice(0, 24);
+  const name = String(value ?? '').replace(/[^\p{L}\p{N} _.&-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 24);
   return name || 'Anonymous';
 }
 
