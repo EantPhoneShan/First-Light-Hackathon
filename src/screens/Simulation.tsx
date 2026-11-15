@@ -287,7 +287,8 @@ export function Simulation() {
             </div>
             <Bar label="Mission progress" value={missionPct} text={`${missionPct.toFixed(missionPct < 1 ? 2 : 0)}% of ${scenario.lifetimeYears} years`} tone="accent" />
 
-            <div className="mt-3 flex items-center gap-1.5">
+            {/* Two rows, so nothing is pushed out of the panel: play / skip / restart, then the speeds */}
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
               <button
                 onClick={() => setPaused((p) => !p)}
                 disabled={ended}
@@ -296,7 +297,7 @@ export function Simulation() {
               >
                 {paused ? <Play className="size-4" /> : <Pause className="size-4" />}
               </button>
-              <div className="flex flex-1 gap-1 rounded-lg bg-space-800 p-1" role="radiogroup" aria-label="Speed">
+              <div className="order-last flex w-full min-w-0 gap-1 rounded-lg bg-space-800 p-1" role="radiogroup" aria-label="Speed">
                 {speeds.map((sp) => (
                   <button
                     key={sp.id}
@@ -304,7 +305,7 @@ export function Simulation() {
                     aria-checked={speed === sp.id}
                     title={sp.label}
                     onClick={() => setSpeed(sp.id)}
-                    className={cn('flex-1 rounded-md px-1 py-2 text-xs transition-colors sm:py-1', speed === sp.id ? 'bg-accent text-space-950' : 'text-muted hover:text-ink')}
+                    className={cn('min-w-0 flex-1 rounded-md px-1 py-2 text-xs transition-colors sm:py-1', speed === sp.id ? 'bg-accent text-space-950' : 'text-muted hover:text-ink')}
                   >
                     {sp.short}
                   </button>
