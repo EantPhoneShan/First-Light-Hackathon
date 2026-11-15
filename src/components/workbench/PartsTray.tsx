@@ -42,7 +42,7 @@ export function PartsTray({ buses, parts, availability, counts, currentBusId, on
       </div>
 
       <div className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Part category">
-        {(['all', 'bus', ...categories] as Tab[]).map((c) => (
+        {(['all', ...(buses.length ? ['bus'] : []), ...categories] as Tab[]).map((c) => (
           <button
             key={c}
             role="tab"

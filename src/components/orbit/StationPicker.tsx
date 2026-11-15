@@ -1,5 +1,6 @@
 import { Check, RadioTower } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
+import { Fallback3D } from '@/components/Fallback3D'
 import { Art } from '@/components/Art'
 import { findOrbit } from '@/engine/data'
 import { gameData } from '@/game/ui'
@@ -83,9 +84,11 @@ export function StationPicker() {
         })}
       </ul>
 
+      <Fallback3D fallback={<p className="rounded-xl border border-dashed border-space-700 p-4 text-center text-sm text-muted">3D isn't available on this device, so the station can't be shown.</p>}>
       <Suspense fallback={<div className="flex h-[260px] items-center justify-center sm:h-[360px] rounded-xl border border-space-700 text-sm text-muted">Loading 3D station…</div>}>
         <Station3D station={shown} active={flight.stationIds.includes(shown.id)} />
       </Suspense>
+      </Fallback3D>
     </div>
   )
 }

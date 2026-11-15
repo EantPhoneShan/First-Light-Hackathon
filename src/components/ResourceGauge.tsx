@@ -81,7 +81,7 @@ export function ResourceGauge({ g, hiddenBy }: { g: Gauge; /** Team play: name o
             transition={{ type: 'spring', stiffness: 120, damping: 18 }}
           />
         </g>
-        <text x="40" y="40" textAnchor="middle" className="fill-ink font-display text-[15px] font-semibold tabular-nums">
+        <text x="40" y="40" textAnchor="middle" className="fill-ink font-mono text-[14px] font-medium tabular-nums">
           {empty ? '–' : g.limit > 0 ? `${Math.round((g.used / g.limit) * 100)}%` : '!'}
         </text>
         <text x="40" y="54" textAnchor="middle" className="fill-muted text-[8px]">

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { BatteryMedium, Database, Moon, Pause, Play, RadioTower, RotateCcw, Satellite, Send, Sun } from 'lucide-react'
+import { BatteryMedium, Database, Moon, Pause, Play, RadioTower, RotateCcw, Satellite, Send, SkipForward, Sun } from 'lucide-react'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Fallback3D } from '@/components/Fallback3D'
 import { drawScene, makeStars, toCanvasAngle } from '@/components/sim/drawScene'
@@ -28,6 +28,7 @@ const speeds = [
   { id: 'day', label: '1 day / 5 s', short: 'Day', perSec: () => 1440 / 5 },
   { id: 'month', label: '1 month / 10 s', short: 'Month', perSec: () => 43800 / 10 },
   { id: 'year', label: '1 year / 30 s', short: 'Year', perSec: () => 525600 / 30 },
+  { id: 'fast', label: '1 year / 6 s (3 years in about 18 s)', short: 'Fast', perSec: () => 525600 / 6 },
 ] as const
 type SpeedId = (typeof speeds)[number]['id']
 
@@ -102,6 +103,19 @@ export function Simulation() {
   }, [setup])
 
   useEffect(restart, [restart])
+
+  // Skip: run the flight forward until an event needs the team, or the mission ends.
+  const skipAhead = useCallback(() => {
+    const s = stateRef.current
+    if (s.done || s.pendingEvent) return
+    const before = s.markers.length
+    stepSim(s, setup, setup.missionMin)
+    // One sound for the jump: the last thing that happened.
+    const last = s.markers.slice(before).at(-1)
+    if (last) markerSound(last)
+    if (s.pendingEvent) play('alert')
+    setFrame((f) => f + 1)
+  }, [setup])
 
   // Main loop: advance the sim by real time x speed, draw, and refresh the dashboard ~12x/s.
   useEffect(() => {
@@ -268,7 +282,7 @@ export function Simulation() {
         <aside className="flex flex-col gap-3">
           <div className="rounded-xl border border-space-700 bg-space-900 p-3">
             <div className="flex items-baseline justify-between">
-              <span className="font-display text-lg font-semibold tabular-nums">{fmtElapsed(s.tMin)}</span>
+              <span className="font-mono text-lg font-medium tabular-nums">{fmtElapsed(s.tMin)}</span>
               <span className="text-xs text-muted tabular-nums">orbit {s.orbits + 1}</span>
             </div>
             <Bar label="Mission progress" value={missionPct} text={`${missionPct.toFixed(missionPct < 1 ? 2 : 0)}% of ${scenario.lifetimeYears} years`} tone="accent" />
@@ -296,6 +310,16 @@ export function Simulation() {
                   </button>
                 ))}
               </div>
+              {/* Jump to the next event card, or straight to the end. Same result as watching: the engine steps the same way. */}
+              <button
+                onClick={skipAhead}
+                disabled={ended || !!card}
+                title="Skip to the next event, or to the end of the mission"
+                aria-label="Skip to the next event or the end"
+                className="rounded-lg bg-space-700 p-2 hover:bg-space-600 disabled:opacity-40"
+              >
+                <SkipForward className="size-4" />
+              </button>
               {!flow.team && (
                 <button onClick={restart} className="rounded-lg bg-space-700 p-2 hover:bg-space-600" aria-label="Restart flight">
                   <RotateCcw className="size-4" />

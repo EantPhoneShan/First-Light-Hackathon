@@ -2,7 +2,8 @@ import { Screen } from '@/components/Screen'
 import { Traceability } from '@/components/Traceability'
 import { RESOURCE_LABELS } from '@/engine/types'
 import { gameData, roleNames } from '@/game/ui'
-import { useScenario } from '@/store/game'
+import { useGame, useScenario } from '@/store/game'
+import { RoleSummary } from '@/components/RoleSummary'
 import { EditGate } from '@/components/LeadButton'
 import { ScenarioPicker } from '@/components/ScenarioPicker'
 import { ShareCode } from '@/components/ShareCode'
@@ -12,6 +13,7 @@ import { Term } from '@/components/Term'
 export function Briefing() {
   const scenario = useScenario()
   const flow = useTeamFlow()
+  const science = useGame((s) => s.design.science)
 
   const facts = [
     ['Data customer', `${scenario.customer.name} (need images within ${scenario.customer.needsDataWithinHours} h)`],
@@ -42,9 +44,33 @@ export function Briefing() {
         </dl>
       </div>
 
-      <EditGate can={flow.canEdit('science')} who={roleNames.science}>
-        <Traceability />
-      </EditGate>
+      {flow.team && !flow.myRoles.includes('science') ? (
+        // Team play: the science choice is the Science Lead's work; others just see the outcome.
+        <RoleSummary role="science">
+          {(() => {
+            const goal = scenario.goals.find((g) => g.id === science.goalId)
+            const m = goal?.measurements.find((x) => x.id === science.measurementId)
+            return goal ? (
+              <>
+                Goal: <b className="text-ink">{goal.name}</b>
+                {m ? (
+                  <>
+                    {' '}· measuring <b className="text-ink">{m.name.toLowerCase()}</b>
+                  </>
+                ) : (
+                  ' · still choosing what to measure'
+                )}
+              </>
+            ) : (
+              'Still choosing the science goal.'
+            )
+          })()}
+        </RoleSummary>
+      ) : (
+        <EditGate can={flow.canEdit('science')} who={roleNames.science}>
+          <Traceability />
+        </EditGate>
+      )}
     </Screen>
   )
 }

@@ -41,6 +41,11 @@ export function Review() {
   // Problems first, then warnings, then the green ones.
   const order = { fail: 0, warn: 1, ok: 2 }
   const sorted = [...checks].sort((a, b) => order[a.status] - order[b.status])
+  // Team play: each player sees the checks for their own work, and can open the whole list.
+  const flow = useTeamFlow()
+  const [showAll, setShowAll] = useState(false)
+  const scoped = flow.team && !showAll
+  const visible = scoped ? sorted.filter((c) => flow.myRoles.includes(c.owner)) : sorted
 
   return (
     <Screen title="Design review" subtitle="Every check, with the reason. Each role signs off before launch." reqs="F12" hideNext>
@@ -60,11 +65,21 @@ export function Review() {
       </div>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <ul className="flex flex-col gap-2" aria-label="Pre-flight checklist">
-          {sorted.map((c) => (
-            <CheckRow key={c.id} c={c} />
-          ))}
-        </ul>
+        <div className="flex flex-col gap-2">
+          {flow.team && (
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className="text-muted">{scoped ? `Your checks (${visible.length} of ${sorted.length})` : `All ${sorted.length} checks`}</span>
+              <button onClick={() => setShowAll((v) => !v)} className="rounded-lg border border-space-600 px-3 py-1.5 text-xs hover:bg-space-800">
+                {scoped ? "Show the whole team's" : 'Only mine'}
+              </button>
+            </div>
+          )}
+          <ul className="flex flex-col gap-2" aria-label="Pre-flight checklist">
+            {visible.map((c) => (
+              <CheckRow key={c.id} c={c} />
+            ))}
+          </ul>
+        </div>
 
         <div className="flex flex-col gap-3 lg:sticky lg:top-[120px] lg:self-start">
           <ShareCode allowLoad={false} />

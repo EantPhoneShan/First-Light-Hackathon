@@ -109,7 +109,7 @@ export function Layout() {
                   )
                   const body = (
                     <>
-                      <span className="tabular-nums">{i + 1}</span>
+                      <span className="font-mono tabular-nums">{String(i + 1).padStart(2, "0")}</span>
                       {step.label}
                       {step.cml && <span className="opacity-70">· {step.cml}</span>}
                     </>

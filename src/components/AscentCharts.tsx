@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react'
+import { memo, useId, useMemo, useState } from 'react'
 import { sampleAt, type AscentProfile, type Sample } from '@/game/ascent'
 import { cn } from '@/lib/cn'
 
@@ -8,7 +8,9 @@ import { cn } from '@/lib/cn'
  * Each chart shows the whole planned profile faintly and the part flown so far
  * in solid colour, with a cursor at "now". Hover a chart to read any moment.
  */
-export function AscentCharts({ profile, now, failed }: { profile: AscentProfile; now: number; failed: boolean }) {
+export const AscentCharts = memo(function AscentCharts({ profile, now: rawNow, failed }: { profile: AscentProfile; now: number; failed: boolean }) {
+  // The parent re-renders every animation frame; the charts only need ~10 updates a second.
+  const now = Math.round(rawNow * 2) / 2
   const s = sampleAt(profile, Math.max(0, now))
   const e = profile.events
   const marks: Mark[] = [
@@ -35,7 +37,7 @@ export function AscentCharts({ profile, now, failed }: { profile: AscentProfile;
       </div>
     </section>
   )
-}
+})
 
 function fmtClock(t: number) {
   const m = Math.floor(t / 60)
@@ -46,8 +48,8 @@ function fmtClock(t: number) {
 function Readout({ label, value, tone, className }: { label: string; value: string; tone?: 'bad'; className?: string }) {
   return (
     <div className={cn('rounded-lg border border-space-700 bg-space-900 px-3 py-2', className)}>
-      <p className="text-[11px] text-muted uppercase">{label}</p>
-      <p className={cn('font-display text-base tabular-nums sm:text-lg', tone === 'bad' ? 'text-bad' : 'text-ink')} aria-live="off">
+      <p className="font-mono text-[10px] tracking-widest text-muted uppercase">{label}</p>
+      <p className={cn('font-mono text-base tabular-nums sm:text-lg', tone === 'bad' ? 'text-bad' : 'text-ink')} aria-live="off">
         {value}
       </p>
     </div>
@@ -80,6 +82,8 @@ function Chart({ title, unit, profile, now, pick, marks, format, note, target }:
   const x = (t: number) => PAD.l + (t / tMax) * (W - PAD.l - PAD.r)
   const y = (v: number) => Hh - PAD.b - (v / yMax) * (Hh - PAD.t - PAD.b)
   const path = (list: Sample[]) => list.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(pick(p)).toFixed(1)}`).join('')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const planned = useMemo(() => path(samples), [samples, yMax])
   const flown = samples.filter((p) => p.t <= now)
   const cur = sampleAt(profile, Math.max(0, Math.min(now, tMax)))
   const shown = hover !== null ? sampleAt(profile, hover) : null
@@ -125,7 +129,7 @@ function Chart({ title, unit, profile, now, pick, marks, format, note, target }:
             </g>
           ))}
           {/* Planned profile (faint), flown so far (solid) */}
-          <path d={path(samples)} fill="none" stroke="var(--color-muted)" strokeOpacity={0.35} strokeWidth={1.5} strokeDasharray="3 3" />
+          <path d={planned} fill="none" stroke="var(--color-muted)" strokeOpacity={0.35} strokeWidth={1.5} strokeDasharray="3 3" />
           {flown.length > 1 && <path d={path(flown)} fill="none" stroke="var(--color-accent)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />}
           {now >= 0 && now <= tMax && <circle cx={x(cur.t)} cy={y(pick(cur))} r={4} fill="var(--color-accent)" stroke="var(--color-space-900)" strokeWidth={2} />}
           {/* Hover crosshair */}

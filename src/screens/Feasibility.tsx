@@ -7,6 +7,7 @@ import type { DisposalPlan, PlannerData } from '@/engine/types'
 import { gameData, n1, roleNames } from '@/game/ui'
 import { useTeamFlow } from '@/game/teamFlow'
 import { EditGate } from '@/components/LeadButton'
+import { RoleSummary } from '@/components/RoleSummary'
 import { cn } from '@/lib/cn'
 import { useEvaluation, useGame, useScenario } from '@/store/game'
 
@@ -44,43 +45,59 @@ export function Feasibility() {
       </p>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <EditGate can={flow.canEdit('planner')} who={roleNames.planner} className="flex flex-col gap-4 rounded-xl border border-space-700 bg-space-900 p-4">
-          <div>
-            <h2 className="font-semibold">What matters most?</h2>
-            <p className="text-sm text-muted">These set how the final score is weighted. You can't max everything: that's the trade-off.</p>
-          </div>
-          {weightInfo.map((w) => (
-            <Slider
-              key={w.key}
-              label={w.label}
-              value={planner.weights[w.key]}
-              onChange={(v) => setWeight(w.key, v)}
-              display={planner.weights[w.key] < 0.34 ? 'Low' : planner.weights[w.key] < 0.67 ? 'Medium' : 'High'}
-              note={planner.weights[w.key] < 0.34 ? w.low : planner.weights[w.key] < 0.67 ? 'Balanced with the others' : w.high}
-            />
-          ))}
-
-          <div className="border-t border-space-700 pt-4">
-            <h2 className="font-semibold">
-              End-of-mission plan (<Term id="deorbit">de-orbit</Term>)
-            </h2>
-            <p className="text-sm text-muted">Dead satellites must come down within {gameData.disposalRuleYears} years, so they don't become space junk.</p>
-            <div role="radiogroup" aria-label="End-of-mission plan" className="mt-2 flex flex-col gap-2">
-              {disposals.map((d) => (
-                <button
-                  key={d.id}
-                  role="radio"
-                  aria-checked={planner.disposal === d.id}
-                  onClick={() => setDisposal(d.id)}
-                  className={cn('rounded-lg border p-2.5 text-left text-sm transition-colors', planner.disposal === d.id ? 'border-accent bg-accent/10' : 'border-space-700 hover:border-space-600')}
-                >
-                  <span className="font-medium">{d.label}</span>
-                  <span className="mt-0.5 block text-xs text-muted">{d.what}</span>
-                </button>
+        {flow.team && !flow.myRoles.includes('planner') ? (
+          // Team play: priorities are the Mission Planner's call; others see what was chosen.
+          <RoleSummary role="planner">
+            <ul className="flex flex-col gap-1">
+              {weightInfo.map((w) => (
+                <li key={w.key}>
+                  {w.label.split(':')[0]}: <b className="text-ink">{planner.weights[w.key] < 0.34 ? 'Low' : planner.weights[w.key] < 0.67 ? 'Medium' : 'High'}</b>
+                </li>
               ))}
+              <li>
+                End of mission: <b className="text-ink">{disposals.find((d) => d.id === planner.disposal)?.label ?? 'not chosen yet'}</b>
+              </li>
+            </ul>
+          </RoleSummary>
+        ) : (
+        <EditGate can={flow.canEdit('planner')} who={roleNames.planner} className="flex flex-col gap-4 rounded-xl border border-space-700 bg-space-900 p-4">
+            <div>
+              <h2 className="font-semibold">What matters most?</h2>
+              <p className="text-sm text-muted">These set how the final score is weighted. You can't max everything: that's the trade-off.</p>
             </div>
-          </div>
-        </EditGate>
+            {weightInfo.map((w) => (
+              <Slider
+                key={w.key}
+                label={w.label}
+                value={planner.weights[w.key]}
+                onChange={(v) => setWeight(w.key, v)}
+                display={planner.weights[w.key] < 0.34 ? 'Low' : planner.weights[w.key] < 0.67 ? 'Medium' : 'High'}
+                note={planner.weights[w.key] < 0.34 ? w.low : planner.weights[w.key] < 0.67 ? 'Balanced with the others' : w.high}
+              />
+            ))}
+  
+            <div className="border-t border-space-700 pt-4">
+              <h2 className="font-semibold">
+                End-of-mission plan (<Term id="deorbit">de-orbit</Term>)
+              </h2>
+              <p className="text-sm text-muted">Dead satellites must come down within {gameData.disposalRuleYears} years, so they don't become space junk.</p>
+              <div role="radiogroup" aria-label="End-of-mission plan" className="mt-2 flex flex-col gap-2">
+                {disposals.map((d) => (
+                  <button
+                    key={d.id}
+                    role="radio"
+                    aria-checked={planner.disposal === d.id}
+                    onClick={() => setDisposal(d.id)}
+                    className={cn('rounded-lg border p-2.5 text-left text-sm transition-colors', planner.disposal === d.id ? 'border-accent bg-accent/10' : 'border-space-700 hover:border-space-600')}
+                  >
+                    <span className="font-medium">{d.label}</span>
+                    <span className="mt-0.5 block text-xs text-muted">{d.what}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </EditGate>
+        )}
 
         <div className="flex flex-col gap-3 rounded-xl border border-space-700 bg-space-900 p-4">
           <div>

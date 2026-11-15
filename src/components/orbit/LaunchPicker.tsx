@@ -1,5 +1,6 @@
 import { CheckCircle2, Rocket, XCircle } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
+import { Fallback3D } from '@/components/Fallback3D'
 import { findBus, findLauncher } from '@/engine/data'
 import { partsOnCraft } from '@/game/ui'
 import { Art } from '@/components/Art'
@@ -94,9 +95,11 @@ export function LaunchPicker() {
       </div>
 
       {shown ? (
+        <Fallback3D fallback={<p className="rounded-xl border border-dashed border-space-700 p-4 text-center text-sm text-muted">3D isn't available on this device, so the rocket can't be shown.</p>}>
         <Suspense fallback={<div className="flex h-[340px] items-center justify-center sm:h-[540px] rounded-xl border border-space-700 text-sm text-muted">Loading 3D rocket…</div>}>
           <Rocket3D launcher={shown} bus={findBus(gameData, design.engineer.busId)} parts={partsOnCraft(design)} />
         </Suspense>
+        </Fallback3D>
       ) : (
         <p className="rounded-xl border border-dashed border-space-700 p-4 text-center text-sm text-muted">Pick a rocket to see it in 3D, with your spacecraft inside.</p>
       )}

@@ -189,7 +189,7 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
           <sphereGeometry args={[0.5, 32, 16]} />
           <meshBasicMaterial color="#fffbe8" toneMapped={false} />
         </mesh>
-        <TextLabel text="☀ Sun" position={[0, -0.8, 0]} anchor="below" color="#ffc94a" px={11} />
+        <TextLabel text="Sun" position={[0, -0.8, 0]} anchor="below" color="#ffc94a" px={11} />
       </group>
       {mode === 'whole' && (
         <group>

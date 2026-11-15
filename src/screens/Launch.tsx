@@ -16,7 +16,8 @@ import { useEvaluation, useGame } from '@/store/game'
 import { play, type Sfx } from '@/lib/sound'
 
 /** Timeline in seconds. Everything in the scene is a pure function of `t`. */
-const T = { liftoff: 3, maxQ: 5, sep: 7, fairing: 8.2, orbit: 9.6, deploy: 11, done: 12.6, fail: 6 }
+// Screen timeline (seconds). The climb out of the air gets more time than before, so the space part plays smoothly.
+const T = { liftoff: 3, maxQ: 5, sep: 7.2, fairing: 8.8, orbit: 11.4, deploy: 12.8, done: 14.6, fail: 6 }
 
 // three.js only downloads on this screen.
 const Launch3D = lazy(() => import('@/three/Launch3D'))

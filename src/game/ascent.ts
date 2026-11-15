@@ -343,17 +343,38 @@ export function flightTime(p: AscentProfile, sceneT: number, T: { liftoff: numbe
         [T.liftoff, 0],
         [T.maxQ, e.maxQ],
         [T.sep, e.stageSep],
-        [T.fairing, e.fairing],
+        // (No fairing key: it comes off only seconds after separation, and a key that
+        // close would make playback crawl then race. The scene times the fairing itself.)
         [T.orbit, e.seco],
         [T.done, e.end],
       ]
   // Keep flight times increasing, whatever order the events came in.
   for (let i = 1; i < keys.length; i++) keys[i][1] = Math.max(keys[i][1], keys[i - 1][1] + 1)
   if (sceneT <= keys[0][0]) return sceneT - T.liftoff
-  for (let i = 1; i < keys.length; i++) {
+  if (sceneT >= keys[keys.length - 1][0]) return keys[keys.length - 1][1]
+
+  // Smooth (monotone cubic) curve through the key moments, so the playback rate
+  // eases from one phase to the next instead of jumping: no sudden lurch of the
+  // Earth or the trail when the flight speeds up in space.
+  const n = keys.length
+  const d: number[] = []
+  for (let i = 0; i < n - 1; i++) d.push((keys[i + 1][1] - keys[i][1]) / (keys[i + 1][0] - keys[i][0]))
+  const m: number[] = new Array(n)
+  // Lift-off starts at walking pace (rate 1:1 with the clock on the pad), not mid-sprint.
+  m[0] = Math.min(d[0], 1)
+  m[n - 1] = d[n - 2]
+  for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (2 * d[i - 1] * d[i]) / (d[i - 1] + d[i]) // harmonic mean keeps it monotone
+  for (let i = 1; i < n; i++) {
     const [t0, f0] = keys[i - 1]
     const [t1, f1] = keys[i]
-    if (sceneT <= t1) return f0 + ((sceneT - t0) / (t1 - t0)) * (f1 - f0)
+    if (sceneT > t1) continue
+    const h = t1 - t0
+    const u = (sceneT - t0) / h
+    const h00 = 2 * u ** 3 - 3 * u ** 2 + 1
+    const h10 = u ** 3 - 2 * u ** 2 + u
+    const h01 = -2 * u ** 3 + 3 * u ** 2
+    const h11 = u ** 3 - u ** 2
+    return h00 * f0 + h10 * h * m[i - 1] + h01 * f1 + h11 * h * m[i]
   }
-  return keys[keys.length - 1][1]
+  return keys[n - 1][1]
 }

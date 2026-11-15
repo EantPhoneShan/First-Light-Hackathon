@@ -3,6 +3,8 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", "Inter", ui-sans-serif, sans-serif;
+  /* Telemetry: numbers and labels that read like a mission-control console */
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Dark space theme: navy + white with orange accents (matches the art style prompt) */
   --color-space-950: #060b1a;
@@ -51,10 +53,6 @@ h3 {
   backdrop-filter: blur(6px);
 }
 
-/* A soft orange glow on the main buttons and the active step, like a lit control panel */
-.bg-accent {
-  box-shadow: 0 0 18px -4px rgb(255 138 61 / 0.55);
-}
 
 @media (prefers-reduced-transparency: reduce) {
   .bg-space-900,

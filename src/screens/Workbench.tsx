@@ -11,6 +11,7 @@ import {
 } from '@dnd-kit/core'
 import { Box, Orbit as OrbitIcon, RadioTower, Scale, Wrench, X } from 'lucide-react'
 import { TradeStudy } from '@/components/TradeStudy'
+import { Fallback3D } from '@/components/Fallback3D'
 import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { LaunchPicker } from '@/components/orbit/LaunchPicker'
@@ -83,12 +84,23 @@ export function Workbench() {
     if (!canEditPart(p)) availability[p.id] = { ok: false, reason: `Only the ${roleNames[CATEGORY_OWNER[p.category]]} adds this.` }
   }
 
-  const tabs = [
+  const allTabs = [
     { id: 'craft' as const, label: 'Spacecraft', short: 'Craft', icon: Box, missing: !bus },
     { id: 'launch' as const, label: 'Orbit & launch', short: 'Orbit', icon: OrbitIcon, missing: !design.flight.orbitId || !design.flight.launcherId },
     { id: 'ground' as const, label: 'Ground', short: 'Ground', icon: RadioTower, missing: design.flight.stationIds.length === 0 },
     { id: 'trade' as const, label: 'Trade study', short: 'Trade', icon: Scale, missing: false },
   ]
+  // Team play: each player sees only the tabs for their own work. Engineer and Science Lead
+  // build the craft; Flight Dynamics does orbit, launch and ground; the Planner runs the trade study.
+  const mine = flow.myRoles
+  const ownsTab = (id: Tab) =>
+    id === 'craft' ? mine.includes('engineer') || mine.includes('science') : id === 'trade' ? mine.includes('planner') : mine.includes('flight')
+  const tabs = flow.team ? allTabs.filter((t) => ownsTab(t.id)) : allTabs
+  const shown = tabs.length ? tabs : allTabs.slice(0, 1)
+  const activeTab: Tab = shown.some((t) => t.id === tab) ? tab : shown[0].id
+  // ...and the parts tray holds only the parts this player adds.
+  const trayParts = flow.team ? gameData.parts.filter(canEditPart) : gameData.parts
+  const trayBuses = flow.team && !canBus ? [] : buses
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -165,15 +177,15 @@ export function Workbench() {
       )}
 
       <div className="flex gap-1 rounded-xl border border-space-700 bg-space-900 p-1" role="tablist" aria-label="Mission segment">
-        {tabs.map((t) => (
+        {shown.map((t) => (
           <button
             key={t.id}
             role="tab"
-            aria-selected={tab === t.id}
+            aria-selected={activeTab === t.id}
             onClick={() => setTab(t.id)}
             className={cn(
               'flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-1.5 py-2 text-xs font-medium transition-colors sm:px-2 sm:text-sm',
-              tab === t.id ? 'bg-accent text-space-950' : 'text-muted hover:bg-space-800 hover:text-ink',
+              activeTab === t.id ? 'bg-accent text-space-950' : 'text-muted hover:bg-space-800 hover:text-ink',
             )}
           >
             <t.icon className="size-4 shrink-0" aria-hidden />
@@ -188,20 +200,20 @@ export function Workbench() {
         ))}
       </div>
 
-      {tab === 'launch' && (
+      {activeTab === 'launch' && (
         <EditGate can={flow.canEdit('flight')} who={roleNames.flight} className="flex flex-col gap-8">
           <OrbitPicker />
           <LaunchPicker />
         </EditGate>
       )}
-      {tab === 'trade' && <TradeStudy />}
-      {tab === 'ground' && (
+      {activeTab === 'trade' && <TradeStudy />}
+      {activeTab === 'ground' && (
         <EditGate can={flow.canEdit('flight')} who={roleNames.flight}>
           <StationPicker />
         </EditGate>
       )}
 
-      {tab === 'craft' && (
+      {activeTab === 'craft' && (
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="rounded-xl border border-space-700 bg-[radial-gradient(circle_at_50%_40%,var(--color-space-800),var(--color-space-900)_70%)] p-4">
@@ -223,6 +235,8 @@ export function Workbench() {
               </div>
             </div>
             {view === '3d' ? (
+              // No WebGL on this device? Fall back to the 2D slot view instead of crashing the page.
+              <Fallback3D fallback={<Spacecraft bus={bus} parts={onCraft} problemIds={refly?.partIds} onRemove={remove} onRemoveBus={() => (setBus(null), play('remove'))} canRemove={canEditPart} canRemoveBus={canBus} />}>
               <CraftDrop className="mt-3">
                 <Suspense fallback={<div className="flex h-[320px] items-center justify-center text-sm text-muted sm:h-[480px]">Loading 3D view…</div>}>
                   <Craft3D
@@ -239,12 +253,13 @@ export function Workbench() {
                   />
                 </Suspense>
               </CraftDrop>
+              </Fallback3D>
             ) : (
               <Spacecraft bus={bus} parts={onCraft} problemIds={refly?.partIds} onRemove={remove} onRemoveBus={() => (setBus(null), play('remove'))} canRemove={canEditPart} canRemoveBus={canBus} />
             )}
           </div>
 
-          <PartsTray buses={buses} parts={gameData.parts} availability={availability} counts={counts} currentBusId={design.engineer.busId} onAdd={add} busLocked={canBus ? undefined : `Only the ${roleNames.engineer} picks the bus.`} />
+          <PartsTray buses={trayBuses} parts={trayParts} availability={availability} counts={counts} currentBusId={design.engineer.busId} onAdd={add} busLocked={canBus ? undefined : `Only the ${roleNames.engineer} picks the bus.`} />
         </div>
 
         <DragOverlay dropAnimation={null}>
