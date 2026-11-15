@@ -29,6 +29,8 @@ export interface OrbitView {
   inEclipse: boolean
   downlinking: boolean
   alive: boolean
+  /** How fast the craft may be shown going round, in laps per second (rises with the chosen flight speed). */
+  lapsPerSec?: number
 }
 
 export interface Orbit3DProps {
@@ -64,7 +66,7 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
   // Smooth, forward-only motion: the simulation's angle wraps 0-360 and, at fast
   // speeds, jumps most of a lap per frame (which looks like going backwards).
   // We unwrap it and let the drawn craft chase it at a watchable pace.
-  const track = useRef({ lastRaw: NaN, lastT: -1, sim: 0, vis: 0, earthVis: 0 })
+  const track = useRef({ lastRaw: NaN, lastT: -1, sim: 0, vis: 0, earthVis: 0, rate: 144 })
   const puff = useMemo(() => puffTexture(), [])
   const scale = bus ? CRAFT_SIZE / Math.max(...busGeom(bus).size) : 1
 
@@ -98,7 +100,11 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
       tr.vis += Math.floor(gap / 360) * 360
       gap = tr.sim - tr.vis
     }
-    tr.vis += Math.min(gap, 140 * delta) // at most ~a lap every 2.5 s
+    // The faster the chosen flight speed, the faster the craft is shown going round
+    // (eased, so changing speed spins it up or down instead of jerking).
+    const wantRate = (v.lapsPerSec ?? 0.4) * 360
+    tr.rate += (wantRate - tr.rate) * (1 - Math.exp(-delta * 3))
+    tr.vis += Math.min(gap, tr.rate * delta)
     const a = (tr.vis * Math.PI) / 180
     const pos = new THREE.Vector3(Math.cos(a) * R, 0, -Math.sin(a) * R).applyQuaternion(tilt)
     const vel = new THREE.Vector3(-Math.sin(a), 0, -Math.cos(a)).applyQuaternion(tilt)
@@ -111,7 +117,7 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
       let eg = target - tr.earthVis
       if (eg > Math.PI * 2) tr.earthVis += Math.floor(eg / (Math.PI * 2)) * Math.PI * 2
       eg = target - tr.earthVis
-      tr.earthVis += Math.max(0, Math.min(eg, 0.5 * delta))
+      tr.earthVis += Math.max(0, Math.min(eg, (tr.rate / 360) * 1.25 * delta))
       earth.current.rotation.y = tr.earthVis
     }
 

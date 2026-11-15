@@ -14,6 +14,11 @@ interface Step {
   /** The one thing to do now, in a few words. Shown on its own line so it can't be missed. */
   task?: ReactNode
   action?: { label: string; to: string }
+  /**
+   * A button on the page that this step is waiting for (by its text). The card shows its
+   * own copy, which presses the real one, so the next move is always inside the card.
+   */
+  press?: string
 }
 
 const TOTAL = 6
@@ -33,13 +38,13 @@ interface Spot {
 }
 const SPOTS: Record<string, Spot[]> = {
   meet: [{ css: '[data-tour="gauge-power"]' }],
-  launch: [{ css: 'button', text: 'Go to orbit' }],
-  launch2: [{ css: 'button', text: 'Go to orbit' }],
+  // (Launch has no spot: the page stays on the rocket from the pad to orbit, and the
+  // card carries its own Go to orbit button.)
   fly: [{ css: '[role="meter"][aria-label="Battery"]', up: 1 }],
   fly2: [{ css: '[role="radiogroup"][aria-label="Speed"]' }],
   report: [
     { css: 'h2', text: 'Why it happened', up: 1 },
-    { css: 'button', text: 'Modify and re-fly' },
+    { css: 'button:not(:disabled)', text: 'Modify and re-fly' },
   ],
   fix: [{ css: '[role="tab"]', text: 'Battery' }],
   ready: [{ css: '[data-tour="gauge-power"]' }],
@@ -50,6 +55,24 @@ function findSpot(sp: Spot): Element | null {
   let el: Element | null | undefined = sp.text ? all.find((e) => e.textContent?.trim() === sp.text || e.textContent?.includes(sp.text!)) : all[0]
   for (let i = 0; el && i < (sp.up ?? 0); i++) el = el.parentElement
   return el ?? null
+}
+
+/** The enabled button on the page (outside the guide card) with this text. */
+function pageButton(text: string): HTMLButtonElement | null {
+  const all = Array.from(document.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'))
+  return all.find((b) => !b.closest('[data-guide]') && b.textContent?.trim() === text) ?? null
+}
+
+/** True once the page's own button with this text can be pressed. */
+function usePageButtonReady(text: string | undefined) {
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    setReady(false)
+    if (!text) return
+    const id = window.setInterval(() => setReady(!!pageButton(text)), 300)
+    return () => window.clearInterval(id)
+  }, [text])
+  return ready
 }
 
 /** Make the step's targets glow (and bring the first into view). Keeps looking, since some appear later. */
@@ -110,6 +133,11 @@ export function TutorialGuide() {
   // Open the card again whenever the step changes.
   useEffect(() => setCollapsed(false), [step?.id])
   useSpotlight(pathname === '/learn' ? undefined : step?.id)
+  const pressReady = usePageButtonReady(step?.press)
+  // Each screen of the tutorial starts at its top (the launch starts on the pad, not at the charts below).
+  useEffect(() => {
+    if (tutorial) window.scrollTo({ top: 0 })
+  }, [pathname, tutorial])
   // Leave room under the page so the card never sits on top of the button it points at.
   const open = !!step && !collapsed && pathname !== '/learn'
   useEffect(() => {
@@ -146,6 +174,7 @@ export function TutorialGuide() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
             aria-label="Mission guide"
+            data-guide
             aria-live="polite"
             className="pointer-events-auto w-full max-w-sm rounded-xl border border-accent/60 bg-space-900/95 p-4 shadow-2xl backdrop-blur"
           >
@@ -180,6 +209,18 @@ export function TutorialGuide() {
                 <MousePointerClick className="mt-0.5 size-4 shrink-0" aria-hidden />
                 <span>{step.task}</span>
               </p>
+            )}
+            {step.press && (
+              <div className="mt-3 flex justify-end">
+                <button
+                  disabled={!pressReady}
+                  onClick={() => pageButton(step.press!)?.click()}
+                  className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-space-950 hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {step.press}
+                  <ArrowRight className="size-4" aria-hidden />
+                </button>
+              </div>
             )}
             {(step.action || step.id === 'done') && (
               <div className="mt-3 flex justify-end">
@@ -281,7 +322,8 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
             The rocket climbs through <Term id="max-q">Max Q</Term>, drops its first stage, then opens the <Term id="fairing">fairing</Term> to release your craft.
           </>
         ),
-        task: <>Wait for the craft to reach orbit, then press the glowing <b>Go to orbit</b> button.</>,
+        task: <>Watch the launch from the pad. When the craft is in orbit, press <b>Go to orbit</b>.</>,
+        press: 'Go to orbit',
       }
 
     case '/sim':
@@ -322,6 +364,7 @@ function pickStep(path: string, flown: boolean, dead: boolean, fixed: boolean, w
         title: 'Find out why',
         body: <>The battery was too small for the time in shadow.</>,
         task: <>Read the glowing <b>Why it happened</b> box, then press <b>Modify and re-fly</b>.</>,
+        press: 'Modify and re-fly',
       }
 
     default:

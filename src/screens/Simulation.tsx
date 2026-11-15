@@ -24,11 +24,11 @@ const Orbit3D = lazy(() => import('@/three/Orbit3D'))
 
 /** Playback speeds in simulated minutes per real second (PRD: 1 orbit in a few s, 1 year in ~30 s). */
 const speeds = [
-  { id: 'orbit', label: '1 orbit / 4 s', short: 'Orbit', perSec: (p: number) => p / 4 },
-  { id: 'day', label: '1 day / 5 s', short: 'Day', perSec: () => 1440 / 5 },
-  { id: 'month', label: '1 month / 10 s', short: 'Month', perSec: () => 43800 / 10 },
-  { id: 'year', label: '1 year / 30 s', short: 'Year', perSec: () => 525600 / 30 },
-  { id: 'fast', label: '1 year / 6 s (3 years in about 18 s)', short: 'Fast', perSec: () => 525600 / 6 },
+  { id: 'orbit', laps: 0.4, label: '1 orbit / 4 s', short: 'Orbit', perSec: (p: number) => p / 4 },
+  { id: 'day', laps: 0.6, label: '1 day / 5 s', short: 'Day', perSec: () => 1440 / 5 },
+  { id: 'month', laps: 0.9, label: '1 month / 10 s', short: 'Month', perSec: () => 43800 / 10 },
+  { id: 'year', laps: 1.3, label: '1 year / 30 s', short: 'Year', perSec: () => 525600 / 30 },
+  { id: 'fast', laps: 2.0, label: '1 year / 6 s (3 years in about 18 s)', short: 'Fast', perSec: () => 525600 / 6 },
 ] as const
 type SpeedId = (typeof speeds)[number]['id']
 
@@ -214,7 +214,7 @@ export function Simulation() {
             <Fallback3D fallback={<canvas ref={canvasRef} className="block h-full w-full" aria-label="Spacecraft orbiting Earth" role="img" />}>
               <Suspense fallback={<canvas ref={canvasRef} className="block h-full w-full" aria-label="Spacecraft orbiting Earth" role="img" />}>
                 <Orbit3D
-                  getView={() => ({ tMin: stateRef.current.tMin, angleDeg: stateRef.current.orbitAngleDeg, inEclipse: stateRef.current.inEclipse, downlinking: stateRef.current.downlinking, alive: stateRef.current.alive })}
+                  getView={() => ({ tMin: stateRef.current.tMin, angleDeg: stateRef.current.orbitAngleDeg, inEclipse: stateRef.current.inEclipse, downlinking: stateRef.current.downlinking, alive: stateRef.current.alive, lapsPerSec: speeds.find((x) => x.id === speedRef.current)?.laps })}
                   altitudeKm={altitudeKm}
                   inclinationDeg={orbit?.inclinationDeg ?? 50}
                   bus={findBus(gameData, design.engineer.busId)}
@@ -287,7 +287,8 @@ export function Simulation() {
             </div>
             <Bar label="Mission progress" value={missionPct} text={`${missionPct.toFixed(missionPct < 1 ? 2 : 0)}% of ${scenario.lifetimeYears} years`} tone="accent" />
 
-            <div className="mt-3 flex items-center gap-1.5">
+            {/* Two rows, so nothing is pushed out of the panel: play / skip / restart, then the speeds */}
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
               <button
                 onClick={() => setPaused((p) => !p)}
                 disabled={ended}
@@ -296,7 +297,7 @@ export function Simulation() {
               >
                 {paused ? <Play className="size-4" /> : <Pause className="size-4" />}
               </button>
-              <div className="flex flex-1 gap-1 rounded-lg bg-space-800 p-1" role="radiogroup" aria-label="Speed">
+              <div className="order-last flex w-full min-w-0 gap-1 rounded-lg bg-space-800 p-1" role="radiogroup" aria-label="Speed">
                 {speeds.map((sp) => (
                   <button
                     key={sp.id}
@@ -304,7 +305,7 @@ export function Simulation() {
                     aria-checked={speed === sp.id}
                     title={sp.label}
                     onClick={() => setSpeed(sp.id)}
-                    className={cn('flex-1 rounded-md px-1 py-2 text-xs transition-colors sm:py-1', speed === sp.id ? 'bg-accent text-space-950' : 'text-muted hover:text-ink')}
+                    className={cn('min-w-0 flex-1 rounded-md px-1 py-2 text-xs transition-colors sm:py-1', speed === sp.id ? 'bg-accent text-space-950' : 'text-muted hover:text-ink')}
                   >
                     {sp.short}
                   </button>

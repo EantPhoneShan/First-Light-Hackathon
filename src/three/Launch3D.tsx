@@ -171,6 +171,9 @@ function Scene({ getT, T, fails, launcher, bus, parts, profile }: Launch3DProps)
   const craftH = bus ? busGeom(bus).size[1] : 0.3
   const s2Top = st.payload
 
+  // Tilt at first-stage cut-off: where the steady turn to level flight starts from.
+  const mecoPitch = useMemo(() => Math.min(88, sampleAt(profile, profile.events.meco).pitchDeg), [profile])
+
   useFrame((state, delta) => {
     const t = getT()
     const tau = flightTime(profile, t, T, fails)
@@ -205,9 +208,17 @@ function Scene({ getT, T, fails, launcher, bus, parts, profile }: Launch3DProps)
       pad.current.visible = alt < 25e3
     }
 
-    // Rocket attitude from the pitch program; tilts toward +x (downrange).
+    // Rocket attitude: tilts toward +x (downrange), one steady turn from upright on the pad
+    // to level in orbit. The first stage follows its pitch program; after that the real
+    // guidance steers the thrust up and down to hit the orbit, which on screen reads as the
+    // rocket nodding, so the upper stage is shown easing over to the horizon instead.
     if (rocket.current) {
-      rocket.current.rotation.z = (-s.pitchDeg * Math.PI) / 180
+      const k = clamp((tau - e.meco) / Math.max(1, e.seco - e.meco))
+      const shown = tau <= e.meco ? Math.min(s.pitchDeg, mecoPitch) : mecoPitch + (90 - mecoPitch) * (k * k * (3 - 2 * k))
+      const want = (-shown * Math.PI) / 180
+      const cur = rocket.current.rotation.z
+      // Glide to it, so no single frame turns the rocket sharply (snap on Skip / replay).
+      rocket.current.rotation.z = Math.abs(want - cur) > 0.6 ? want : cur + (want - cur) * (1 - Math.exp(-delta * 8))
       rocket.current.visible = !exploded || t < T.fail + 0.12
     }
 
