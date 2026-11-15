@@ -49,7 +49,7 @@
       "tooltip": "Twelve 10 cm cubes, about the size of a big shoebox. Room for bigger instruments, but heavier and pricier to build and launch.",
       "learnMoreUrl": "https://www.nasa.gov/wp-content/uploads/2017/03/nasa_csli_cubesat_101_508.pdf",
       "source": "cubesat101",
-      "sourceNote": "1U is a 10 cm cube of about 1 to 2 kg; 12U craft are usually limited to about 24 kg by their deployers. Price and build time are game estimates."
+      "sourceNote": "CubeSat 101: 1U is a 10 cm cube of about 1 to 1.33 kg, and 12U is one of the larger common sizes. The 24 kg limit is a rounded estimate of what 12U deployers allow; price and build time are game estimates."
     },
     {
       "id": "bus-smallsat",

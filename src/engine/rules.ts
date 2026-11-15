@@ -336,6 +336,7 @@ export function evaluate(design: Design, scenario: Scenario, data: GameData): Ev
   ) as Record<ResourceId, Gauge>;
 
   const compat: Compatibility = {
+    buses: busLocks(data, scenario),
     launchers: launcherLocks(data.launchers, bus, orbit, massKg),
     orbits: orbitLocks(data, scenario, bus),
     instruments: instrumentAvail,
@@ -395,6 +396,24 @@ function scienceLocks(design: Design, scenario: Scenario, data: GameData): Recor
     if (allowed.has(p.id)) out[p.id] = { ok: true };
     else if (measurement) out[p.id] = { ok: false, reason: why.instrumentOffGoal(p.name, measurement.name).why };
     else out[p.id] = { ok: false, reason: why.instrumentOffMission(p.name).why };
+  }
+  return out;
+}
+
+/** Parts every craft needs, one of each (solar mounts outside, so it takes no slot). */
+const ESSENTIAL: Part['category'][] = ['battery', 'computer', 'adcs', 'antenna'];
+
+/** A bus is greyed out when even the smallest essential parts can't fit in it. */
+function busLocks(data: GameData, scenario: Scenario): Record<string, Availability> {
+  const instrumentIds = new Set(scenario.goals.flatMap((g) => g.measurements.flatMap((m) => m.instrumentIds)));
+  const out: Record<string, Availability> = {};
+  for (const b of data.buses.filter((x) => scenario.busIds.includes(x.id))) {
+    const fits = (p: Part) => !p.fits || p.fits.includes(b.size);
+    const minSlots = (ps: Part[]) => (ps.length ? Math.min(...ps.map((p) => p.slots)) : 0);
+    const need =
+      ESSENTIAL.reduce((s, c) => s + minSlots(data.parts.filter((p) => p.category === c && fits(p))), 0) +
+      minSlots(data.parts.filter((p) => p.category === 'instrument' && instrumentIds.has(p.id) && fits(p)));
+    out[b.id] = need > b.slots ? { ok: false, reason: reason.busTooSmall(need, b.slots) } : { ok: true };
   }
   return out;
 }

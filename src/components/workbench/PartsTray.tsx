@@ -61,7 +61,7 @@ export function PartsTray({ buses, parts, availability, counts, currentBusId, on
       <ul className="mt-2 flex max-h-[460px] flex-col gap-1.5 overflow-y-auto pr-1">
         {showBuses &&
           buses.map((b) => (
-            <TrayItem key={b.id} kind="bus" id={b.id} item={b} count={b.id === currentBusId ? 1 : 0} locked={busLocked} onAdd={onAdd}>
+            <TrayItem key={b.id} kind="bus" id={b.id} item={b} count={b.id === currentBusId ? 1 : 0} locked={busLocked ?? (availability[b.id]?.ok === false ? availability[b.id].reason ?? 'Not available' : undefined)} onAdd={onAdd}>
               <Stats item={b} extra={`${b.slots} slots · carries ${n1(b.maxMassKg)} kg`} />
             </TrayItem>
           ))}

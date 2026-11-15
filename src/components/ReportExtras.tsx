@@ -33,6 +33,7 @@ export function RealMissionCard({ flight }: { flight: FlightResult }) {
         Read about {m.name} on NASA's site
         <ExternalLink className="size-3.5" aria-hidden />
       </a>
+      <p className="mt-2 text-xs text-muted">{match.disclaimer}</p>
     </section>
   )
 }

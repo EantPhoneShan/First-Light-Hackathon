@@ -75,6 +75,8 @@ export function Workbench() {
   // A part can be added when the engine allows one more, and (instruments) when it serves the science goal (F3).
   const availability: Record<string, Availability> = { ...ev.compat.parts }
   for (const [id, a] of Object.entries(ev.compat.instruments)) if (!a.ok) availability[id] = a
+  // Buses too small for even the essential parts (Member 1's compat.buses).
+  for (const [id, a] of Object.entries(ev.compat.buses ?? {})) if (!a.ok) availability[id] = a
 
   // Team flow: each role builds only its own part of the craft (engine/flow.ts canEditSection).
   const flow = useTeamFlow()

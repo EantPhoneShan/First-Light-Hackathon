@@ -468,6 +468,8 @@ export interface Availability {
 }
 
 export interface Compatibility {
+  /** Buses too small to hold even the essential parts are greyed out. */
+  buses: Record<string, Availability>;
   launchers: Record<string, Availability>;
   orbits: Record<string, Availability>;
   instruments: Record<string, Availability>;
