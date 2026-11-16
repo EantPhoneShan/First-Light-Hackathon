@@ -164,9 +164,10 @@ function Scene({ getView, altitudeKm, inclinationDeg, bus, parts, stations, mode
     // the camera once (Earth, Sun and sunlight in shot), then the mouse is in charge.
     if (mode === 'follow') {
       const want = pos.clone().addScaledVector(vel, -0.22).addScaledVector(down, -0.07).add(new THREE.Vector3(0, 0.03, 0))
-      const jump = camera.position.distanceTo(want) > 2
-      camera.position.lerp(want, jump ? 1 : 1 - Math.exp(-delta * 3))
-      camTarget.current.lerp(pos, jump ? 1 : 1 - Math.exp(-delta * 5))
+      // Ride with the craft, locked to it. (Easing toward it fell further behind the faster
+      // the craft went, until on the quick speeds it flew right out of the picture.)
+      camera.position.copy(want)
+      camTarget.current.copy(pos)
       camera.lookAt(camTarget.current)
       placed.current = false
     } else if (!placed.current) {
